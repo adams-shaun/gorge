@@ -48,6 +48,9 @@ func (s *State) eachStaticOf(k *prep, keep []bool, f func(st statSrc) bool) {
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()
 		if keep != nil && !keep[s.cardAt(sl)] {
+			if !s.pileStatics(k, sl, keep, 0, false, f) {
+				return // CR 702.140d: a pile's under cards (kw_mutateunion.go)
+			}
 			continue
 		}
 		lost := s.genLost(k, sl)
@@ -63,6 +66,9 @@ func (s *State) eachStaticOf(k *prep, keep []bool, f func(st statSrc) bool) {
 					return
 				}
 			}
+		}
+		if !s.pileStatics(k, sl, keep, 0, false, f) {
+			return // CR 702.140d: a pile's under cards (kw_mutateunion.go)
 		}
 	}
 	for pp := uint8(0); pp < s.nSeats(); pp++ {
@@ -821,7 +827,7 @@ func (s *State) kwGen(k *prep, sl Slot) kop.KwMask {
 	var m kop.KwMask
 	lts, lost := s.lossAt(k, sl)
 	if !lost {
-		m = k.cards[s.cardAt(sl)].kw
+		m = k.cards[s.cardAt(sl)].kw | s.pileKw(k, sl) // CR 702.140d: a pile's under cards (kw_mutateunion.go)
 	}
 	m |= p.eotKw | p.ovr.kw
 	if s.fxM.has(sl) {

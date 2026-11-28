@@ -264,7 +264,7 @@ func (s *State) unlock(k *prep, o Obj, p uint8, fi uint8) {
 	}
 	s.paySpecial(k, p, &cost, kop.SpmUnlock, sl, 0)
 	s.touchSl(sl)
-	s.subscribe(sl, &k.cards[pm.card], false)
+	s.subscribeTop(k, sl, &k.cards[pm.card], false)
 	c := cd.Faces[kop.RoomState(cd.Face, m|1<<fi)]
 	ob.card, pm.card = c, c
 	s.subscribe(sl, &k.cards[c], true)

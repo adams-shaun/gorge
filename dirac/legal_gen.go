@@ -187,6 +187,8 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 	}
 	// gained activated abilities (GainsAbilitiesOf$, static_gainsof.go)
 	s.gainedAbilities(k, d, p, sorc, &av)
+	// a pile's under cards' activated abilities (CR 702.140d, kw_mutateunion.go)
+	s.pileActivations(k, d, p, sorc, &av)
 }
 
 // offerPlay offers playing card object o through a permission.
@@ -1308,7 +1310,7 @@ func (s *State) priorityGenReadsAv(k *prep, p uint8) bool {
 		k.manaOne || g.anyTapExtra || g.anyContGrant || len(g.grantPC) != 0 || g.anyTapsDefer ||
 		k.availExt || k.painMana || s.g.availX&3 != 0 ||
 		g.anyGrant && s.ctrlM[p].any() && s.grantsLive(k) || g.uses.has(useGainsOf) ||
-		g.uses.has(useOffKwGrant) || g.uses.has(useCyclingGrant)
+		g.uses.has(useOffKwGrant) || g.uses.has(useCyclingGrant) || g.anyMutate || g.anyMerge
 }
 
 // tgtSource is the spell or ability the current targeting is for (the entry

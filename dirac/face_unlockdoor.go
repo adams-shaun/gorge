@@ -144,7 +144,7 @@ func (s *State) unlockDoorApply(k *prep, sl Slot, lock bool, fi uint8) {
 		nm = m &^ bit
 	}
 	s.touchSl(sl)
-	s.subscribe(sl, &k.cards[pm.card], false)
+	s.subscribeTop(k, sl, &k.cards[pm.card], false)
 	c := cd.Faces[kop.RoomState(cd.Face, nm)]
 	ob := &s.objs[pm.obj]
 	ob.card, pm.card = c, c

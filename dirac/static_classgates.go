@@ -128,6 +128,9 @@ func (s *State) eachStaticC(k *prep, cls uint16, f func(st statSrc) bool) {
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()
 		if k.gen.sCls[s.cardAt(sl)]&cls == 0 {
+			if !s.pileStatics(k, sl, nil, cls, true, f) {
+				return // CR 702.140d: a pile's under cards (kw_mutateunion.go)
+			}
 			continue
 		}
 		lost := s.genLost(k, sl)
@@ -143,6 +146,9 @@ func (s *State) eachStaticC(k *prep, cls uint16, f func(st statSrc) bool) {
 					return
 				}
 			}
+		}
+		if !s.pileStatics(k, sl, nil, cls, true, f) {
+			return
 		}
 	}
 	for pp := uint8(0); pp < s.nSeats(); pp++ {
@@ -163,6 +169,17 @@ func (s *State) eachStaticC(k *prep, cls uint16, f func(st statSrc) bool) {
 	}
 }
 
+// mayPlayZoneOf is the zones a's StatMayPlayFrom static (a battlefield
+// source's) opens to a seat: mine when the seat controls the source, active
+// when it is the active seat.
+func mayPlayZoneOf(a *kop.Ability, mine, active bool) uint16 {
+	if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom && a.Static.StFlags&(kop.StFunctionsInGraveyard|kop.StFunctionsInExile) == 0 &&
+		(mine || a.Static.StFlags&kop.StSeatActive != 0 && active) {
+		return mayPlayZoneBits(&a.Static)
+	}
+	return 0
+}
+
 // mayPlayZones is the zones (bit per kop.Zone) from which some
 // StatMayPlayFrom static in force, controlled by p, lets p play a card
 // (before its condition and filter): priorityMayPlay asks mayPlayStatics
@@ -172,18 +189,18 @@ func (s *State) mayPlayZones(k *prep, p uint8) uint16 {
 	z := uint16(0)
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()
-		if k.gen.sCls[s.cardAt(sl)]&sclsMayPlay == 0 || s.genLost(k, sl) {
+		if s.statClsAt(k, sl)&sclsMayPlay == 0 || s.genLost(k, sl) {
 			continue
 		}
 		cd := &k.t.Cards[s.cardAt(sl)]
 		mine := s.perms[sl].ctrl == p
 		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom && a.Static.StFlags&(kop.StFunctionsInGraveyard|kop.StFunctionsInExile) == 0 &&
-				(mine || a.Static.StFlags&kop.StSeatActive != 0 && p == s.active) {
-				z |= mayPlayZoneBits(&a.Static)
-			}
+			z |= mayPlayZoneOf(&cd.Abilities[i], mine, p == s.active)
 		}
+		s.pileStatics(k, sl, nil, sclsMayPlay, false, func(st statSrc) bool { // CR 702.140d: a pile's under cards (kw_mutateunion.go)
+			z |= mayPlayZoneOf(st.a, mine, p == s.active)
+			return true
+		})
 	}
 	for i := 0; i < int(s.g.nemb[p]); i++ {
 		e := &k.t.Emblems[s.embIdx(p, i)-1]
@@ -221,7 +238,7 @@ func (s *State) sbaPTQuiet(k *prep) bool {
 		return false
 	}
 	for m := s.statM; m.any(); m = m.rest() {
-		if k.gen.sCls[s.cardAt(m.first())]&sclsPTRel != 0 {
+		if s.statClsAt(k, m.first())&sclsPTRel != 0 {
 			return false
 		}
 	}

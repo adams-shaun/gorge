@@ -267,7 +267,7 @@ func (s *State) l6Walk(k *prep, sl Slot, w *l6walk) (kw kop.KwMask, lts uint16, 
 	}
 	var base kop.KwMask
 	if !s.faceDown(k, sl) {
-		base = k.cards[s.cardAt(sl)].kw // CR 708.2: no printed abilities
+		base = k.cards[s.cardAt(sl)].kw | s.pileKw(k, sl) // CR 708.2: no printed abilities; CR 702.140d: a pile's under cards
 	}
 	base |= cpKw
 	base |= ctrKw(s, p)

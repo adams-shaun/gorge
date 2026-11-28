@@ -89,7 +89,7 @@ func (s *State) transformObj(k *prep, o Obj) {
 		}
 		return
 	}
-	s.subscribe(sl, &k.cards[p.card], false)
+	s.subscribeTop(k, sl, &k.cards[p.card], false)
 	c := cd.Faces[next]
 	ob.card, p.card = c, c
 	s.subscribe(sl, &k.cards[c], true)

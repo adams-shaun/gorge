@@ -389,7 +389,7 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 			return
 		}
 		old |= held
-		s.subscribe(sl, &k.cards[s.cardAt(sl)], false)
+		s.subscribeTop(k, sl, &k.cards[s.cardAt(sl)], false)
 		p.ovr.flags |= ovCopy
 		p.ovr.copyOf = c
 		if !s.copyBlankLayer(k, sl, tmpl) { // a face-down template's copy has no abilities (copy_facedown.go)
@@ -544,7 +544,7 @@ func (s *State) cloneCleanup(k *prep) {
 		s.cloneSelfHeldGC(sl) // the ended layer's held exceptions go with it
 		p := &s.perms[sl]
 		s.touchSl(sl)
-		s.subscribe(sl, &k.cards[s.cardAt(sl)], false)
+		s.subscribeTop(k, sl, &k.cards[s.cardAt(sl)], false)
 		if s.permBlank(sl) {
 			s.clearFaceDown(k, sl) // the ended layer was a face-down template's (copy_facedown.go)
 		}
