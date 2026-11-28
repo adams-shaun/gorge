@@ -185,9 +185,18 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 		return nil, false
 	}
 	sr.plainLimited = plain.limited && plain.feeOnly
-	script, found = sr.run(e)
-	if found && len(script) > 0 {
-		return script, true
+	// A phased run out of scope at the root returns no script from any node
+	// (visit and priced skip every offer phasedOutOfScope refuses, and
+	// neither the play's cost nor the gaps' fees change along a prefix), so
+	// it is not run: beside a fee-only repeatable gap (Stonework Packbeast's
+	// "{2}: Add one mana of any color") it walked that gap's five-way colour
+	// branches to the whole node budget after a plain run that completed,
+	// at every priority decision (tail-33 pair 1306's hang).
+	if !sr.phasedOutOfScope(e) {
+		script, found = sr.run(e)
+		if found && len(script) > 0 {
+			return script, true
+		}
 	}
 	// The subsume run, only where the plain search ran out of budget (a
 	// completed plain search saw the whole space, whose paying states the
