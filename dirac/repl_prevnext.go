@@ -635,8 +635,16 @@ func (s *State) replOthersCompete(k *prep, srcCtrl uint8, srcSl Slot, srcCard Ca
 	if g.anyRepl&others != 0 {
 		for m := s.statM; m.any(); m = m.rest() {
 			b := m.first()
-			rb := g.replBits[s.cardAt(b)] & others
-			if rb != 0 && !s.genLost(k, b) && !(rb == rbPlusDmg && s.plusHostIdle(k, b)) {
+			if s.genLost(k, b) {
+				continue
+			}
+			found := false
+			s.eachPileCard(k, b, func(c CardID) bool {
+				rb := g.replBits[c] & others
+				found = rb != 0 && !(rb == rbPlusDmg && s.plusHostIdle(k, b))
+				return !found
+			})
+			if found {
 				return true
 			}
 		}

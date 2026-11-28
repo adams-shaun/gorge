@@ -177,16 +177,22 @@ func (s *State) exileOnLeaveN(k *prep, sl Slot) (int, kop.CounterKind, uint8, Sl
 			// gorge's replacement walk (rules/object_query.go forEachObject) visits
 			// only living seats' zones, so its permanent is not consulted even
 			// though the sweep has not moved it yet (zone_leavegame.go)
-			if g.replBits[s.cardAt(b)]&rbExileOnLeave == 0 || s.genLost(k, b) || s.out(s.perms[b].ctrl) {
+			if s.genLost(k, b) || s.out(s.perms[b].ctrl) {
 				continue
 			}
-			if s.matchPerm(k, g.exileOnLeave[s.cardAt(b)], sl, s.perms[b].ctrl, b) {
-				n++
-				src = b
-				if kind, amount := exileCounterKind(k.t, s.cardAt(b), g.exileOnLeave[s.cardAt(b)]); kind != 0 {
-					ctr, ctrN = kind, amount
+			s.eachPileCard(k, b, func(c CardID) bool {
+				if g.replBits[c]&rbExileOnLeave == 0 {
+					return true
 				}
-			}
+				if s.matchPerm(k, g.exileOnLeave[c], sl, s.perms[b].ctrl, b) {
+					n++
+					src = b
+					if kind, amount := exileCounterKind(k.t, c, g.exileOnLeave[c]); kind != 0 {
+						ctr, ctrN = kind, amount
+					}
+				}
+				return true
+			})
 		}
 	}
 	// an emblem's dies-to-exile replacement joins the count (Repl.A 0: no
@@ -256,25 +262,31 @@ func (s *State) dblCtrN(k *prep, sl Slot, ctrl uint8) int {
 	n := 0
 	for m := s.statM.and(s.ctrlM[ctrl]); m.any(); m = m.rest() {
 		b := m.first()
-		if g.replBits[s.cardAt(b)]&rbDblCtr == 0 || s.genLost(k, b) {
+		if s.genLost(k, b) {
 			continue
 		}
-		if b == sl && s.g.entrySelf == uint8(sl)+1 {
-			selfOnly := false
-			cd := &k.t.Cards[s.cardAt(b)]
-			for i := range cd.Abilities {
-				a := &cd.Abilities[i]
-				if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplDoubleCounters &&
-					filterSelfOnly(k.t, a.Repl.Filter) {
-					selfOnly = true
-					break
+		s.eachPileCard(k, b, func(c CardID) bool {
+			if g.replBits[c]&rbDblCtr == 0 {
+				return true
+			}
+			if b == sl && s.g.entrySelf == uint8(sl)+1 {
+				selfOnly := false
+				cd := &k.t.Cards[c]
+				for i := range cd.Abilities {
+					a := &cd.Abilities[i]
+					if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplDoubleCounters &&
+						filterSelfOnly(k.t, a.Repl.Filter) {
+						selfOnly = true
+						break
+					}
+				}
+				if !selfOnly {
+					return true
 				}
 			}
-			if !selfOnly {
-				continue
-			}
-		}
-		n++
+			n++
+			return true
+		})
 	}
 	return n
 }
@@ -296,39 +308,45 @@ func (s *State) replCtrOnX(k *prep, sl Slot, kind, n int, noEO bool) int {
 	if g.anyRepl&rbCtrOn != 0 {
 		for m := s.statM; m.any(); m = m.rest() {
 			b := m.first()
-			if g.replBits[s.cardAt(b)]&rbCtrOn == 0 || s.genLost(k, b) {
+			if s.genLost(k, b) {
 				continue
 			}
 			lc := s.perms[b].ctrl
-			cd := &k.t.Cards[s.cardAt(b)]
-			for i := range cd.Abilities {
-				a := &cd.Abilities[i]
-				if a.Kind != kop.AbReplacement || !s.entryCounterSource(k, b, a.Repl.Filter) {
-					continue
+			s.eachPileCard(k, b, func(c CardID) bool {
+				if g.replBits[c]&rbCtrOn == 0 {
+					return true
 				}
-				switch a.Repl.Kind {
-				case kop.ReplDoubleCountersOn:
-					if s.entryCtrSelfExcluded(k, b, sl, a.Repl.Filter) || !s.ctrKindMatch(a, kind, lc) { // repl_addcounter.go
+				cd := &k.t.Cards[c]
+				for i := range cd.Abilities {
+					a := &cd.Abilities[i]
+					if a.Kind != kop.AbReplacement || !s.entryCounterSource(k, b, a.Repl.Filter) {
 						continue
 					}
-					if s.matchPerm(k, a.Repl.Filter, sl, lc, b) {
-						dbl++
-					}
-				case kop.ReplAddCountersOn:
-					if s.entryCtrSelfExcluded(k, b, sl, a.Repl.Filter) || !s.ctrKindMatch(a, kind, lc) { // repl_addcounter.go
-						continue
-					}
-					if s.matchPerm(k, a.Repl.Filter, sl, lc, b) {
-						plus += int(a.Repl.A)
-						plusN++
-						if a.Repl.A > 0 {
-							plusPos++
-						} else if a.Repl.A < 0 {
-							plusNeg++
+					switch a.Repl.Kind {
+					case kop.ReplDoubleCountersOn:
+						if s.entryCtrSelfExcluded(k, b, sl, a.Repl.Filter) || !s.ctrKindMatch(a, kind, lc) { // repl_addcounter.go
+							continue
+						}
+						if s.matchPerm(k, a.Repl.Filter, sl, lc, b) {
+							dbl++
+						}
+					case kop.ReplAddCountersOn:
+						if s.entryCtrSelfExcluded(k, b, sl, a.Repl.Filter) || !s.ctrKindMatch(a, kind, lc) { // repl_addcounter.go
+							continue
+						}
+						if s.matchPerm(k, a.Repl.Filter, sl, lc, b) {
+							plus += int(a.Repl.A)
+							plusN++
+							if a.Repl.A > 0 {
+								plusPos++
+							} else if a.Repl.A < 0 {
+								plusNeg++
+							}
 						}
 					}
 				}
-			}
+				return true
+			})
 		}
 	}
 	eotPlus := 0
@@ -417,18 +435,24 @@ func (s *State) dblCtrYou(k *prep, adder uint8) int {
 	n := 0
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()
-		if k.gen.replBits[s.cardAt(sl)]&rbDblCtrYou == 0 || s.perms[sl].ctrl != adder || s.genLost(k, sl) {
+		if s.perms[sl].ctrl != adder || s.genLost(k, sl) {
 			continue
 		}
-		cd := &k.t.Cards[s.cardAt(sl)]
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplDoubleCountersYou &&
-				s.entryCounterSource(k, sl, a.Repl.Filter) &&
-				s.statCond(k, statSrc{a: a, sl: sl, ctrl: adder, obj: s.perms[sl].obj}) {
-				n++
+		s.eachPileCard(k, sl, func(c CardID) bool {
+			if k.gen.replBits[c]&rbDblCtrYou == 0 {
+				return true
 			}
-		}
+			cd := &k.t.Cards[c]
+			for i := range cd.Abilities {
+				a := &cd.Abilities[i]
+				if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplDoubleCountersYou &&
+					s.entryCounterSource(k, sl, a.Repl.Filter) &&
+					s.statCond(k, statSrc{a: a, sl: sl, ctrl: adder, obj: s.perms[sl].obj}) {
+					n++
+				}
+			}
+			return true
+		})
 	}
 	return n
 }
