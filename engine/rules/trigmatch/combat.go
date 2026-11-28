@@ -52,14 +52,12 @@ func AttacksMatchedAttackers(e Board, t cards.Trigger, source state.ObjID, ev ev
 		// Myriad$ True is the myriad keyword expansion's own marker
 		// (engine/cards/keywords.go addKeywordTrigger): the per-other-opponent token
 		// copies are the DB$ Myriad body, so the marker requires the
-		// trigger's Execute sub to resolve to exactly that body -- a
-		// mismatched or unresolvable expansion must not fire.
-		src := e.Game().Obj(source)
-		if src == nil || src.Face() == nil {
-			return nil
-		}
-		sa := cards.ResolveSVar(src.Face().SVars, t.ParamStr(cards.PKExecute))
-		if sa == nil || sa.API != "Myriad" {
+		// trigger's Execute sub to be exactly that body -- a mismatched or
+		// unresolvable expansion must not fire. The compiled body is read,
+		// linked against the face that printed the line: on a mutated pile
+		// that may be a card beneath the top (CR 702.140e), whose SVars the
+		// object's own face does not hold.
+		if t.Effect == nil || t.Effect.API != "Myriad" {
 			return nil
 		}
 	}
