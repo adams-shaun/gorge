@@ -80,8 +80,7 @@ func newPNScratch(m *policynet.Model, maxCards int) *pnScratch {
 }
 
 // trunk computes the state trunk of st into p.s, the entity encodings into
-// p.h (policynet Model.stateTrunkEnt's arithmetic, in its order) and each
-// hidden unit's partial sum over the trunk into p.part.
+// p.h (policynet Model.stateTrunkEnt's arithmetic, in its order).
 func (p *pnScratch) trunk(st *policynet.State) {
 	m, s := p.m, p.s
 	copy(s, m.StateB)
@@ -113,10 +112,15 @@ func (p *pnScratch) trunk(st *policynet.State) {
 			s[j] += row[j] * v
 		}
 	}
-	// Every option's hidden input starts with s, so the first H terms of
-	// each hidden sum are the same for all of them: sum them once, in
-	// forwardHead's order and with its zero skip, and score continues from
-	// there.
+}
+
+// partial sums each hidden unit's bias and trunk terms into p.part. Every
+// option's hidden input starts with p.s, so the first H terms of each hidden
+// sum are the same for all of them: sum them once, in forwardHead's order and
+// with its zero skip, and score continues from there. It runs after trunk and
+// before score; a value-only evaluation never reads it and skips it.
+func (p *pnScratch) partial() {
+	m, s := p.m, p.s
 	for h := range p.part {
 		sum := m.HidB[h]
 		base := h * m.InW
@@ -181,8 +185,8 @@ func (p *pnScratch) entForward(st *policynet.State) {
 
 // score is policynet Model.Score's per-option arithmetic (inputVector,
 // forwardHead, the bot-prior residual) against the loaded trunk. The
-// trunk's inputs x[:H] are already summed in p.part, so score builds and
-// reads only x[H:].
+// trunk's inputs x[:H] are already summed in p.part (partial), so score
+// builds and reads only x[H:].
 func (p *pnScratch) score(o *policynet.Option) float32 {
 	m, x := p.m, p.x
 	clear(x[m.H:])
@@ -282,6 +286,9 @@ func (p *pnScratch) value() float32 {
 // into out, and returns the value probability.
 func (p *pnScratch) eval(st *policynet.State, opts []policynet.Option, out []float32) float32 {
 	p.trunk(st)
+	if len(opts) > 0 {
+		p.partial()
+	}
 	for i := range opts {
 		out[i] = p.score(&opts[i])
 	}
