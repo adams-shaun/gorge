@@ -44,6 +44,28 @@ func planVictimReserve(acts []decision.PaymentActivation, extra ...[]state.ObjID
 	return reserved
 }
 
+// planVictimGate is the planner search's Env.Fundable: whether every
+// other-sacrifice step among a paying set's units can name its own victim, by
+// AssignPlanVictims itself. A board with fewer free victims than the set has
+// such steps (two altars, one creature), or whose only victim is a source the
+// set spends, then leaves the search to rank the sets it can fund: a second
+// other-sacrifice source never removes a way to pay (CR 601.2g-h). Adding
+// units only adds steps and takes candidates away, so no superset of a refused
+// set is fundable either.
+func planVictimGate(e Engine, p state.PlayerID, kept, tapped, gone []state.ObjID) func([]Alt) bool {
+	return func(chosen []Alt) bool {
+		if !slices.ContainsFunc(chosen, func(a Alt) bool { return a.Consequence.SacrificeOthers }) {
+			return true
+		}
+		plan := decision.PaymentPlan{Activations: make([]decision.PaymentActivation, len(chosen))}
+		for i := range chosen {
+			plan.Activations[i] = chosen[i].Activation
+			plan.Activations[i].Consequence = chosen[i].Consequence.Wire()
+		}
+		return AssignPlanVictims(e, p, &plan, slices.Concat(kept, tapped), gone)
+	}
+}
+
 // AssignPlanVictims names the victims of every other-sacrifice step of plan,
 // in step order, by the fixed ranking, never an object the plan otherwise
 // spends (a source, a kept or gone object, an earlier step's victim). It
