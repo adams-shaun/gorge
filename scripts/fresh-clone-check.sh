@@ -36,9 +36,14 @@ case $out in
 esac
 
 echo "fresh-clone-check: go test"
+# -timeout 5m is the repo's default package timeout (scripts/test_targets.py DEFAULT_TIMEOUT), and the same
+# fresh-clone packages pr-precheck.sh runs; 2m was the only place below it. The 1-minute per-test budget is
+# unchanged (a test is split, never trimmed); a package binary on a shared runner is not a test. 11-28 merge
+# batch 46140183894, with 6 of 9 runners offline, ran ./dirac at 120.3s (timed out) and ./dirac/oracle at 83.9s
+# against 56.6s and 50.3s in the uncontended batch minutes earlier: one shared-runner slowdown, not a slow test.
 log=$scratch/.test.log
 rc=0
-go test -timeout 2m ./dirac/... >"$log" 2>&1 || rc=$?
+go test -timeout 5m ./dirac/... >"$log" 2>&1 || rc=$?
 grep -v 'no test files' "$log" || true
 [ "$rc" -eq 0 ] || { echo "fresh-clone-check: FAIL" >&2; exit 1; }
 echo "fresh-clone-check: ok"
