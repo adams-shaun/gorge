@@ -402,6 +402,25 @@ jobs:
         # repo's capped target) and exits before any test when the diff touches none of the walk, cache, State,
         # payment/filter/keyword/kernel or edh-slice paths; it adds a check and weakens none.
         run: bash scripts/pr-dirac-invariant.sh "${{ github.event.pull_request.base.sha }}"
+      # Class D of docs/agents/red-batches-20261128.md ("unreadable"): a red whose log GitHub never returns leaves
+      # nothing to diagnose (run 46122521600's web-unit eslint, 0 log lines). `if: always()` runs this after a failed
+      # step, so whatever the job wrote is kept even then. Two limits are real and not worked around here: a job's own
+      # console log cannot be fetched from inside the job, and a job that never starts a step (46112371163,
+      # 46112155917) runs no step at all. So this keeps the files the steps write; wrapping each failing command to tee
+      # its output would capture more, but that changes the commands that decide pass/fail. 7 days: diagnostic, not
+      # an archive. continue-on-error: the guard must never red a job by itself.
+      - name: Keep the job's logs and diagnostics (always)
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          # The job's identity in the name: parallel jobs in one run share the run id and would collide.
+          name: ci-log-fast-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ci-fast.list
+            *.log
+          if-no-files-found: ignore
+          retention-days: 7
 
   lint:
     # A push to main whose tree a queue batch already passed (prior) skips lint: the batch ran it on this exact tree
@@ -563,6 +582,19 @@ jobs:
         with:
           path: ~/.cache/go-build
           key: gocache-lint-${{ github.sha }}
+      # Class D (docs/agents/red-batches-20261128.md): see fast's step. lint's own checks are single commands whose
+      # output goes only to the job log, so today this captures only any log a step writes; it runs unconditionally
+      # and harmlessly, and a step that gains a log file is covered without another change.
+      - name: Keep the job's logs and diagnostics (always)
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-log-lint-${{ github.run_attempt }}
+          path: |
+            *.log
+          if-no-files-found: ignore
+          retention-days: 7
 
   test:
     needs: [prior, prepare]
@@ -694,6 +726,20 @@ jobs:
         with:
           path: ~/.cache/go-build
           key: gocache-test${{ matrix.shard }}-${{ github.sha }}
+      # Class D (docs/agents/red-batches-20261128.md): see fast's step. This shard's test step already writes its full
+      # output to test-shard.log through ci-infra-retry.sh (which keeps the retried attempt's log as .1), so a withheld
+      # job log no longer hides the verdict.
+      - name: Keep the shard's log (always)
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-log-test-shard-${{ matrix.shard }}-${{ github.run_attempt }}
+          path: |
+            test-shard.log
+            test-shard.log.1
+          if-no-files-found: ignore
+          retention-days: 7
 
   # The bot examples the docs site publishes (examples/bots, docs/site/bots/):
   # the Go example module builds and tests, and the Python and Java HTTP agents
@@ -996,6 +1042,19 @@ jobs:
         with:
           path: ~/.cache/go-build
           key: gocache-dirac-slices-${{ github.sha }}
+      # Class D (docs/agents/red-batches-20261128.md): see fast's step. The slice run already writes slices.log (and
+      # slices.log.1 for a retried attempt) through ci-infra-retry.sh; this keeps it when the job log is withheld.
+      - name: Keep the slices' log (always)
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-log-dirac-slices-${{ github.run_attempt }}
+          path: |
+            slices.log
+            slices.log.1
+          if-no-files-found: ignore
+          retention-days: 7
 
   # The committed repro replays, split out of dirac-slices (11-20): the two ran serially on one runner (slices and
   # pods ~3-5 min, then the replays ~4 min) and that job set every batch's wall time, 385-975 s after prepare against
@@ -1115,6 +1174,18 @@ jobs:
           done
           for i in "${!pids[@]}"; do wait "${pids[$i]}" || rc=1; cat "${logs[$i]}"; done
           exit "$rc"
+      # Class D (docs/agents/red-batches-20261128.md): see fast's step. Each part writes repro-<part>-<proc>.log for
+      # every process it deals; this keeps them all when the job log is withheld.
+      - name: Keep the parts' logs (always)
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-log-dirac-repros-${{ matrix.part }}-${{ github.run_attempt }}
+          path: |
+            repro-*.log
+          if-no-files-found: ignore
+          retention-days: 7
 
   # The whole of ./dirac/oracle, on a pull request to main only. Its serial lockstep games
   # outlast one runner, so a matrix splits it (scripts/ci-oracle-shard.sh). No deck pool ships
@@ -1438,6 +1509,19 @@ jobs:
         if: steps.changed.outputs.web == 'true'
         run: npm test
         working-directory: web
+      # Class D (docs/agents/red-batches-20261128.md): run 46122521600's eslint failed with the log withheld (0
+      # lines). See fast's step for what a job can and cannot capture of itself; svelte-check, eslint and vitest write
+      # no file, so today this keeps any log a step writes, and covers one that gains a log without another change.
+      - name: Keep the job's logs and diagnostics (always)
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-log-web-unit-${{ github.run_attempt }}
+          path: |
+            *.log
+          if-no-files-found: ignore
+          retention-days: 7
 
   # One required check to name in branch protection, whatever the shard count.
   ci-ok:
