@@ -4,8 +4,9 @@ package protocol
 // refused POST /api/games: what the server found in a submitted deck. Every
 // field is computed on the server; every list is empty, never null.
 type DeckReport struct {
-	Name       string   `json:"name"`
-	Format     string   `json:"format"`
+	Name   string `json:"name"`
+	Format string `json:"format"`
+	// Engine is the engine whose support Unsupported measures, always gorge.
 	Engine     string   `json:"engine"`
 	Cards      int      `json:"cards"`
 	Commanders []string `json:"commanders"`
@@ -25,6 +26,30 @@ type DeckReport struct {
 	Substituted []DeckSubstitution `json:"substituted"`
 	// Playable is Legal and no Unsupported card.
 	Playable bool `json:"playable"`
+	// Dirac is the second engine's verdict on the deck, absent when the
+	// server judges no deck on dirac.
+	Dirac *DeckEngineVerdict `json:"dirac,omitempty"`
+}
+
+// DeckEngineVerdict is a second engine's verdict on the deck a report
+// describes: the set it would play the deck on, every card that set does not
+// play, and, when no card is named but the deck is still refused, why.
+type DeckEngineVerdict struct {
+	Engine      string           `json:"engine"`
+	Set         string           `json:"set"`
+	Playable    bool             `json:"playable"`
+	Unsupported []DeckEngineCard `json:"unsupported"`
+	Problems    []string         `json:"problems"`
+}
+
+// DeckEngineCard is one card a second engine's set does not play: its copies
+// in the deck, its status (not in set, not lowered, refused, unverified) and
+// the set's reason.
+type DeckEngineCard struct {
+	Name   string `json:"name"`
+	Count  int    `json:"count"`
+	Status string `json:"status"`
+	Reason string `json:"reason"`
 }
 
 // DeckReportCard is one card a deck carries that the engine cannot play:

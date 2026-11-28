@@ -81,8 +81,31 @@ func (c config) diracDecks() string {
 // openDirac opens the tables of -dirac-sets. A set whose tables are not built fails
 // here, naming the command that builds them.
 func (c config) openDirac(reg *cards.Registry) (*adapter.Engine, error) {
+	return c.openDiracSets(reg, c.diracSets)
+}
+
+// diracColumn gives every deck report a dirac verdict: on the engine serve
+// already opened under -engine dirac, else on one opened over -dirac-check-sets.
+// With neither, reports carry none.
+func (c *config) diracColumn(reg *cards.Registry, running *adapter.Engine) error {
+	switch {
+	case c.diracOn():
+		c.imports.dirac = running
+	case c.diracCheckSets != "":
+		e, err := c.openDiracSets(reg, c.diracCheckSets)
+		if err != nil {
+			return fmt.Errorf("-dirac-check-sets: %w", err)
+		}
+		c.diracCheck, c.imports.dirac = e, e
+	}
+	return nil
+}
+
+// openDiracSets is a dirac engine over a comma-separated set list, on the
+// surface this server's games pose: autopay under -sbv2, full otherwise.
+func (c config) openDiracSets(reg *cards.Registry, list string) (*adapter.Engine, error) {
 	var sets []string
-	for _, s := range strings.Split(c.diracSets, ",") {
+	for _, s := range strings.Split(list, ",") {
 		if s = strings.TrimSpace(s); s != "" {
 			sets = append(sets, s)
 		}
