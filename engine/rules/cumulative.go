@@ -955,26 +955,26 @@ func (e *Engine) triggeredCostDrawCounts(tc *triggeredEffectCost) ([]int32, bool
 	return out, true
 }
 
-// abilitySVarSource is the one query triggeredCostSVars needs: the SVar table
-// an ability stack object resolves against (abilityResolutionSVars).
+// abilitySVarSource is the one query triggeredCostCtxInit needs: the SVar
+// table an ability stack object resolves against (abilityResolutionSVars).
 type abilitySVarSource interface {
 	abilityResolutionSVars(id state.ObjID, o *state.Object) map[string]string
 }
 
-// triggeredCostSVars is the SVar table the window's X and XMax$ reads resolve
-// against: the parked ability's own, the one its body resolves with. The
-// ability exists apart from its source (CR 113.7a), so a source that left --
-// a transformed card now front face up, a permanent that was a copy -- does not
-// change what the cost's X means. A parked object that is no ability reads the
-// source's current face.
-func triggeredCostSVars(h abilitySVarSource, g *state.Game, tc *triggeredEffectCost) map[string]string {
+// triggeredCostCtxInit seeds the window's X and XMax$ reads with the parked
+// ability's own SVar table, the one its body resolves with. The ability exists
+// apart from its source (CR 113.7a), so a source that left -- a transformed
+// card now front face up, a permanent that was a copy -- does not change what
+// the cost's X means. A parked object that is no ability reads the source's
+// current face.
+func triggeredCostCtxInit(h abilitySVarSource, g *state.Game, tc *triggeredEffectCost) effects.CtxInit {
 	if ro := g.Obj(tc.resume.obj); ro != nil && ro.Ability != nil {
-		return h.abilityResolutionSVars(tc.resume.obj, ro)
+		return effects.CtxInit{SVars: h.abilityResolutionSVars(tc.resume.obj, ro)}
 	}
 	if src := g.Obj(tc.source); src != nil && src.Face() != nil {
-		return src.Face().SVars
+		return effects.CtxInit{SVars: src.Face().SVars}
 	}
-	return nil
+	return effects.CtxInit{}
 }
 
 // evalTriggerCostFixedX evaluates a FIXED X body (the ability's SVar:X
@@ -985,8 +985,8 @@ func triggeredCostSVars(h abilitySVarSource, g *state.Game, tc *triggeredEffectC
 // own resolution will carry (the TriggeredCard$/Targeted$ referent family).
 // resolvable=false means the body is unresolvable (fail closed, the
 // decline-only hard-decline convention, never a silent zero).
-func (e *Engine) evalTriggerCostFixedX(tc *triggeredEffectCost, svars map[string]string, body string) (int32, bool) {
-	ctx := effects.NewCtxPtr(tc.source, tc.player, effects.CtxInit{SVars: svars})
+func (e *Engine) evalTriggerCostFixedX(tc *triggeredEffectCost, init effects.CtxInit, body string) (int32, bool) {
+	ctx := effects.NewCtxPtr(tc.source, tc.player, init)
 	if tcx, ok := e.triggerContexts[tc.resume.obj]; ok {
 		ctx.TriggerContext = tcx
 	}
@@ -1099,8 +1099,8 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 		return false
 	}
 	tc.xDone = true
-	svars := triggeredCostSVars(e, e.G, tc)
-	body, present := svars["X"]
+	own := triggeredCostCtxInit(e, e.G, tc)
+	body, present := own.SVars["X"]
 	if !present {
 		// No SVar:X at all: nothing fixes the value AND nothing says the payer
 		// announces one -- the corpus's every X-fold carrier names an SVar:X
@@ -1110,7 +1110,7 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 	}
 	if strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
 		// Payer-chooses by construction: fall through to the ask.
-	} else if n, resolvable := e.evalTriggerCostFixedX(tc, svars, body); !resolvable {
+	} else if n, resolvable := e.evalTriggerCostFixedX(tc, own, body); !resolvable {
 		// A PRESENT but unresolvable SVar:X body fails closed: no announcement ask, the amount stays
 		// unfolded, and the ordinary unpriceable path below poses the
 		// decline-only ask -- the same hard-decline convention the
@@ -1192,7 +1192,7 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 	// etbPayLifeBound reads it the same way). An unresolvable cap fails
 	// closed to no extra bound, the pre-XMax behaviour.
 	if sa := tc.resume.sa; sa.ParamStr(cards.PKXMax) != "" {
-		ctx := effects.NewCtxPtr(tc.source, tc.player, effects.CtxInit{SVars: svars})
+		ctx := effects.NewCtxPtr(tc.source, tc.player, own)
 		if tcx, ok := e.triggerContexts[tc.resume.obj]; ok {
 			ctx.TriggerContext = tcx
 		}
