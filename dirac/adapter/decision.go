@@ -77,7 +77,7 @@ func (g *Game) posePriority() {
 	}
 	d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "concede", Label: "Concede"})
 	g.acts = append(g.acts, 0)
-	g.canons = append(g.canons, canon.Pack(canon.CanonKind(0xFF), canon.RefNone, canon.RefNone, 0))
+	g.canons = append(g.canons, canon.Pack(canon.ActNone, canon.RefNone, canon.RefNone, 0))
 	d.PaymentActionsBuilt = true
 	d.PotentialCastsKnown = true
 }
