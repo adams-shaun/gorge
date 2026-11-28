@@ -1,0 +1,5 @@
+family: StaticKind
+name: StatUntapAdjust
+value: next
+status: active
+doc: StatUntapAdjust is a Continuous static's `Affected$ Player | AddKeyword$ UntapAdjust:Permanent:N` (Static Orb, kgen lower_playerstatic.go): during each player's untap step at most N permanents matching Filter untap, and that player chooses which of the tapped ones stay tapped (CR 702.19e's "can't untap more than N" family; gorge rules/untap.go untapAdjustCap and turn.go finishUntapStep). A is N; Cond2 is the source's IsPresent$ gate (Static Orb applies only while it is untapped). Read live from the battlefield; the kernel's untapStepGen poses the cap as a ChGenKeepTapped multi-pick (dirac/static_untapadjust.go).

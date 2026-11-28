@@ -89,6 +89,7 @@ var (
 	kwhUmbraArmor       = newKWHead("Umbra armor")
 	kwhUndying          = newKWHead("Undying")
 	kwhUnleash          = newKWHead("Unleash")
+	kwhUntapAdjust      = newKWHead("UntapAdjust")
 	kwhWebSlinging      = newKWHead("Web-slinging")
 	kwhVigilance        = newKWHead("Vigilance")
 	kwhBanding          = newKWHead("Banding")

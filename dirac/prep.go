@@ -148,6 +148,7 @@ type prep struct {
 	grantsMana    []bool // per card: holds a grantOf mana ability (mana_grantedoffers.go manaGrantMay); on prep, not genPrep
 	tapExtraCard  []bool // per card: prints a StatTapExtra static (mana_tapextra.go eachTapExtra); on prep, not genPrep
 	anyCmdTap     bool   // a card has a command-zone StatTapExtra static (a Vanguard's; static_classgates.go sclsTapCmd); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	anyUntapAdj   bool   // a card has a StatUntapAdjust static (Static Orb; static_untapadjust.go): the untap step runs untapStepGen; on prep, not genPrep
 	// embPrev: some emblem carries a static damage prevention
 	// (tableEmbHasStaticPrev, repl_staticprevent_emblem.go); on prep, not
 	// genPrep, so the pinned fixed-State inventory is unchanged

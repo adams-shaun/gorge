@@ -12,6 +12,7 @@ func init() {
 	registerStaticBuild("PlayerHexproof", cbPlayerHexproofStatic)
 	registerStaticBuild("PlayerShroud", cbPlayerShroudStatic)
 	registerStaticBuild("DefenderAssigns", cbDefenderAssignsStatic)
+	registerStaticBuild("UntapAdjust", cbUntapAdjustStatic)
 	registerStaticBuild("PlayerProtAll", func(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8, error) {
 		st.Kind = kop.StatPlayerProtAll // the controller has protection from everything (static_plprot.go)
 		return nil, nil
@@ -61,6 +62,23 @@ func cbDefenderAssignsStatic(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint
 		return nil, fmt.Errorf("DefenderAssigns beside %s", s.Cond)
 	}
 	st.Kind = kop.StatDefenderAssigns
+	return nil, nil
+}
+
+// cbUntapAdjustStatic is Static Orb (lower_playerstatic.go): the cap's N is
+// Static.A, the capped permanents are the static's filter (Permanent for the
+// one lowered printing), and Static.Cond2 carries IsPresent$ Card.Self+untapped.
+// The kernel read is dirac/static_untapadjust.go.
+func cbUntapAdjustStatic(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8, error) {
+	if !s.Amount.isConst() {
+		return nil, fmt.Errorf("UntapAdjust amount %v", s.Amount)
+	}
+	st.Kind = kop.StatUntapAdjust
+	st.A = int16(s.Amount.N)
+	var err error
+	if st.Filter, err = cb.staticFilter(s.F, kop.ZoneBattlefield); err != nil {
+		return nil, err
+	}
 	return nil, nil
 }
 

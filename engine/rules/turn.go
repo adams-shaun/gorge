@@ -113,6 +113,11 @@ const chooseSuspendCast chooseFor = iota + 12
 // the turn-based Untap event is emitted.
 const chooseUntap chooseFor = 40
 
+// chooseUntapCap is Static Orb's UntapAdjust election (CR 702.19e's
+// "can't untap more than N permanents" family): one KChoose names which
+// permanents stay tapped, before the turn-based Untap events are emitted.
+const chooseUntapCap chooseFor = 55
+
 func (e *Engine) finishEnteredStep() {
 	if e.G.Step == state.StepUntap && !e.finishUntapStep(0) {
 		return
@@ -215,6 +220,10 @@ func (e *Engine) finishEnteredStep() {
 // the log records, and replay reaches the same turn-based scan naturally.
 type untapStep struct {
 	next int
+	// capDecided marks the resume of an UntapAdjust cap election: the
+	// phase-in and day/night actions already ran for this step, so only the
+	// untap scan continues.
+	capDecided bool
 }
 
 // finishUntapStep performs the untap turn-based action from next onward. An
@@ -231,7 +240,8 @@ type untapStep struct {
 // against the untapped card's own controller, and a foreign card's controller
 // is not the step's active player.
 func (e *Engine) finishUntapStep(next int) bool {
-	if next == 0 {
+	resumingCap := next == 0 && e.untapResume != nil && e.untapResume.capDecided
+	if next == 0 && !resumingCap {
 		// CR 702.25d: a phased-out permanent phases in at its controller's
 		// untap step, as the step begins -- before that step's untap action,
 		// so it untaps with everything else that step. Each permanent gets
@@ -292,6 +302,15 @@ func (e *Engine) finishUntapStep(next int) bool {
 		// action. The next == 0 gate runs it once per step, never on a resume.
 		e.dayNightUntapCheck()
 	}
+	// Static Orb's UntapAdjust cap (the CR 702.19e "can't untap more than N
+	// permanents" family): one election names which of the tapped permanents
+	// stay tapped. It is posed after the phase-ins (a phased-in Orb applies)
+	// and before the first Untap, once per step; the answer folds one Choose
+	// "keep" per selected permanent and the scan below skips them.
+	capSpec, capN, capOK := e.untapAdjustCap(e.G.Active)
+	if next == 0 && !resumingCap && capOK && e.untapAdjustElection(capSpec, capN) {
+		return false
+	}
 	// CR 502.3: the active player untaps their permanents as ONE turn-based
 	// action, so the untaps this step emits are ONE untapping action for the
 	// aggregate Mode$ UntapAll trigger:
@@ -348,6 +367,12 @@ func (e *Engine) finishUntapStep(next int) bool {
 		if !o.Tapped {
 			continue
 		}
+		if capOK && o.UntapChoice == "keep" && e.matchesSpec(capSpec, ids[i], e.specCtx(0, e.G.Active)) {
+			// The cap election selected this permanent to stay tapped. The
+			// Choose event is already in the log, so this resumed scan (and
+			// replay) reads the same answer off the object.
+			continue
+		}
 		if e.untapDenied(ids[i]) {
 			// CR 611.2b: an Effect's "don't untap during their next untap
 			// step" grant (Misstep, Exhaustion, Mana Vapors, Icebreaker
@@ -387,6 +412,7 @@ func (e *Engine) finishUntapStep(next int) bool {
 		}
 		e.untapResume = nil
 	}
+	e.untapResume = nil // the active scan is done: no cap marker outlives it
 	for _, p := range e.G.AliveFrom(0) {
 		if p == e.G.Active {
 			continue
@@ -1680,6 +1706,8 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		if e.finishUntapStep(next) {
 			e.finishEnteredStep()
 		}
+	case chooseUntapCap:
+		e.answerUntapAdjust(chosen)
 	case chooseRiot:
 		// Riot is an as-enters replacement for every MoveZone path, including
 		// reanimation and blink that never create pendingCast. Record the
