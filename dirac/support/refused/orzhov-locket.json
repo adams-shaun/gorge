@@ -1,0 +1,32 @@
+{
+  "card": "Orzhov Locket",
+  "class": "projection-Cards.Pos",
+  "why": "the engines' state differs at projection Cards[].Pos",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "orzhov_locket_pos_differ"
+  },
+  "evidence": [
+    "ev-tail-20-c000",
+    "ev-tail-20-c001",
+    "ev-tail-20-c002",
+    "ev-tail-34-c000",
+    "ev-tail-34-c001",
+    "ev-tail-34-c065",
+    "ev-tail-35-c000",
+    "ev-tail-35-c003",
+    "ev-tail-35-c006",
+    "ev-tail-35-c008",
+    "ev-tail-35-c010",
+    "ev-tail-35-c012",
+    "ev-tail-35-c013",
+    "ev-tail-35-c015",
+    "ev-tail-35-c016",
+    "ev-tail-35-c017"
+  ]
+}

@@ -46,14 +46,14 @@ func gimbalStatuaryReplay(t *testing.T, reg *cards.Registry, name string) Result
 	if err != nil {
 		t.Fatal(err)
 	}
-	set, err := cardset.ByName("edh")
+	// Raw: a recording replays its own game, so a card refused later still plays (globSet).
+	set, err := cardset.RawByName("edh")
 	if errors.Is(err, cardset.ErrNoTables) || errors.Is(err, cardset.ErrNoCorpus) {
 		t.Skipf("no edh table (make dirac-tables): %v", err)
 	}
 	if err != nil {
 		t.Fatal(err)
 	}
-	set = cardset.AllowUnverified(set)
 	es := make([][]cardset.Entry, 0, 2+len(r.MoreCards))
 	for _, names := range append([][]string{r.Cards[0], r.Cards[1]}, r.MoreCards...) {
 		es = append(es, ReproEntries(reg, set, names))
