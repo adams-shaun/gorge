@@ -484,7 +484,7 @@ func (e *Engine) checkGrantedDethroneTriggers(observer *Engine, id state.ObjID, 
 	if ev.Kind != events.DeclareAttackers || !slices.Contains(ev.IDs, id) {
 		return
 	}
-	if !e.hasKeywordH(id, kwhDethrone) || chars.PrintsKeyword(o, f, kwRefDethrone) {
+	if !e.hasKeywordH(id, kwhDethrone) || f.HasKeywordRef(kwRefDethrone) || e.grantedPileInstances(observer, id, o, "Dethrone") <= 0 {
 		return
 	}
 	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
@@ -530,7 +530,7 @@ func (e *Engine) checkGrantedTrainingTriggers(observer *Engine, id state.ObjID, 
 	if ev.Kind != events.DeclareAttackers || !slices.Contains(ev.IDs, id) {
 		return
 	}
-	if !e.hasKeywordH(id, kwhTraining) || chars.PrintsKeyword(o, f, kwRefTraining) {
+	if !e.hasKeywordH(id, kwhTraining) || f.HasKeywordRef(kwRefTraining) || e.grantedPileInstances(observer, id, o, "Training") <= 0 {
 		return
 	}
 	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
@@ -863,16 +863,22 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 		// (CR 708.8): a cloaked card whose real face prints Ward must not
 		// suppress its own cloak-ward -- the derived list is the only
 		// keyword source on this path.
-		for _, k := range chars.PrintedKeywords(o, f) {
+		for _, k := range f.Keywords {
 			printed[strings.ToLower(k)] = true
 		}
 	}
+	underLeft := e.underPrintedKeywords(observer, o)
 	for _, k := range observer.Derived(id).Keywords {
 		if printed[strings.ToLower(k)] {
 			continue
 		}
 		param := ""
 		if head := cards.KeywordHead(k); !strings.EqualFold(head, "Ward") {
+			continue
+		} else if left, ok := chars.TakeKeywordLine(underLeft, k); ok {
+			// A card beneath the top prints this line: its own trigger
+			// queues one instance, so it accounts for one equal entry.
+			underLeft = left
 			continue
 		} else if j := strings.IndexByte(k, ':'); j >= 0 {
 			param = strings.TrimSpace(k[j+1:])
@@ -1569,13 +1575,21 @@ func (e *Engine) grantedCumulativeCosts(id state.ObjID, f *cards.Face) []string 
 		}
 		return nil
 	}
+	// Printed ownership: a top-face line accounts for every equal derived
+	// entry (a top face printing the cost and an identical grant is one
+	// trigger), a line beneath the top for one entry each (CR 113.2c). A face
+	// down object has no printed face (CR 708.8).
 	var printed map[string]bool
-	for _, k := range chars.PrintedKeywords(e.G.Obj(id), f) {
-		if strings.EqualFold(cards.KeywordHead(k), "Cumulative upkeep") {
-			if printed == nil {
-				printed = map[string]bool{}
+	o := e.G.Obj(id)
+	underLeft := e.underPrintedKeywords(e, o)
+	if !e.faceDownPrintedHides(o) {
+		for _, k := range f.Keywords {
+			if strings.EqualFold(cards.KeywordHead(k), "Cumulative upkeep") {
+				if printed == nil {
+					printed = map[string]bool{}
+				}
+				printed[strings.ToLower(k)] = true
 			}
-			printed[strings.ToLower(k)] = true
 		}
 	}
 	var out []string
@@ -1584,6 +1598,10 @@ func (e *Engine) grantedCumulativeCosts(id state.ObjID, f *cards.Face) []string 
 			continue
 		}
 		if printed[strings.ToLower(k)] {
+			continue
+		}
+		if left, ok := chars.TakeKeywordLine(underLeft, k); ok {
+			underLeft = left
 			continue
 		}
 		param := ""

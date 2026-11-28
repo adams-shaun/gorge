@@ -2,6 +2,7 @@ package chars
 
 import (
 	"slices"
+	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -33,18 +34,36 @@ func appendUnderKeywords(kw []string, o *state.Object) []string {
 	return kw
 }
 
-// PrintsKeyword reports whether f or a card beneath o's top prints the keyword
-// r names.
-func PrintsKeyword(o *state.Object, f *cards.Face, r cards.KeywordRef) bool {
-	if f.HasKeywordRef(r) {
-		return true
+// UnderKeywordLines is the keyword lines of the cards beneath o's top, none
+// for a permanent that is not a pile. The result is fresh.
+func UnderKeywordLines(o *state.Object) []string {
+	if o == nil || len(o.MergedCards) == 0 {
+		return nil
 	}
-	for i := range o.MergedCards {
-		if uf := o.MergedFaceAt(i); uf != nil && uf.HasKeywordRef(r) {
-			return true
+	return appendUnderKeywords(nil, o)
+}
+
+// CountKeywordHead counts the lines of kw whose head is head (any case).
+func CountKeywordHead(kw []string, head string) int {
+	n := 0
+	for _, k := range kw {
+		if strings.EqualFold(cards.KeywordHead(k), head) {
+			n++
 		}
 	}
-	return false
+	return n
+}
+
+// TakeKeywordLine removes the first line of left equal to k (any case) and
+// reports whether there was one. Each printed line is one instance (CR 113.2c),
+// so it accounts for exactly one equal derived entry.
+func TakeKeywordLine(left []string, k string) ([]string, bool) {
+	for i, l := range left {
+		if strings.EqualFold(l, k) {
+			return slices.Delete(left, i, i+1), true
+		}
+	}
+	return left, false
 }
 
 // UnderPrintsHead reports whether a card beneath o's top prints a keyword line
