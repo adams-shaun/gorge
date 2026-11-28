@@ -278,7 +278,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.
 			running += mv
 			greedy = append(greedy, id)
 		}
-		chooser := hiddenPickChooser(h, c, cz, owner)
+		chooser := hiddenPickChooser(h, c, bindHiddenPickOpponent(h, c, sa, cz, i), owner) // zone_search_opponent.go
 		// Forge's Optional$ confirmation (the same confirmAction gate the
 		// hidden-hand walk poses, which runs BEFORE the card pick): a script
 		// that carries the marker asks the decider whether to proceed, even

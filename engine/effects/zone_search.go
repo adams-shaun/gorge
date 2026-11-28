@@ -1123,6 +1123,9 @@ func hiddenPickPlayers(h Host, c *Ctx, sel fetchSelectors, group []state.Target)
 // wins; an unbound or unknown selector falls back to the fetch owner. With no
 // selector, the owner remains the decider.
 func hiddenPickChooser(h Host, c *Ctx, cz *ChangeZoneParams, owner state.PlayerID) state.PlayerID {
+	if cz.searchAnswerer != 0 {
+		return state.PlayerID(cz.searchAnswerer - 1) // the chosen opponent (bindHiddenPickOpponent)
+	}
 	if spec := cz.Chooser; spec != "" {
 		if p, ok := chooserPlayer(h, c, spec); ok {
 			return p
