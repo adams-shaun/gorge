@@ -6425,9 +6425,9 @@ func (lc *lowerCtx) libSearchOwner(ps *params, arm bool, tgtLib int, flags []str
 	// Chooser$ beside a DefinedPlayer$ library (gorge searchChooser's
 	// chooserPlayer: a known spelling wins over the fetcher). You is the
 	// resolving controller answering the search of that player's library; on
-	// the controller's own library it is the default asker. Opponent is the
-	// first living opponent answering the pick from the controller's own
-	// library (the kernel's chooserOf reads SrChooserOpp off the search's B).
+	// the controller's own library it is the default asker. Opponent is an
+	// opponent answering the pick from the controller's own library (the
+	// kernel's chooserOf reads SrChooserOpp off the search's B).
 	switch ch := strings.TrimSpace(ps.peek("Chooser")); {
 	case ch == "You" && obj.Kind != rEach:
 		ps.consume("Chooser")
@@ -6435,12 +6435,10 @@ func (lc *lowerCtx) libSearchOwner(ps *params, arm bool, tgtLib int, flags []str
 			flags = append(flags, "ChooserYou")
 		}
 	case ch == "Opponent" && obj.Kind == rYou:
-		// No lc.twoSeat: gorge chooserPlayer resolves "Opponent" to the first
-		// living seat of AliveFrom(controller) that is not the controller and
-		// the kernel's chooserOf reads the same seat (RefOpponent, oneOpp's
-		// nextAlive), so a pod of more seats poses the pick to that opponent
-		// and stays in lockstep (Realms Uncharted at four seats, pinned by
-		// TestHostedCmdrPodsSeatFour and TestPodHostedCmdrPodsBuild).
+		// No lc.twoSeat: with two or more live opponents both engines ask
+		// the controller which one answers (gorge beginSearchOwner, the
+		// kernel's raGenSearchOpp; CR 608.2d), pinned in lockstep by
+		// TestFourSeatChooserOpponentLockstep.
 		ps.consume("Chooser")
 		flags = append(flags, "ChooserOpp")
 	case ch == "ImprintedController" && obj.Kind == rEach:

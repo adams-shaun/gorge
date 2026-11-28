@@ -3,73 +3,95 @@ package oracle
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/engine/effects"
 )
 
-// chooseropponent_fourseat_test.go: a Chooser$ Opponent pick over the cards
-// your own library search remembered (Realms Uncharted's "An opponent chooses
-// two of those cards") plays four-seat games in lockstep. gorge's
-// chooserPlayer answers the pick as the first living seat of
-// AliveFrom(controller) that is not the controller; the kernel's chooserOf
-// reads the same seat (RefOpponent, oneOpp's nextAlive), so the pick is posed
-// to one seat on both sides and the class is not two-seat only (the
-// re-spelled Chooser$ Targeted of lower_tutorpick.go is, and stays so: that
-// one must reach the announced target, not the first opponent).
+// chooseropponent_fourseat_test.go: a library search an opponent answers
+// (Chooser$ Opponent: Realms Uncharted's "An opponent chooses two of those
+// cards", Guided Passage's per-type picks) plays four-seat games in lockstep.
+// With two or more live opponents the caster chooses WHICH one answers (CR
+// 608.2d; the CR 801.5b example), and that seat answers the search's picks.
 var chooserOpponentPodDeck = []cardset.Entry{
-	{Name: "Realms Uncharted", Count: 8},
-	{Name: "Llanowar Elves", Count: 4},
-	{Name: "Grizzly Bears", Count: 4},
+	{Name: "Realms Uncharted", Count: 8}, {Name: "Guided Passage", Count: 4},
+	{Name: "Llanowar Elves", Count: 4}, {Name: "Grizzly Bears", Count: 4},
 	{Name: "Sol Ring", Count: 2},
-	{Name: "Forest", Count: 10},
+	{Name: "Forest", Count: 10}, {Name: "Island", Count: 4}, {Name: "Mountain", Count: 4},
 }
 
-// chooserOpponentWatch: gorge poses a card pick to a player who does not own
-// the offered cards, so an opponent answers someone else's search. The
-// searcher's own pick of the found lands (asked of the owner) does not count.
-func chooserOpponentWatch(c *PickCtx) bool {
-	if c.G == nil || c.G.E == nil || c.G.fr == nil || c.G.fr.d == nil {
-		return false
-	}
-	g := c.G.E.G
-	if g == nil {
-		return false
-	}
-	d := c.G.fr.d
-	if d.Kind != decision.KChoose {
-		return false
-	}
-	for _, o := range d.Options {
-		if o.Kind != "search" && o.Kind != "card" {
-			continue
+// TestFourSeatChooserOpponentLockstep: the caster always names its second
+// opponent in AliveFrom order, never the next live seat, and that opponent
+// answers the search pick that follows. The mutation (DebugSearchOppNext) has
+// the next live seat answer whatever was picked and must diverge.
+func TestFourSeatChooserOpponentLockstep(t *testing.T) {
+	// The subtests skip without the corpus, so the parent must too, or its
+	// watched-count check below fails on an empty run.
+	corpusDirOrSkip(t)
+	var chosen, asks int
+	picks := map[string]int{} // opponent-answered picks per searching card
+	oldSteer := podClassSteer
+	defer func() { podClassSteer = oldSteer }()
+	podClassSteer = func(c *PickCtx) (Canon, bool) {
+		if c.G == nil || c.G.fr == nil {
+			return 0, false
 		}
-		ob := g.Obj(o.Obj)
-		if ob != nil && ob.Owner != state.PlayerID(d.Player) {
+		d := c.G.fr.d
+		if d == nil || d.ResumeKind != "search_opponent" || len(d.Options) < 2 {
+			return 0, false
+		}
+		want := RefPlayer + Ref(d.Options[1].Player)
+		for _, a := range c.D.Options {
+			if a.Tgt() == want {
+				return a, true
+			}
+		}
+		return 0, false
+	}
+	watch := func(c *PickCtx) bool {
+		if c.G == nil || c.G.fr == nil {
+			return false
+		}
+		d := c.G.fr.d
+		if d == nil {
+			return false
+		}
+		switch d.ResumeKind {
+		case "search_opponent":
+			if len(d.Options) < 2 {
+				return false
+			}
+			chosen = int(d.Options[1].Player)
+			asks++
+			return true
+		case "search":
+			// Only the picks an opponent answers (the caster's own head
+			// search has no Chooser$), while two or more opponents live:
+			// with one left nobody is asked which.
+			if effects.ChangeZoneOf(d.ResumeSA).Chooser != "Opponent" || liveSeats(c) < 3 {
+				return false
+			}
+			if int(d.Player) != chosen {
+				t.Errorf("the search pick is posed to seat %d, want the chosen opponent %d", d.Player, chosen)
+			}
+			picks[c.G.E.G.Obj(d.Source).Face().Name]++
 			return true
 		}
+		return false
 	}
-	return false
+	podClassLockstep(t, chooserOpponentPodDeck, 24, 10, watch, &dirac.DebugSearchOppNext)
+	if asks < 5 || picks["Realms Uncharted"] < 5 || picks["Guided Passage"] == 0 {
+		t.Fatalf("the run watched too few opponent choices (asks %d, picks %v)", asks, picks)
+	}
+	t.Logf("asks %d, picks %v", asks, picks)
 }
 
-// TestFourSeatChooserOpponentLockstep: four-seat Realms Uncharted games, one
-// deck in every seat, play in lockstep with gorge with several
-// opponent-answered picks watched. Restoring the removed lc.twoSeat mark at
-// libSearchOwner (lower_zone.go) fails the run here at its TwoSeatOnly check;
-// reading the kernel's chooser as any other seat diverges at the ask's player
-// (TestDemoTutorPickMutation pins the same read against the searcher at two
-// seats).
-func TestFourSeatChooserOpponentLockstep(t *testing.T) {
-	var unused bool
-	st := runPodClass(t, chooserOpponentPodDeck, 24, chooserOpponentWatch, &unused, false)
-	t.Logf("%d games, %d divergences, %d stalls, %d watched opponent-answered picks", st.games, st.divs, st.stalls, st.hits)
-	if st.divs != 0 {
-		t.Errorf("%d divergences", st.divs)
+// liveSeats counts the players still in gorge's game.
+func liveSeats(c *PickCtx) (n int) {
+	for _, p := range c.G.E.G.Players {
+		if !p.Lost {
+			n++
+		}
 	}
-	if st.stalls != 0 {
-		t.Errorf("%d stalls", st.stalls)
-	}
-	if st.hits < 5 {
-		t.Errorf("only %d watched opponent-answered picks, want >= 5", st.hits)
-	}
+	return n
 }

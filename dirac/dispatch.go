@@ -489,7 +489,7 @@ func (s *State) execCold7(k *prep, in *kop.Instr) (ok, done bool) {
 //go:noinline
 func (s *State) askOptionsCold4(k *prep, d *Decision) bool {
 	switch s.res.ask {
-	case raGenPileOpp:
+	case raGenPileOpp, raGenSearchOpp:
 		s.pileOppOptions(d) // act_twopiles.go
 	case raGenMyriad:
 		s.myriadOptions(k, d) // kw_myriad.go
@@ -513,6 +513,8 @@ func (s *State) applyAskCold4(k *prep, a Action) bool {
 	switch s.res.ask {
 	case raGenPileOpp:
 		s.pileOppAnswer(k, a) // act_twopiles.go
+	case raGenSearchOpp:
+		s.searchOppAnswer(k, a) // zone_searchopponent.go
 	case raGenMyriad:
 		s.myriadAnswer(k, a) // kw_myriad.go
 	case raPodClashOpp:
