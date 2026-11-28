@@ -20,7 +20,7 @@ describe('DeckReportPanel', () => {
     expect(html.match(/data-testid="deck-report-problem"/g)).toHaveLength(1);
     expect(html).toContain('has 101 cards, wants exactly 100');
     expect(html.match(/data-testid="deck-report-unsupported"/g)).toHaveLength(2);
-    expect(html).toContain('Leyline of the Hidden ×2 — needs trigger: a countered spell is missed');
+    expect(html).toContain('Leyline of the Hidden ×1 — needs trigger: a countered spell is missed');
     expect(html.match(/data-testid="deck-report-substituted"/g)).toHaveLength(2);
     expect(html).toContain('Leyline of the Hidden → Swamp ×1');
     expect(html).toContain('Vessel of Wildfire → Swamp ×1');

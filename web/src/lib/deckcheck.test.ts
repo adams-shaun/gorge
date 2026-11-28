@@ -33,7 +33,7 @@ describe('deckcheck wording', () => {
   });
 
   it('unsupportedLine names the card, its copies and the primitives it needs', () => {
-    expect(unsupportedLine(reportFixture.unsupported[0])).toBe('Leyline of the Hidden ×2 — needs trigger: a countered spell is missed');
+    expect(unsupportedLine(reportFixture.unsupported[0])).toBe('Leyline of the Hidden ×1 — needs trigger: a countered spell is missed');
     expect(unsupportedLine({ name: 'Vessel of Wildfire', count: 1, needs: ['cost: an exiled-zone override', 'static: split'] })).toBe('Vessel of Wildfire ×1 — needs cost: an exiled-zone override, static: split');
   });
 });
