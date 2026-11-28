@@ -322,6 +322,14 @@ func (s *State) eachOverride(k *prep, sl Slot, f func(o *kop.Override, src CardI
 
 const NoCard = kop.NoCard
 
+// typesGen is sl's types, through the cache where the table has one (static_typecache.go).
+func (s *State) typesGen(k *prep, sl Slot) kop.TypeMask {
+	if k.tyCache {
+		return s.typesCached(k, sl)
+	}
+	return s.typesCalc(k, sl)
+}
+
 // typesCalc is sl's types (typesGen computes them here; static_typecache.go).
 func (s *State) typesCalc(k *prep, sl Slot) kop.TypeMask {
 	if k.gen.fxNeed != 0 && s.walkSlot(k, sl) {
