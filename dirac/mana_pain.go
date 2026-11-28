@@ -916,7 +916,9 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 // every unit's pain as its own ability's, so the summed lethal guard
 // (painTightAt) still binds: a Talisman's trigger grant, or an Aura's mana
 // grant in a library, never lifts it (gorge's planner prices the plan
-// whatever the table holds).
+// whatever the table holds). A pile's under-card ability (prepPileMana) is
+// such a grant too and marks no card: a table with no static grant has no
+// grantSrcCard at all.
 func (s *State) contGrantLive(k *prep) bool {
 	g := k.gen
 	if g == nil || !g.anyContGrant {
@@ -927,7 +929,7 @@ func (s *State) contGrantLive(k *prep) bool {
 	}
 	for seat := range s.ctrlM {
 		for m := s.ctrlM[seat]; m.any(); m = m.rest() {
-			if k.grantSrcCard[s.cardAt(m.first())] {
+			if c := s.cardAt(m.first()); int(c) < len(k.grantSrcCard) && k.grantSrcCard[c] {
 				return true
 			}
 		}
