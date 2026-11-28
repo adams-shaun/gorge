@@ -178,8 +178,9 @@ type config struct {
 	// would show that human's hand to anyone watching.
 	vsbotSpectator string
 	// maxOnDemandTables limits retained private vs-bot games in one process.
-	// A bounded refusal preserves each existing game's credentials, feedback
-	// capture and replay routes; it never evicts a game behind a live URL.
+	// At the limit finished games give way oldest first (their decks and
+	// seat tokens are released with them); a live game is never removed, so
+	// with none finished a new game is refused.
 	maxOnDemandTables int
 	// nets is one entry per RegisterNetBot policy, in registration order, each
 	// holding that policy's flags (netbots.go).
@@ -696,6 +697,10 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	hopts.PairedBotChoices = c.pairedBotChoices(hopts, reg, load, conPool, cmdPool)
 	hopts.PairedBotSearches = c.pairedBotSearches
 	sbv2hub := c.applySBV2(&hopts)
+	// A reaped on-demand table releases its submitted decks now and its seat
+	// tokens once the gate below exists.
+	removed := tableRemover(c.imports, nil)
+	hopts.OnTableRemoved = func(id host.TableID) { removed(id) }
 	r, err := host.New(hopts)
 	if err != nil {
 		return err
@@ -762,6 +767,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 			opts.Events = evh
 		}
 	}
+	removed = tableRemover(c.imports, gate)
 	// Card art is cached and served from this server's own origin (art.go)
 	// rather than sending every viewer's browser to Scryfall directly — see
 	// art.go's doc comment. /art/ is routed ahead of httpapi's own mux (which
