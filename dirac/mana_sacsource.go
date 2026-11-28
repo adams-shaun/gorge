@@ -1039,7 +1039,7 @@ func (s *State) dynSacScriptPriced(k *prep, a Action, p uint8) bool {
 		return false
 	}
 	o := Obj(a.Source())
-	if o == 0 || int(o) >= len(s.objs) || s.objs[o].zone != kop.ZoneBattlefield {
+	if int(o) >= len(s.objs) || s.objs[o].zone != kop.ZoneBattlefield {
 		return false
 	}
 	ob := &s.objs[o]

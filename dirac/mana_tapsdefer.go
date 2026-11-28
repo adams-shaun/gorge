@@ -334,7 +334,7 @@ func (s *State) playLifeNotSurvived(k *prep, p uint8, a Action) bool {
 		return false
 	}
 	o := Obj(a.Source())
-	if o == 0 || int(o) >= len(s.objs) {
+	if int(o) >= len(s.objs) {
 		return false
 	}
 	c := s.objs[o].card
