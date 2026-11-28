@@ -26,7 +26,7 @@ import (
 // slot, n)) where n is the decision's intent index (the intents already
 // logged), and answers through the same dispatch order the host uses for it
 // (Env, then Board, then View). For an Env decision the honest root is dealt
-// from RootSeed(shadowSeed, seq), as shadow.Answer does, because the host
+// from RootSeed(shadowSeed, ordinal), as shadow.Answer does, because the host
 // builds roots from the per-seat seed instead. deviate, when set, may swap
 // the shadow-equal answer for another one (the injected-divergence test).
 // The seat runs on the match goroutine, so reading the live engine's log is

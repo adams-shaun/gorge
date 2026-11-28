@@ -39,7 +39,7 @@ import (
 // builds for this config: DecisionSeed on Decision.Ordinal, no root noise,
 // no move sampling, the heuristic leaf (net nil).
 
-// searchMirrorSims is the brief's simulation budget.
+// searchMirrorSims is the simulation budget the mirror is measured at.
 const searchMirrorSims = 8
 
 // SearchMirrorMismatch is the first decision whose searches did not mirror.
@@ -79,7 +79,7 @@ type SearchMirrorResult struct {
 
 // SearchMirrorPod plays pod m under seed with every seat searched on both
 // engines, stopping at maxTurns. seatSeeds is the per-seat seed each search
-// folds into its per-decision seed (the brief's 11, 22, 33, 44). The kernel
+// folds into its per-decision seed (11, 22, 33 and 44 in the test). The kernel
 // search chooses the game's canonical actions; the gorge search is asked in
 // shadow at the same decision. compareVisits also requires the visits per
 // candidate to agree.
