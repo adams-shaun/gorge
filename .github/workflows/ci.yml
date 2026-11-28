@@ -391,6 +391,17 @@ jobs:
           CI_FAST_SKIP_ORACLE_REPLAY: "1"
           CI_FAST_LIST: ${{ runner.temp }}/ci-fast.list
         run: bash scripts/ci-retry-cache.sh fast-tests -- bash scripts/ci-fast.sh ${{ github.event.pull_request.base.sha }}
+      - name: Dirac walk and cache invariants (a walk/cache/State diff)
+        # Class B of docs/agents/red-batches-20261128.md: a `perf(dirac)` change relaxed a read-only invariant the
+        # heavy shards assert, so the queue was the first to see it and a whole batch re-ran — twice on the quiet
+        # proof (runs 46156810528 and 46155595807, carrier #5994 in dirac/mana_window.go) and the type-cache line
+        # (carrier #5986 in dirac/cast_quietseat.go/prep.go). The two assertions, TestQuietProofEDH
+        # (cast_quietseat_test.go: "the walk changed the State") and TestTyCacheExcludesNonObjectSources
+        # (static_typecache_test.go: "the table is not cached with Duplicant excluded"), must fail here on the pull
+        # request, not in the merge batch. scripts/pr-dirac-invariant.sh runs them through `make test-one` (the
+        # repo's capped target) and exits before any test when the diff touches none of the walk, cache, State,
+        # payment/filter/keyword/kernel or edh-slice paths; it adds a check and weakens none.
+        run: bash scripts/pr-dirac-invariant.sh "${{ github.event.pull_request.base.sha }}"
 
   lint:
     # A push to main whose tree a queue batch already passed (prior) skips lint: the batch ran it on this exact tree
