@@ -282,6 +282,10 @@
       "tier": "engine",
       "status": "TOOL"
     },
+    "engine/cardc/forge": {
+      "tier": "engine",
+      "status": "CORE"
+    },
     "engine/cardc/ir": {
       "tier": "engine",
       "status": "CORE"
