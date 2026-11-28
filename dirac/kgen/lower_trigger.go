@@ -1338,6 +1338,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			if err := lc.trigModes2(tp, tr, t.Mode, zone, readF); err != nil {
 				return err
 			}
+		case "LifeLostAll":
+			if err := lc.lifeLostAll(tp, tr, zone); err != nil { // lower_lifelostall.go
+				return err
+			}
 		default:
 			return refuse("trigger mode %s", t.Mode)
 		}

@@ -1270,7 +1270,8 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"Attached":               kop.TrigAttached,    // the attachment's own, Creature bearer (Assimilation Aegis)
 	"Unattached":             kop.TrigUnattached,  // the attachment's own, the FORMER BEARER (Captain's Hook family)
 	"ChaosEnsues":            kop.TrigChaosEnsues, // the face-up plane's command-zone chaos ability (zone_planechase.go)
-	"LeaveExile":             kop.TrigLeaveExile}  // an imprinted card leaves exile (lower_changezonepairs.go; dirac/trig_leaveexile.go)
+	"LeaveExile":             kop.TrigLeaveExile,  // an imprinted card leaves exile (lower_changezonepairs.go; dirac/trig_leaveexile.go)
+	"LifeLostAll":            kop.TrigLifeLostAll} // a simultaneous life-loss group (lower_lifelostall.go; dirac/trig_lifelostall.go)
 
 // trigQualifierFlags is trigger's qualifier-flag block: the Evolve, the
 // SpellCast spend qualifiers (Increment, the mana-spend gate) and the split
@@ -1536,6 +1537,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			return kt, fmt.Errorf("expend %d", t.Amount)
 		}
 		kt.N = int16(t.Amount)
+	}
+	if t.Event == "LifeLostAll" {
+		kt.N = int16(t.Amount) // ValidAmountEach$ EQ<n>, 0 any amount (dirac/trig_lifelostall.go)
 	}
 	if t.Training {
 		if t.Event != "Attacks" || kt.Flags&kop.TfSelf == 0 {
