@@ -159,6 +159,7 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		id := host.NextGameID(r)
 		decks := shuffled
 		var imported []string
+		var route podRoute
 		if seats == 2 && len(submitted) == 0 {
 			if req.HumanDeck != "" || req.BotDeck != "" {
 				human, bot := req.HumanDeck, req.BotDeck
@@ -178,6 +179,8 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 				return httpapi.CreateGameResponse{}, err
 			}
 			decks, imported = rotateForMatchOne(want), ids
+			route = c.routePod(c.diracCheck, req.Format, seats, policy, req.PairedBot, humans > 1 && c.pairedBotShared,
+				seatRouteDecks(want, ids, submitted))
 		}
 		// The request may set its own London allowance; an omitted field keeps the server
 		// default. host.TableConfig.Validate still rejects a negative, so a
@@ -195,10 +198,11 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 			ID: id, Name: podTableName(req.Format, seats), Seats: seats, Decks: decks,
 			Seed: seed, PlayerNames: podPlayerNames(seats, humans), Mulligans: mulligans,
 			Spectator: vis, Perpetual: false, Humans: humanSeats(humans), Format: req.Format,
-			BotPolicy: policy, BotAutoPayMana: c.botAutoPayMana, BotCommonSense: c.botCommonSense, AutoMana: c.autoMana, OnDemand: true, Engine: c.engine, PairedBot: req.PairedBot,
+			BotPolicy: policy, BotAutoPayMana: c.botAutoPayMana, BotCommonSense: c.botCommonSense, AutoMana: c.autoMana, OnDemand: true, PairedBot: req.PairedBot,
 			AllowPairedBot: humans > 1 && c.pairedBotShared,
 		}
-		if err := r.AddTable(cfg); err != nil {
+		route, err = c.addRoutedTable(r, cfg, route)
+		if err != nil {
 			c.imports.drop(imported...)
 			return httpapi.CreateGameResponse{}, err
 		}
@@ -215,7 +219,8 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 			return httpapi.CreateGameResponse{}, err
 		}
 		resp := httpapi.CreateGameResponse{Table: string(id), Match: 1, Seed: seed, Seat: 0,
-			Token: grants[0].Token, Join: grants[0].Join, BotPolicy: policy, Decks: reports}
+			Token: grants[0].Token, Join: grants[0].Join, BotPolicy: policy, Decks: reports,
+			Engine: route.Engine, EngineReason: route.Reason}
 		if seats > 2 || humans > 1 || len(submitted) > 0 {
 			resp.Seats = grants
 		}

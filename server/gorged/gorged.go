@@ -70,6 +70,12 @@ type config struct {
 	// opened over them, nil when the flag is empty.
 	diracCheckSets string
 	diracCheck     *adapter.Engine
+	// routePodsDirac is -route-pods-dirac: a four-seat commander pod whose
+	// decks all pass diracCheck runs on dirac (route.go). diracPool is each
+	// commander-pool deck's dirac verdict, written once before any listener
+	// opens and read-only afterwards.
+	routePodsDirac bool
+	diracPool      map[string]error
 	// refusedDecks says why -engine dirac cannot play each deck it refuses.
 	refusedDecks map[string]string
 	// imports holds the decks POST /api/games submitted (podimport.go); nil
@@ -434,6 +440,7 @@ func serveFlags() (*flag.FlagSet, *config) {
 	})
 	fs.Lookup("decks").DefValue = defaultDecks
 	fs.StringVar(&c.engine, "engine", gorgegame.Name, "the engine this server's tables and vs-bot games run on; one this binary does not link fails at startup, naming those it does")
+	fs.BoolVar(&c.routePodsDirac, "route-pods-dirac", false, "serve a 4-seat commander pod on dirac when all four decks pass there (needs -dirac-check-sets); gorge otherwise; a restart without it cannot resume a dirac pod")
 	fs.StringVar(&c.diracCheckSets, "dirac-check-sets", "", "comma-separated dirac card sets every deck report is also judged on (built by make dirac-tables); empty = no dirac column unless -engine dirac")
 	fs.StringVar(&c.diracSets, "dirac-sets", "fdn", "with -engine dirac: comma-separated card sets, tried in order for each game (built by make dirac-tables)")
 	fs.IntVar(&c.tables, "tables", 4, "number of tables")
@@ -537,6 +544,9 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		}
 	}
 	if err := c.checkDiracFlags(); err != nil {
+		return err
+	}
+	if err := c.checkRouteFlags(); err != nil {
 		return err
 	}
 	vis, err := view.ParseVisibility(c.spectator)
@@ -697,6 +707,12 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	c.imports.demand = c.demandLog()
 	if err := c.diracColumn(reg, diracEngine); err != nil {
 		return err
+	}
+	if c.routePodsDirac {
+		c.withDirac(c.diracCheck)
+		if c.diracPool, err = diracPoolVerdicts(c.diracCheck, reg, c.decks, cmdPool); err != nil {
+			return err
+		}
 	}
 	load = c.imports.loader(load)
 	// -events chains the event store's deck loader in front of the ordinary
