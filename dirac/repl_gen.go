@@ -179,7 +179,15 @@ func (s *State) replDamageRewrites(k *prep, srcCtrl uint8, srcSl Slot, srcCard C
 	if g.anyRepl&rbPrevNC != 0 && !combat && sl != NoSlot && s.isCreature(k, sl) {
 		for m := s.statM.and(s.ctrlM[rcp]); m.any(); m = m.rest() {
 			b := m.first()
-			if b != sl && g.replBits[s.cardAt(b)]&rbPrevNC != 0 && !s.genLost(k, b) && !s.noPrev(k, combat) {
+			if b == sl || s.genLost(k, b) || s.noPrev(k, combat) {
+				continue
+			}
+			hit := false
+			s.eachPileCard(k, b, func(c CardID) bool {
+				hit = g.replBits[c]&rbPrevNC != 0
+				return !hit
+			})
+			if hit {
 				return 0
 			}
 		}

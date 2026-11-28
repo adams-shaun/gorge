@@ -25,21 +25,27 @@ func (s *State) plusPlayerCtr(k *prep, p uint8, n int) int {
 	plus, plusN := 0, 0
 	for m := s.statM; m.any(); m = m.rest() {
 		b := m.first()
-		if g.replBits[s.cardAt(b)]&rbCtrOn == 0 || s.genLost(k, b) {
+		if s.genLost(k, b) {
 			continue
 		}
 		lc := s.perms[b].ctrl
-		cd := &k.t.Cards[s.cardAt(b)]
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplAddCountersOn || a.Repl.C >= 0 {
-				continue
+		s.eachPileCard(k, b, func(c CardID) bool {
+			if g.replBits[c]&rbCtrOn == 0 {
+				return true
 			}
-			if s.ctrKindMatch(a, -1, lc) && s.castTargetsPlayerRead(k, a.Repl.Filter, p, lc) { // repl_addcounter.go, trig_qualifiers.go
-				plus += int(a.Repl.A)
-				plusN++
+			cd := &k.t.Cards[c]
+			for i := range cd.Abilities {
+				a := &cd.Abilities[i]
+				if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplAddCountersOn || a.Repl.C >= 0 {
+					continue
+				}
+				if s.ctrKindMatch(a, -1, lc) && s.castTargetsPlayerRead(k, a.Repl.Filter, p, lc) { // repl_addcounter.go, trig_qualifiers.go
+					plus += int(a.Repl.A)
+					plusN++
+				}
 			}
-		}
+			return true
+		})
 	}
 	if plusN == 0 {
 		return n
