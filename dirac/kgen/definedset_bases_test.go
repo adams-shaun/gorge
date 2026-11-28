@@ -42,12 +42,35 @@ func setBaseRows() []struct{ name, src, set string } {
 	}
 }
 
+// setObjectRows are Sacrifice and Discard over a set holding an object, the
+// bearer sweep and a qualified base, and the reason the builder's walk guard
+// gives for each: the kernel does not finish such a member's run as gorge
+// does.
+func setObjectRows() []struct{ name, src, reason string } {
+	const upkeep = "Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You"
+	const sac = "Defined$ set holding an object on kop Sacrifice: the kernel does not finish its run as gorge does"
+	const disc = "Defined$ set holding an object on kop Discard: the kernel does not finish its run as gorge does"
+	var rows []struct{ name, src, reason string }
+	for _, def := range []struct{ name, v string }{{"the bearer", "Valid Card.EnchantedBy"}, {"a qualified source", "Self.Creature"}} {
+		for _, body := range []struct{ name, api, params, reason string }{
+			{"sacrificing itself", "Sacrifice", "SacValid$ Self", sac},
+			{"sacrificing a land", "Sacrifice", "SacValid$ Land", sac},
+			{"discarding", "Discard", "Mode$ TgtChoose | NumCards$ 1", disc},
+		} {
+			rows = append(rows, struct{ name, src, reason string }{def.name + " " + body.name,
+				setBaseTrigger(upkeep, "DB$ "+body.api+" | Defined$ "+def.v+" | "+body.params), body.reason})
+		}
+	}
+	return rows
+}
+
 // TestSetBaseShapes: a referent defined() lowers that has no set kind of its
 // own is wrapped in SetRefBase, Valid <filter> is a battlefield sweep, and the
 // zone sweeps, the referents the kernel's set arm cannot read and a set under
 // an op that takes none refuse by name. A shape that lowers must also build:
 // the builder's walk guard (build_setexpr.go walksSet) refuses a set of more
-// than one member under an op whose member run can ask.
+// than one member under an op whose member run can ask, and any set holding an
+// object under Sacrifice or Discard.
 func TestSetBaseShapes(t *testing.T) {
 	for _, tc := range setBaseRows() {
 		t.Run(tc.name, func(t *testing.T) {
@@ -78,6 +101,35 @@ func TestSetBaseShapes(t *testing.T) {
 			c, _ := definedSetLIR(t, tc.src)
 			if got := abReasons(c); !strings.HasSuffix(strings.TrimSpace(got), tc.reason) {
 				t.Fatalf("want a lowering refusal ending %q, got:\n%s", tc.reason, got)
+			}
+		})
+	}
+	for _, tc := range setObjectRows() {
+		t.Run(tc.name, func(t *testing.T) {
+			c, lir := definedSetLIR(t, tc.src)
+			if len(c.Refusals) != 0 || !strings.Contains(lir, "obj=Set0") || len(c.Sets) != 1 || c.Sets[0].Players || !c.Sets[0].One {
+				t.Fatalf("precondition: a lowered read of one set of at most one object, refusals %q\n%s", abReasons(c), lir)
+			}
+			pt := newPoolTables(&lowered{cards: []*lCard{c}}, nil)
+			b := buildCard(pt, c)
+			if len(pt.sets) != 0 || !slices.ContainsFunc(b.refusals, func(r refusal) bool { return strings.HasSuffix(r.Reason, tc.reason) }) {
+				t.Fatalf("want a build refusal ending %q, got %+v (sets %v)", tc.reason, b.refusals, pt.sets)
+			}
+		})
+	}
+	// a set of players under the same two ops still builds
+	for _, tc := range []struct{ name, body string }{
+		{"players sacrificing", "DB$ Sacrifice | Defined$ NonEnchantedController | SacValid$ Land"},
+		{"one player discarding", "DB$ Discard | Defined$ EnchantedOwner | Mode$ TgtChoose | NumCards$ 1"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c, lir := definedSetLIR(t, setBaseTrigger("Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You", tc.body))
+			if len(c.Refusals) != 0 || len(c.Sets) != 1 || !c.Sets[0].Players {
+				t.Fatalf("precondition: a lowered player set, refusals %q\n%s", abReasons(c), lir)
+			}
+			pt := newPoolTables(&lowered{cards: []*lCard{c}}, nil)
+			if b := buildCard(pt, c); len(b.refusals) != 0 || len(pt.sets) != 1 {
+				t.Fatalf("lowered but the builder refused: %+v (sets %v)", b.refusals, pt.sets)
 			}
 		})
 	}

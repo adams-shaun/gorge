@@ -574,8 +574,10 @@ func sweepsBearer(f *lFilter) bool {
 // setValid is Valid <filter>: every permanent the filter admits, You the
 // resolving controller (gorge battlefieldValidTargets). It names several
 // objects, so it lowers on a setSweepAPIs api unless the filter admits only
-// the source's bearer, which is one object at most (and so passes the
-// builder's walk guard on any op). The zone-suffixed sweeps have no set kind.
+// the source's bearer, which is one object at most. The builder's walk guard
+// passes that one-object set under every op but Sacrifice and Discard
+// (build_setexpr.go kopRunsSetObject). The zone-suffixed sweeps have no set
+// kind.
 func (lc *lowerCtx) setValid(zone, spec string) (setTerm, error) {
 	if zone != "Valid" {
 		return setTerm{}, fmt.Errorf("zone base %s", zone)

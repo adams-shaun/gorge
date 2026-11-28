@@ -35,8 +35,8 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | MH3 | 308 | 253 | 4 | 18 | 231 | 231 | 1 | 1 | 308 | 253 | 231 |
 | MH2 | 309 | 275 | 2 | 15 | 258 | 258 | 1 | 1 | 309 | 275 | 258 |
 | CM2 | 279 | 247 | 1 | 5 | 241 | 241 | 10 | 10 | 279 | 247 | 241 |
-| hosted-cmdr | 1234 | 1221 | 40 | 109 | 1072 | 1071 | 33 | 33 | 1233 | 1220 | 1072 |
-| ALL | 34480 | 27455 | 95 | 1033 | 26327 | 26321 | 33 | 33 | 32729 | 26960 | 25951 |
+| hosted-cmdr | 1234 | 1221 | 34 | 115 | 1072 | 1072 | 33 | 33 | 1233 | 1220 | 1072 |
+| ALL | 34480 | 27459 | 86 | 1044 | 26329 | 26324 | 33 | 33 | 32729 | 26964 | 25953 |
 
 The `4-seat` column is a ceiling; `4-seat pod-evidenced` is its proven subset, the `4-seat` cards with an evidence row whose seats field is four or more. The `4-seat` definition has not changed.
 
@@ -5403,22 +5403,20 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-103 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+94 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision-kind | 1 |
 | deferred | 34 |
-| lockstep | 13 |
-| options | 10 |
+| lockstep | 10 |
+| options | 8 |
 | options-options | 3 |
 | projection-Cards.Damage | 1 |
 | projection-Cards.Flags | 7 |
 | projection-Cards.Pos | 6 |
-| projection-Cards.Power | 1 |
-| projection-Cards.Zone | 4 |
+| projection-Cards.Zone | 2 |
 | projection-Life | 1 |
-| projection-NInst | 1 |
 | projection-NStack | 6 |
 | projection-Pool | 1 |
 | unmodelled-band | 5 |
