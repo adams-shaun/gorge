@@ -165,7 +165,7 @@ func (s *State) surgeKeepsTarget(k *prep, p uint8, c CardID, o Obj, sc *kop.Mana
 	f := s.fork()
 	defer s.unfork()
 	f.g.probe = probe{kind: probeSpell, src: NoSlot, card: c, ctrl: p}
-	return f.specKeepsTarget(k, p, o, sp, sc)
+	return f.specKeepsTarget(k, p, o, sp, sc, false)
 }
 
 // surgeCostOf is the surged cast's printed alternative cost.

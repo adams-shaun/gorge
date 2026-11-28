@@ -36,7 +36,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // census walks it repeats must not leave bookkeeping the game's later offers
 // read, and the tier-1 census runs in the planner's plain mode (script_gen.go
 // plainOptions) — gorge's payment planner prices a plan its own census pays.
-func (s *State) witnessKeepsTargets(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost) bool {
+//
+// planned is true when the offer is the cast's own planned payment
+// (FeatPlannedCast): the build announces its targets before bsPay (cast.go
+// buildProgram), so a lone source gorge's payment plan uses may sacrifice the
+// target already announced (CR 601.2c-h) and the census must price that victim
+// (fodderOnlySources). A kicked, surged or potential-line read passes false and
+// keeps every hold-out.
+func (s *State) witnessKeepsTargets(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost, planned bool) bool {
 	sp := tspec(k, c, spellAb(k, c), 0)
 	if sp == nil {
 		return true // no targets: no plan can strand one
@@ -64,7 +71,7 @@ func (s *State) witnessKeepsTargets(k *prep, p uint8, c CardID, o Obj, cost *kop
 		f.g.availX = m
 		return true
 	}
-	ok := f.specKeepsTarget(k, p, o, sp, cost)
+	ok := f.specKeepsTarget(k, p, o, sp, cost, planned)
 	// A charm's other modes' targets are as good: gorge's castTargetsAvailable
 	// takes the cast while any mode keeps a legal target (CR 700.2, 601.2c), so
 	// Vandalize's land mode stands when the plan consumes every artifact it
@@ -73,7 +80,7 @@ func (s *State) witnessKeepsTargets(k *prep, p uint8, c CardID, o Obj, cost *kop
 		a := &k.t.Cards[c].Abilities[ab]
 		for j := 1; a.NModes > 1 && j < int(a.NTargets) && !ok; j++ {
 			if a.TgtModes[j]&a.TgtModes[0] == 0 {
-				ok = f.specKeepsTarget(k, p, o, &a.Targets[j], cost)
+				ok = f.specKeepsTarget(k, p, o, &a.Targets[j], cost, planned)
 			}
 		}
 		// A mode no target slot covers announces no targets at all (CR 700.2,
@@ -104,8 +111,8 @@ func (s *State) witnessKeepsTargets(k *prep, p uint8, c CardID, o Obj, cost *kop
 // specKeepsTarget is witnessKeepsTargets' per-spec read over the offer's
 // census (availX holds availGaps): true when sp has no legal target, a target
 // no mana activation takes, or one candidate whose whole production the plan
-// can do without.
-func (s *State) specKeepsTarget(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cost *kop.ManaCost) bool {
+// can do without. planned passes through to availSansObj.
+func (s *State) specKeepsTarget(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cost *kop.ManaCost, planned bool) bool {
 	var buf [MaxOptions]TCode
 	n := s.targetCands(k, sp, p, NoSlot, o, &buf)
 	if n == 0 {
@@ -128,10 +135,10 @@ func (s *State) specKeepsTarget(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cos
 			// an Aura target falls off a source the plan sacrifices (CR 704.5m): hold the host out too
 			held := s.ctrlM[p]
 			s.ctrlM[p] = held.andNot(slotMask{}.with(hs))
-			s.availSansObj(k, p, tobj, &c1)
+			s.availSansObj(k, p, tobj, &c1, planned)
 			s.ctrlM[p] = held
 		} else {
-			s.availSansObj(k, p, tobj, &c1)
+			s.availSansObj(k, p, tobj, &c1, planned)
 		}
 		if c1.affords(cost, pipMaskOf(cost), 0) {
 			return true
@@ -155,9 +162,12 @@ func (s *State) specKeepsTarget(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cos
 // the guard must price it even when it is the spell's own target. Restoring it
 // only when painTight left the units alone keeps the budget model's count
 // exact (a binding summed life guard is still the conservative answer).
-func (s *State) availSansObj(k *prep, p uint8, o Obj, a *avail) {
+//
+// A sacrifice-another source with no other fodder is held out too
+// (fodderOnlySources, which planned narrows).
+func (s *State) availSansObj(k *prep, p uint8, o Obj, a *avail, planned bool) {
 	sl := s.objs[o].slot
-	if fm := s.fodderOnlySources(k, p, sl); fm.any() {
+	if fm := s.fodderOnlySources(k, p, sl, planned); fm.any() {
 		// a sacrifice-another source whose one fodder is the target has no
 		// unit once the plan takes the target for its own cost (CR 601.2c)
 		held := s.ctrlM[p]
@@ -298,8 +308,17 @@ func (s *State) setTkPrefix(on bool) {
 // color") whose only sacrifice candidate is the permanent at slot t. A cast
 // that targets t cannot also fund its cost by sacrificing t, so gorge's prefix
 // search (potential_script.go targetsGone) finds no script through them.
-func (s *State) fodderOnlySources(k *prep, p uint8, t Slot) slotMask {
-	var fm slotMask
+//
+// A planned read releases a lone source gorge's payment plan uses
+// (planOtherSacSource, a plain creature victim): that plan pays after the
+// targets are announced, so it may take the announced one (CR 601.2c-h). Two or
+// more such sources over the one victim stay held: gorge's search can spend two
+// of them, names no distinct victims and offers nothing (pay.AssignPlanVictims;
+// two Ashnod's Altars beside Captivating Gyre's only target). Every other
+// sacrifice source (the Kaleidoscope's Prism token) stays held.
+func (s *State) fodderOnlySources(k *prep, p uint8, t Slot, planned bool) slotMask {
+	var fm, byPlan slotMask
+	nByPlan := 0
 	var cs [MaxPerm]Slot
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
 		sl := b.first()
@@ -311,7 +330,14 @@ func (s *State) fodderOnlySources(k *prep, p uint8, t Slot) slotMask {
 		}
 		if s.tapXCands(k, p, sl, &cs) == 1 && cs[0] == t {
 			fm = fm.with(sl)
+			if planned && s.planOtherSacSource(k, sl) {
+				byPlan = byPlan.with(sl)
+				nByPlan++
+			}
 		}
+	}
+	if nByPlan == 1 {
+		fm = fm.andNot(byPlan)
 	}
 	return fm
 }
