@@ -811,7 +811,7 @@
             "type": "string"
           },
           "decks": {
-            "description": "Decks supplies a ManaBrew deck (the https://docs.manabrew.app/protocol/deck/ JSON) for the seats that name one; every other seat is dealt from the server's pool as before (or from human_deck / bot_deck at two seats). The server re-checks each deck for format, legality and engine support.",
+            "description": "Decks supplies a ManaBrew deck (the https://docs.manabrew.app/protocol/deck/ JSON) or a plain-text decklist for the seats that name one; every other seat is dealt from the server's pool as before (or from human_deck / bot_deck at two seats). The server re-checks each deck for format, legality and engine support.",
             "items": {
               "$ref": "#/components/schemas/SeatDeck"
             },
@@ -3769,16 +3769,18 @@
         "description": "An undo rolled the live match back in place: discard everything past `body.head`, then apply the body like a snapshot."
       },
       "SeatDeck": {
-        "description": "SeatDeck is one seat's submitted deck. Deck is the ManaBrew Deck JSON, kept raw here: the wire type lives in server/protocol/manabrew, which this package must not depend on, and the builder that imports it owns the parsing.",
+        "description": "SeatDeck is one seat's submitted deck: exactly one of Deck and Text. Deck is the ManaBrew Deck JSON, kept raw here: the wire type lives in server/protocol/manabrew, which this package must not depend on, and the builder that imports it owns the parsing. Text is a plain-text decklist (\"1 Sol Ring\" lines, an optional Commander section, at most 64 KiB), which the builder parses and checks the same way.",
         "properties": {
           "deck": {},
           "seat": {
             "format": "int64",
             "type": "integer"
+          },
+          "text": {
+            "type": "string"
           }
         },
         "required": [
-          "deck",
           "seat"
         ],
         "type": "object",
@@ -5977,7 +5979,7 @@
     },
     "/api/games": {
       "post": {
-        "description": "Builds and starts a fresh single-match table (`g1`, `g2`, ...) seating the caller against a hosted bot, and returns the human seat's bearer token. The token is returned only here. Armed by gorged -vsbot; otherwise this answers 404.",
+        "description": "Builds and starts a fresh single-match table (`g1`, `g2`, ...) seating the caller against a hosted bot, and returns the human seat's bearer token. The token is returned only here. A seat in `decks` names either `deck` (ManaBrew deck JSON) or `text` (a plain-text decklist of `1 Sol Ring` lines with an optional `Commander` section, at most 65536 bytes), never both. Armed by gorged -vsbot; otherwise this answers 404.",
         "operationId": "createGame",
         "requestBody": {
           "content": {
