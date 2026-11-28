@@ -8,8 +8,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (pay.PaymentPlanShapeTierOf's Sac arm -> Consequence{SacrificeOthers: true},
 // pay.AssignPlanVictims, pay.PaymentPlanSacrificeVictims). The kernel mirrors
 // the tier here: the source joins plan()'s phase 1 as a unit of the ability's
-// production (planLastResort holds it out of phase 0), the planner ranks only
-// sets fundable with victims (an unfundable set is no plan, planSacGate), the execution
+// production (planLastResort holds it out of phase 0), the found plan must be
+// fundable with victims (an unfundable plan is no plan), the execution
 // sacrifices exactly those victims with no ask, and the (source, victim)
 // pairing rides the State so the plan witness the adapter builds carries the
 // victims trailer (decision.appendPaymentPlanCanonical).
@@ -129,19 +129,17 @@ func (s *State) otherSacFundable(k *prep, p uint8, sl Slot, pc *pcard) bool {
 }
 
 // otherSacCensusVictim reports whether the source at sl is one of the plain
-// planner census's units now (availForMode / ungrAvail): gorge's payment
-// census lists a "Sacrifice another permanent: Add" ability as a last-resort
-// unit whenever a victim besides the source stands on the board
-// (planalts.go otherSacFundable), so a cast it alone completes is on the offer
-// list, not only one the scripted gaps walks price. kept holds the victims the
-// payment's own cost spends. The census prices every such source, whatever
-// the other sources take: which sets the board can fund with a victim per step
-// is the planner's to say (planSacGate, as gorge's pay.planVictimGate), so two
-// altars beside one creature are two units and the plan uses whichever funds
-// the cast. The scripted walks keep their own account of the source
+// planner census's units now (availForMode / ungrAvail) and names the victim
+// it would take: gorge's payment census lists a "Sacrifice another permanent:
+// Add" ability as a last-resort unit, so a cast it alone completes is on the
+// offer list, not only one the scripted gaps walk prices. reserved holds the
+// victims an earlier census unit of the same walk already named: gorge's
+// planner activates each source at most once per plan and gives each step a
+// distinct victim (pay.AssignPlanVictims), so two altars beside one creature
+// are not two units. The scripted walks keep their own account of the source
 // (availScript's tapX units), so the plain census arm is the only one that
 // counts it here.
-func (s *State) otherSacCensusVictim(k *prep, p uint8, sl Slot, pc *pcard, kept slotMask) (Slot, bool) {
+func (s *State) otherSacCensusVictim(k *prep, p uint8, sl Slot, pc *pcard, reserved slotMask) (Slot, bool) {
 	if k.gen == nil || s.g.availX&(availGaps|availAny) != 0 || !k.gen.uses.has(useSacOtherPlan) {
 		return NoSlot, false
 	}
@@ -149,14 +147,14 @@ func (s *State) otherSacCensusVictim(k *prep, p uint8, sl Slot, pc *pcard, kept 
 	if !ok || !s.otherSacUsable(k, sl, pc) {
 		return NoSlot, false
 	}
-	return s.otherSacVictim(k, p, sl, ab, kept)
+	return s.otherSacVictim(k, p, sl, ab, reserved)
 }
 
 // addOtherSacCensusAvail adds every planned other-sacrifice source's plain
 // census unit to a: the cast offer's affordability read prices the source,
-// while the general availability walk (the scripted walks') does not. The
-// units are an upper bound on what the board funds: the planner names the
-// victims (planSacGate).
+// while the general availability walk (the scripted walks') does not. Each
+// unit spends a distinct victim, as gorge's planner gives each step its own
+// (pay.AssignPlanVictims).
 func (s *State) addOtherSacCensusAvail(k *prep, p uint8, a *avail) {
 	s.addOtherSacCensusAvailKeeping(k, p, a, slotMask{})
 }
@@ -166,13 +164,15 @@ func (s *State) addOtherSacCensusAvail(k *prep, p uint8, a *avail) {
 // gorge's plan never takes one as a victim (pay.AssignPlanVictims). It reports
 // whether any unit was added.
 func (s *State) addOtherSacCensusAvailKeeping(k *prep, p uint8, a *avail, kept slotMask) bool {
-	added := false
+	reserved, added := kept, false
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
 		pc := s.manaPCGen(k, sl)
-		if _, ok := s.otherSacCensusVictim(k, p, sl, pc, kept); !ok {
+		v, ok := s.otherSacCensusVictim(k, p, sl, pc, reserved)
+		if !ok {
 			continue
 		}
+		reserved = reserved.with(v)
 		s.availPlainUnit(k, sl, pc, a)
 		added = true
 	}
@@ -256,7 +256,7 @@ func (s *State) actOtherSacPlans(k *prep, p uint8, sl Slot, f kop.CostFlags, cos
 // cost alone, pays it with the planned other-sacrifice units added AND the
 // cast has a payment plan: the cast's planner (o excluded, the spell's own
 // card) finds a plan whose other-sacrifice steps each name a distinct victim
-// that is no plan source (planSacGate). The census unit prices the altar
+// that is no plan source (planSacFundable). The census unit prices the altar
 // without knowing which sources the plan taps, so a mana creature that is the
 // only fodder pays {W} and is also the altar's only victim; gorge assigns
 // victims outside the plan's sources (pay.AssignPlanVictims) and prices no plan
@@ -267,13 +267,9 @@ func (s *State) otherSacCensusPlans(k *prep, p uint8, o Obj, cost *kop.ManaCost,
 		return false
 	}
 	s.addOtherSacCensusAvail(k, p, av)
-	return av.affords(cost, pipMaskOf(cost), 0) && s.otherSacCastPlans(k, p, o, cost)
-}
-
-// otherSacCastPlans is the cast's dry payment plan (o, the spell's own card,
-// out of its sources): the planner finds a set whose other-sacrifice steps
-// each name a distinct victim (planSacGate).
-func (s *State) otherSacCastPlans(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
+	if !av.affords(cost, pipMaskOf(cost), 0) {
+		return false
+	}
 	var pk planner
 	pk.try, pk.dry, pk.noGrant = true, true, true
 	s.tapForPK(k, p, cost, 0, o, false, false, &pk)
@@ -337,32 +333,32 @@ func (s *State) planSacVictimLess(k *prep, x, y Slot) bool {
 	return xo < yo
 }
 
-// planSacReserved is the victim exclusion set of the plan whose first bn units
-// are seq: every unit's source slot and the payment's kept slots, the dry
-// probe's or the live activation's (pay.AssignPlanVictims never takes a plan
-// source, a kept or gone object, or an earlier step's victim; a taken victim
-// has left the battlefield and drops out of the walk by itself).
-func (s *State) planSacReserved(k *prep, pk *planner, seq *[maxUnits]uint8, bn int) slotMask {
+// planSacReserved is the victim exclusion set of the found plan: every unit's
+// source slot and the payment's kept slots, the dry probe's or the live
+// activation's (pay.AssignPlanVictims never takes a plan source, a kept or
+// gone object, or an earlier step's victim; a taken victim has left the
+// battlefield and drops out of the walk by itself).
+func (s *State) planSacReserved(k *prep, pk *planner, bn int) slotMask {
 	res := pk.kept.or(s.buildOtherSacKept(k))
 	for i := 0; i < bn; i++ {
-		res = res.with(pk.units[seq[i]])
+		res = res.with(pk.units[pk.bestSeq[i]])
 	}
 	return res
 }
 
-// planSacFundable reports whether every other-sacrifice unit of the plan
-// seq/tys (bn units) can name a distinct victim, in run order: gorge's search
-// ranks only paying sets whose steps each name one (pay.planVictimGate ->
-// AssignPlanVictims), so a fundable set still wins beside an unfundable
-// better-ranked one. It runs for the dry probe and the live pass alike: the
-// offer stands or falls on it in gorge.
-func (s *State) planSacFundable(k *prep, p uint8, pk *planner, seq, tys *[maxUnits]uint8, bn int) bool {
-	res := s.planSacReserved(k, pk, seq, bn)
+// planSacFundable reports whether every other-sacrifice unit of the found
+// plan can name a distinct victim, in run order (gorge assigns victims after
+// the search, pay.AssignPlanVictims, and an unfundable plan is not offered).
+// It runs for the dry probe and the live pass alike: the offer stands or falls
+// on it in gorge.
+func (s *State) planSacFundable(k *prep, p uint8, pk *planner, bn int) bool {
+	res := s.planSacReserved(k, pk, bn)
 	for i := 0; i < bn; i++ {
-		if !pk.types[tys[i]].sacO {
+		ty := &pk.types[pk.bestTy[i]]
+		if !ty.sacO {
 			continue
 		}
-		sl := pk.units[seq[i]]
+		sl := pk.units[pk.bestSeq[i]]
 		pc := s.manaPCGen(k, sl)
 		ab, ok := s.otherSacAb(k, sl, pc)
 		if !ok {
@@ -375,27 +371,6 @@ func (s *State) planSacFundable(k *prep, p uint8, pk *planner, seq, tys *[maxUni
 		res = res.with(vic)
 	}
 	return true
-}
-
-// planSacGate is the planner's fundability gate (pk.consider): the current
-// count vector's witness (the least unit sequence, as the plan would tap it)
-// must name a victim for each of its other-sacrifice steps. A vector with no
-// such step passes. gorge judges one witness per count vector the same way
-// (pay.planVictimGate over the search's materialized set).
-func (s *State) planSacGate(k *prep, p uint8, pk *planner) bool {
-	var kv [maxTypes]uint8
-	any := false
-	for t := 0; t < pk.nt; t++ {
-		kv[t] = pk.types[t].k
-		any = any || pk.types[t].sacO && kv[t] != 0
-	}
-	if !any {
-		return true
-	}
-	var seq, tys [maxUnits]uint8
-	n := pk.lexLeast(&kv, &seq)
-	pk.seqTypes(&kv, &seq, n, &tys)
-	return s.planSacFundable(k, p, pk, &seq, &tys, n)
 }
 
 // planSacLogOf is s's witness log, nil when the table plans no
@@ -514,6 +489,16 @@ func (s *State) planSacOUnit(k *prep, p uint8, sl Slot, sac, granted bool, rk ui
 	return !sac && !granted && rk == 0 && s.otherSacSourceUsable(k, p, sl)
 }
 
+// planDropUnfundable clears pk.found when the found plan's other-sacrifice
+// steps cannot be funded with distinct victims: gorge assigns the plan's
+// victims after the search (pay.AssignPlanVictims) and does not offer a cast
+// it cannot fund.
+func (s *State) planDropUnfundable(k *prep, p uint8, pk *planner) {
+	if pk.found && !s.planSacFundable(k, p, pk, pk.bestN) {
+		pk.found = false
+	}
+}
+
 // planTapsSource reports whether plan's executed step taps its source sl: a
 // life-only census gap's unit pays its life, not a tap (mana_lifegap.go;
 // lifeGapPlanCost pays it), a sacrifice-only unit is not tapped, and neither
@@ -533,7 +518,7 @@ func (s *State) planSacOStep(k *prep, p uint8, sl Slot, res slotMask) slotMask {
 		vic, ok2 = s.otherSacVictim(k, p, sl, ab, res)
 	}
 	if !ok || !ok2 {
-		panic("kernel: planned other-sacrifice step has no victim") // planSacGate priced it at the search
+		panic("kernel: planned other-sacrifice step has no victim") // planSacFundable priced it at the search
 	}
 	res = res.with(vic)
 	vo := s.perms[vic].obj
