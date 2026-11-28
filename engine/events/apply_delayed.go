@@ -35,6 +35,19 @@ func stripDelayedImprinted(text string) (string, []state.ObjID) {
 	return text, imprinted
 }
 
+// cutOriginSuffix strips the bare origin flag the registering Effect arm
+// appends LAST to a DelayedRegister Text, so it is stripped FIRST (before the
+// value-bearing lifetime suffixes and |IH; their values are Forge tokens
+// without a pipe delimiter): "|SB" for a source-bounded trigger (CR 611.2),
+// "|EM" for an emblem's (CR 114). No registration carries both.
+func cutOriginSuffix(text string) (rest string, sourceBattlefield, emblem bool) {
+	if rest, ok := strings.CutSuffix(text, "|SB"); ok {
+		return rest, true, false
+	}
+	rest, emblem = strings.CutSuffix(text, "|EM")
+	return rest, false, emblem
+}
+
 // foldDelayedRegister folds Kind DelayedRegister into state.
 func foldDelayedRegister(g *state.Game, e *Event) {
 	// The registration is game state folded here, so a
@@ -285,13 +298,7 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		text = text[:i]
 	}
 	// Effect lifetime suffixes are stripped before the mode/body split.
-	// Their values are Forge tokens without a pipe delimiter. |SB is a
-	// bare flag appended LAST by the registering arm, so it is stripped
-	// FIRST (before the value-bearing suffixes and |IH).
-	sourceBattlefield := strings.HasSuffix(text, "|SB")
-	if sourceBattlefield {
-		text = strings.TrimSuffix(text, "|SB")
-	}
+	text, sourceBattlefield, emblem := cutOriginSuffix(text)
 	imprint := strings.HasSuffix(text, "|IH")
 	if imprint {
 		text = strings.TrimSuffix(text, "|IH")
@@ -402,6 +409,7 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		ImprintOnHost:       imprint,
 		ForgetOnPhasedIn:    forgetPhasedIn,
 		SourceBattlefield:   sourceBattlefield,
+		Emblem:              emblem,
 		RememberedAmount:    rememberedAmount,
 		CaptureOnly:         captureOnly,
 		RememberedManaSpent: manaSpent,
@@ -588,6 +596,9 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		}
 	}
 	o.Remembered = rememberedFrom(e.IDs)
+	if registration != nil && registration.Emblem {
+		o.EmblemSource = o.ID // this ability stands for its emblem (CR 114.2)
+	}
 	if monarchSteal {
 		o.Remembered = []state.Target{{Player: state.PlayerID(e.Amount), IsPlayer: true}}
 	}
