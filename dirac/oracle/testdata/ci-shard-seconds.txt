@@ -21,6 +21,8 @@
 # added from one oracle-slice targeted run at 25a4e7ea9d (plain lanes 0-3, a source touch under dirac/oracle,
 # BASE=HEAD): their leaf-subtest seconds divided by 4.57 as above. Unlisted, each weighed 0.08 in the deal,
 # so the plain lanes were blind to ~2,300 leaf-s of the 2,324 they played (two lanes hit the 5m cap).
+# A second such run at 20ccd7ae06 (its slice rotated with the base; 2.3 idle cores, so its seconds are
+# divided by 4.57 x 1.30, the ratio of the two runs over the 15 tests both finished) added the rest.
 TestAbilityCopyAsksEachChainLink 1.1
 TestAbilityReductionExcessPaysXLockstep 1.1
 TestAbilitycastLockstep 15.2
@@ -313,6 +315,7 @@ TestDamagePreventionShapesLockstep 1.1
 TestDamageToCreatureWalkerRemovesLoyaltyAndMarks 7.1
 TestDanielsLockstep 5.7
 TestDanielsMutation 3.7
+TestDanithaTargetsValidReproReach 1.3
 TestDashLockstep 7.6
 TestDathonLockstep 51.7
 TestDathonOrderLockstep 12.2
@@ -649,6 +652,7 @@ TestLwaxanaTroiLockstep 13.8
 TestLwaxanaTroiMutation 1.0
 TestMBCATheMeathookMassacreReprosLockstep 2.2
 TestMBCAboshanSDesireReprosLockstep 34.3
+TestMBCActFeeOrderPrintedColourOverNeededFilterReprosLockstep 1.6
 TestMBCAnimate1Lowers 16.7
 TestMBCAnimate2Lowers 27.4
 TestMBCApiParams11Lowers 1.4
@@ -659,6 +663,7 @@ TestMBCApiParams3Lowers 2.5
 TestMBCApiParams7Lowers 6.8
 TestMBCApiParams8Lowers 3.6
 TestMBCApiParamsFamilyLowers 1.5
+TestMBCArchwayFlagsReprosLockstep 3.3
 TestMBCArdenvaleTacticianReprosLockstep 9.9
 TestMBCAshesToAshesReprosLockstep 1.1
 TestMBCAzoriusCluestoneReprosLockstep 4.5
@@ -668,6 +673,7 @@ TestMBCBloodAgeGeneralReprosLockstep 22.5
 TestMBCBojukaBrigandReprosLockstep 1.7
 TestMBCCalibratedBlastReprosLockstep 7.2
 TestMBCCapsizeReprosLockstep 3.2
+TestMBCCauldronSGiftReprosLockstep 35.0
 TestMBCChangeTextLowers 7.3
 TestMBCChangeTextReadsStall 4.4
 TestMBCChangingLoyaltyReprosLockstep 2.0
@@ -678,12 +684,15 @@ TestMBCCombat4Lowers 17.2
 TestMBCCombat6Lowers 68.2
 TestMBCCombat7Lowers 16.2
 TestMBCConjurerSMantleReprosLockstep 6.4
+TestMBCConniveReprosLockstep 2.8
+TestMBCConsecratedSphinxReprosLockstep 1.0
 TestMBCCosts2Lowers 14.0
 TestMBCCosts3Lowers 54.6
 TestMBCCosts9Lowers 1.4
 TestMBCCounters1Lowers 48.8
 TestMBCCounters2Lowers 2.8
 TestMBCCruelUltimatumReprosLockstep 5.1
+TestMBCCyclopsSuperconductorReprosLockstep 5.8
 TestMBCDamageRedirectLowers 8.6
 TestMBCDiregrafRebirthReprosLockstep 9.9
 TestMBCDrMbcBaaaReprosLockstep 2.1
@@ -708,6 +717,7 @@ TestMBCGoblinFireleaperReprosLockstep 8.8
 TestMBCGoliathMassManipulatorReprosLockstep 13.4
 TestMBCHeikoYamazakiTheGeneralReprosLockstep 1.4
 TestMBCHourOfRevelationReprosLockstep 2.5
+TestMBCIntoThinAirReprosLockstep 2.8
 TestMBCInvertReprosLockstep 4.1
 TestMBCKamahlFistOfKrosaReprosLockstep 10.1
 TestMBCKavuAggressorReprosLockstep 7.9
@@ -717,10 +727,13 @@ TestMBCKeywords5Lowers 10.9
 TestMBCKeywordsElsewhereLockstep 46.3
 TestMBCLavaStormReprosLockstep 23.0
 TestMBCLevelupLowers 59.8
+TestMBCLilianaSContractReprosLockstep 3.1
 TestMBCManaAbilities2Lowers 37.2
 TestMBCMercurialPretenderBouncePaidReprosLockstep 3.4
+TestMBCMercurialPretenderPumpReprosLockstep 1.0
 TestMBCMijaeDjinnReprosLockstep 2.6
 TestMBCOrzhovaFeeOnlyCensusNotAProofLockstep 40.7
+TestMBCOxDroverReprosLockstep 1.1
 TestMBCPhantasmagorianReprosLockstep 1.6
 TestMBCPlayerHeadLowers 18.7
 TestMBCProtection1Lowers 32.1
@@ -734,11 +747,14 @@ TestMBCReplacements2Lowers 5.3
 TestMBCRudeAwakeningEntwineReprosLockstep 16.4
 TestMBCScorchRiderReprosLockstep 13.8
 TestMBCScryingSheetsReprosLockstep 13.6
+TestMBCSeethingLandscapeReprosLockstep 1.6
 TestMBCSequenceEngineReprosLockstep 1.5
 TestMBCShamanOfTheGreatHuntReprosLockstep 2.7
+TestMBCSlagwurmArmorReprosLockstep 2.1
 TestMBCSokenzanCrucibleOfDefianceReprosLockstep 5.2
 TestMBCSolitonReprosLockstep 9.8
 TestMBCSpellBurstReprosLockstep 3.2
+TestMBCSpinedFlukeReprosLockstep 1.4
 TestMBCSprintingWarbruteReprosLockstep 3.7
 TestMBCStalkingStonesAnimateOfferReprosLockstep 1.0
 TestMBCStarfleetAcademyReprosLockstep 15.9
@@ -1046,6 +1062,7 @@ TestReplmultMutation 5.7
 TestReproBanefire 1.3
 TestReproCompactRoundTrip 2.6
 TestReproFireballXRaiseLockstep 7.9
+TestReproKCIDepletionLandLockstep 1.4
 TestReproManifest0 13.5
 TestReproManifest1 55.8
 TestReproManifest2 59.8

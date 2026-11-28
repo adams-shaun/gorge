@@ -7,11 +7,22 @@
 # game shorter (kfuzz -shrink) and drops the entry; refresh the list the same way after a train.
 # 2026-11-27: six replay tests over the wall in a contended oracle-slice targeted run (25a4e7ea9d,
 # leaf seconds / 4.57, the ci-shard-seconds.txt scale: 10.1-24.7 s) joined, each a plain lane's largest cost.
+# The same day, every sliced replay test ci-shard-seconds.txt weighs at >= 10 s (12.2-44.5) joined: the
+# wall this list keeps, read from the cost table instead of a full replay.
+TestMBCAboshanSDesireReprosLockstep
 TestMBCBloodAgeGeneralReprosLockstep
+TestMBCCauldronSGiftReprosLockstep
+TestMBCGeneralTazriReprosLockstep
 TestMBCGnottvoldSlumbermoundReprosLockstep
 TestMBCGoliathMassManipulatorReprosLockstep
 TestMBCKamahlFistOfKrosaReprosLockstep
+TestMBCLavaStormReprosLockstep
+TestMBCRudeAwakeningEntwineReprosLockstep
+TestMBCScorchRiderReprosLockstep
 TestMBCScryingSheetsReprosLockstep
+TestMBCStarfleetAcademyReprosLockstep
+TestMBCSvogthosReproReplaysClean
+TestStdMetaReprosLockstep
 TestStorageLandCastAutopayReprosLockstep
 TestWorldTreeSearchReprosLockstep
 act_offer_funded_by_granted_any_land_mana
