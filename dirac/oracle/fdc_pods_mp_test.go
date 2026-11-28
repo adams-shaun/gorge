@@ -35,8 +35,10 @@ var fdcDecks = []string{
 // lowering (Ezuri's Predation) emptied it. Evidence round 2 (#5912, 11-28)
 // refused Cursed Mirror and Leyline Tyrant by name: each diverged from gorge
 // in hosted-cmdr focus pods (repro files under dirac/oracle/testdata/repro),
-// and a diverging card is refused, never kept (plan decision 5).
-var fdcRefused = []string{"Cursed Mirror", "Leyline Tyrant"}
+// and a diverging card is refused, never kept (plan decision 5). Leyline
+// Tyrant's recorded game went clean on its own cards and it was unrefused,
+// shrinking it to Cursed Mirror.
+var fdcRefused = []string{"Cursed Mirror"}
 
 // fdcPodSet lowers every card of the five FDC decks into one table, and
 // returns the decks with each refused card swapped for Wastes (under the names
