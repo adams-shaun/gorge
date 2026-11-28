@@ -206,4 +206,7 @@ fi
 git rev-parse HEAD >"$(git rev-parse --git-path pr-precheck-ok)" 2>/dev/null || true
 sd=${PRECHECK_STAMP_DIR:-$HOME/.cache/gorge-precheck}
 mkdir -p "$sd" && : >"$sd/$own_key" && find "$sd" -type f -mtime +7 -delete 2>/dev/null
+
+# A rules fix that breaks lockstep refuses the cards instead of being reverted (invariant 13); report-only by default.
+if [ -x scripts/refuse-on-red.sh ]; then bash scripts/refuse-on-red.sh "$base" || fail "refuse-on-red: needs a person"; fi
 echo "pr-precheck: ok"
