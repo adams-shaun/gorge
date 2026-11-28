@@ -2808,8 +2808,9 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			continue
 		}
 		markCensusAbDone(pc, sl, &done)
-		// a granted view stands for the source here: a printed reflected Amount$
-		// ability beside it stays activatable too (CR 605.3a)
+		// any view of a reflected Amount$ source: a granted ability adds to the
+		// object's abilities, so the printed reflected one stays activatable too
+		// (CR 113.10); a no-op for any other source
 		s.reflAmtPotential(k, sl, pc, &done, fold)
 		s.grantGapGain(k, sl, pc, d, &cen)
 		// the printed ability's own activation pain: when it reaches the
