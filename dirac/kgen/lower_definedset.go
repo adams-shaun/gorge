@@ -494,9 +494,11 @@ func (lc *lowerCtx) setBase(v string) (setTerm, error) {
 		return setTerm{ops: []lSetOp{{Kind: kop.SetSelf}}, one: true}, nil
 	case rYou:
 		return setTerm{ops: []lSetOp{{Kind: kop.SetController}}, players: true, one: true, you: true}, nil
-	case rTriggered, rTriggeredNew:
+	case rTriggered:
 		// SetTriggerObj reads the trigger object of a triggered entry only
-		// (dirac setTrigEntry), where a spell's carries cast bookkeeping
+		// (dirac setTrigEntry), where a spell's carries cast bookkeeping.
+		// rTriggeredNew has no set kind: its zone moves guard the origin by
+		// the referent kind (instr_zones.go), which a set subject hides.
 		return setTerm{ops: []lSetOp{{Kind: kop.SetTriggerObj}}, one: true}, nil
 	case rTriggeredSource:
 		return setTerm{ops: []lSetOp{{Kind: kop.SetTriggerSource}}, one: true}, nil

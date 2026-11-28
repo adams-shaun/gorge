@@ -137,6 +137,10 @@ func TestSetBaseShapes(t *testing.T) {
 		return definedSetSrc("A:AB$ LoseLife | Cost$ T | Defined$ " + v + " | LifeAmount$ 1")
 	}
 	tap := func(v string) string { return definedSetSrc("A:AB$ Tap | Cost$ 1 | Defined$ " + v) }
+	newCardMove := func(dest string) string {
+		return setBaseTrigger("Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature.YouCtrl",
+			"DB$ ChangeZone | Origin$ Graveyard | Destination$ "+dest+" | Defined$ TriggeredNewCard.Creature")
+	}
 	refuses := []struct{ name, src, reason string }{
 		{"graveyard sweep", tap("ValidGraveyard Creature"), `Defined$ "ValidGraveyard Creature": zone base ValidGraveyard`},
 		{"exile sweep", tap("ValidExile Creature"), `Defined$ "ValidExile Creature": zone base ValidExile`},
@@ -146,6 +150,11 @@ func TestSetBaseShapes(t *testing.T) {
 		{"a host", loseLife("OriginalHostController"), `Defined$ "OriginalHostController": base Host has no set kind`},
 		{"the remembered set", loseLife("RememberedOwner"), `Defined$ "RememberedOwner": base Remembered has no set kind`},
 		// gorge's ChosenCard names every picked card, kop.RefChosen the first
+		// a zone move keys its origin guard on the referent kind, which a set
+		// subject hides (instr_zones.go)
+		{"a qualified new card to hand", newCardMove("Hand"), `Defined$ "TriggeredNewCard.Creature": base TriggeredNew has no set kind`},
+		{"a qualified new card to the library", newCardMove("Library | LibraryPosition$ 0"), `Defined$ "TriggeredNewCard.Creature": base TriggeredNew has no set kind`},
+		{"a qualified new card to exile", newCardMove("Exile"), `Defined$ "TriggeredNewCard.Creature": base TriggeredNew has no set kind`},
 		{"controller of the chosen card", loseLife("ChosenCardController"), `Defined$ "ChosenCardController": base Chosen has no set kind`},
 		{"controller of two chosen cards", definedSetSrc(
 			"A:AB$ ChooseCard | Cost$ T | Defined$ You | Choices$ Creature | Amount$ 2 | Mandatory$ True | SubAbility$ ProbeTwo",
