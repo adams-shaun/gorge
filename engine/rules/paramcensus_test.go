@@ -1784,11 +1784,12 @@ var stringMapParams = map[string]string{
 	// the same parseReplacementLine-built line map, now also read for
 	// the ReplacementResult$/ValidCause$ riders, and the DB$ Tap | ETB$ True
 	// body's replacementBodyParams-built map.
-	"effects:replacementMovedBodyLiveKind:params": "parseReplacementLine-built ReplaceWith$ line map (ReplacementResult$/ValidCause$ riders), not a card Params map",
-	"effects:effectDrawBodyLive:params":           "parseReplacementLine-built Event$ Draw line map (matcher keys only), not a card Params map",
-	"effects:effectBodyEndsInSelfExile:svars":     "SVars table lookup by SubAbility$ name along a Draw replacement body, not a card Params map",
-	"effects:redirectTapBody:body":                "keys of a replacementBodyParams-built ReplaceWith$ SVar body, not a card Params map",
-	"effects:redirectTapBody:svars":               "SVars table lookup by SubAbility$ name, not a card Params map"}
+	"effects:replacementMovedBodyLiveKind:params":                "parseReplacementLine-built ReplaceWith$ line map (ReplacementResult$/ValidCause$ riders), not a card Params map",
+	"effects:effectDrawBodyLive:params":                          "parseReplacementLine-built Event$ Draw line map (matcher keys only), not a card Params map",
+	"effects:effectDrawBodyExilesRememberedPlayerTopcard:params": "parseReplacementLine-built Event$ Draw line map (one-shot gate + SVar body keys), not a card Params map",
+	"effects:effectBodyEndsInSelfExile:svars":                    "SVars table lookup by SubAbility$ name along a Draw replacement body, not a card Params map",
+	"effects:redirectTapBody:body":                               "keys of a replacementBodyParams-built ReplaceWith$ SVar body, not a card Params map",
+	"effects:redirectTapBody:svars":                              "SVars table lookup by SubAbility$ name, not a card Params map"}
 
 // propagateKeyReads resolves two indirect read shapes:
 //
