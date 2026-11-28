@@ -574,8 +574,11 @@ jobs:
       - name: A fresh clone builds, and dirac's tests skip without a corpus
         # ~60 s per run. A pull request's own lint skips it (the Mergify batch runs it on the merged tree before
         # anything lands); batches, main and the nightly keep it.
+        # Class C (docs/agents/red-batches-20261128.md): on a shared runner under load the dirac sweep can breach its
+        # -timeout and panic (batch 46140183894), re-running the whole batch. The bounded infra retry absorbs that one
+        # timeout; a --- FAIL assertion in the log still forbids it (ci-infra-retry.sh's verdict check runs first).
         if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')
-        run: make fresh-clone-check
+        run: bash scripts/ci-infra-retry.sh --log fresh-clone.log --name fresh-clone-check -- make fresh-clone-check
       - name: Save the Go cache
         if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/cache/save@v4
