@@ -160,8 +160,10 @@ func TestDefinedSetBuildGuards(t *testing.T) {
 		t.Fatalf("precondition: the return lowers one set, refusals %q", abReasons(ret))
 	}
 	rb := buildCard(newPoolTables(&lowered{cards: []*lCard{ret}}, nil), ret)
-	if !slices.ContainsFunc(rb.refusals, func(r refusal) bool { return strings.Contains(r.Reason, "Defined$ set on kop Return") }) {
-		t.Errorf("a set under OpReturn was not refused: %+v", rb.refusals)
+	// a set under OpReturn builds: the enchant ask reads the bound member
+	// (dirac returnrem.go returningObj)
+	if len(rb.refusals) != 0 {
+		t.Errorf("a set under OpReturn was refused: %+v", rb.refusals)
 	}
 }
 
