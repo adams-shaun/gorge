@@ -24,6 +24,14 @@ export type VsBotMulligans = (typeof VS_BOT_MULLIGANS)[number];
 export const VS_BOT_SEATS = [2, 3, 4] as const;
 export type VsBotSeats = (typeof VS_BOT_SEATS)[number];
 
+/** The largest pasted decklist the client sends, in UTF-8 bytes; the server's own bound for one seat's text. */
+export const MAX_DECK_TEXT_BYTES = 65536;
+
+/** deckTextTooLong reports a pasted list over MAX_DECK_TEXT_BYTES. It is the only check the client makes: legality is the server's. */
+export function deckTextTooLong(s: string): boolean {
+  return new TextEncoder().encode(s).length > MAX_DECK_TEXT_BYTES;
+}
+
 /**
  * startPlayVsBot asks the server to seat the player against a bot in the
  * given format and returns the base-relative join path to follow. It is the
@@ -45,6 +53,9 @@ export type VsBotSeats = (typeof VS_BOT_SEATS)[number];
  * sent (the server deals pod decks from its Commander pool and refuses
  * bot_deck there), and seats/humans follow the other keys. At 2 the body is
  * the duel body, with no seats key at all.
+ *
+ * deckText is the player's own pasted decklist. When it holds more than
+ * whitespace it is sent trimmed as seat 0's deck, and humanDeck is not sent.
  */
 export async function startPlayVsBot(
   format: VsBotFormat,
@@ -54,16 +65,19 @@ export async function startPlayVsBot(
   botPolicy = '',
   pairedBot = '',
   seats: VsBotSeats = 2,
+  deckText = '',
 ): Promise<string> {
   const pod = seats > 2;
+  const text = deckText.trim();
   const g: CreateGame = await createGame({
     format,
-    ...(!pod && humanDeck ? { human_deck: humanDeck } : {}),
+    ...(!pod && !text && humanDeck ? { human_deck: humanDeck } : {}),
     ...(!pod && botDeck ? { bot_deck: botDeck } : {}),
     ...(botPolicy ? { bot_policy: botPolicy } : {}),
     mulligans,
     ...(pairedBot ? { paired_bot: pairedBot } : {}),
     ...(pod ? { seats, humans: 1 } : {}),
+    ...(text ? { decks: [{ seat: 0, text }] } : {}),
   });
   return withBase(g.join);
 }
