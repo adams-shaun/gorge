@@ -673,6 +673,18 @@ func parseClause(alt string, knownSub func(string) bool) (lClause, error) {
 	if b, r, ok := canProduceSameManaTypeContextBase(head, props); ok {
 		head, props = b, r
 	}
+	// Forge's Targeted.<type>+Other+sameName spelling (Echoing Courage: "target
+	// creature and all other creatures with the same name as that creature"):
+	// gorge's sameNameContextBase rewrites the Targeted base to Card and makes
+	// the first live target the source, so Other reads "other than the target"
+	// (engine/effects/filter_value.go). Lower it whole as PredSameNameT0 with
+	// PredN 1, the target excluded, the type kept; the bare
+	// Targeted.sameName+Other form is sameNameT0OtherFilter's (lower_filterreferents.go).
+	targetedOtherName := head == "Targeted" && hasPropToken(props, "sameName") && hasPropToken(props, "Other")
+	if targetedOtherName {
+		head = "Card"
+		props = withoutPropToken(withoutPropToken(props, "sameName"), "Other")
+	}
 	// the sameName context bases (gorge sameNameContextBase, T13b-2
 	// remnants): a Remembered./Targeted./Triggered. head whose rest carries
 	// the bare sameName token names sameName's referent, and the base itself
@@ -716,6 +728,12 @@ func parseClause(alt string, knownSub func(string) bool) (lClause, error) {
 		if err := c.monarchCtrlCheck(); err != nil { // filter_monarch.go
 			return c, fmt.Errorf("%q: %w", alt, err)
 		}
+	}
+	if targetedOtherName {
+		if c.CmpStat != cmpNone {
+			return c, fmt.Errorf("%q: a comparison beside Targeted...Other+sameName", alt)
+		}
+		c.CmpStat, c.CmpN = cmpSameNameT0, 1
 	}
 	return c, nil
 }
@@ -1321,6 +1339,17 @@ func hasPropToken(rest, want string) bool {
 		}
 	}
 	return false
+}
+
+// withoutPropToken drops every want token from a clause's '+' property list.
+func withoutPropToken(rest, want string) string {
+	out := make([]string, 0, strings.Count(rest, "+")+1)
+	for p := range strings.SplitSeq(rest, "+") {
+		if p != want {
+			out = append(out, p)
+		}
+	}
+	return strings.Join(out, "+")
 }
 
 // sameNameBaseRef is a context-base clause's referent Ref: the flag

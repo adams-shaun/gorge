@@ -1093,8 +1093,27 @@ func (s *State) addExtraPick(k *prep, p uint8, sl Slot, pc *pcard, col int) {
 
 // addExtraCol is addExtra for a tap that made colour col: a painful source's
 // coloured pick brings only the extra of the carriers not limited to a {C}
-// tap, its {C} ability all of them (srcExtraPain).
+// tap, its {C} ability all of them (srcExtraPain). The colours the extras
+// float are bound onto the tap's pending Taps triggers (tapProduced): a
+// source whose one activation makes several colours (Simic Growth Chamber's
+// {G}{U}) adds its second colour through srcExtra, and a
+// Card.SharesColorWith TriggeredProduced reader must see every colour the tap
+// produced, not only the picked one (C.A.M.P.'s Junk token).
 func (s *State) addExtraCol(k *prep, p uint8, sl Slot, pc *pcard, col int) {
+	before := s.pl[p].pool
+	s.addExtraColPool(k, p, sl, pc, col)
+	if s.npend == 0 || k.gen == nil || !k.gen.uses.has(useTrigProduced) {
+		return
+	}
+	for c := range before {
+		if s.pl[p].pool[c] > before[c] {
+			s.tapProduced(k, sl, c)
+		}
+	}
+}
+
+// addExtraColPool floats col's extra mana in p's pool, unbound.
+func (s *State) addExtraColPool(k *prep, p uint8, sl Slot, pc *pcard, col int) {
 	s.addGatedExtra(k, p, sl, s.perms[sl].ctrl) // the gated extra does not depend on the pick
 	if pc.painCol == 0 {
 		if k.gen == nil || !k.gen.anyTapExtra {
