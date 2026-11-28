@@ -116,32 +116,42 @@ func (s *State) copyAbilityN(k *prep, in *kop.Instr, n int) bool {
 		if !DebugCopyAbIgnoreCantCopy && s.stack[si].ab < abCascade && k.t.Cards[s.stack[si].card].Abilities[s.stack[si].ab].CantCopy {
 			return true // gorge SpellCopyAllowed: the target stays legal, nothing is copied
 		}
-		if int(s.sp) >= MaxStack {
-			s.capFull(StallStack)
+		if !s.mintAbilityCopy(si) {
 			return true
 		}
-		ce := s.stack[si]
-		s.stackSid(&ce)
-		ce.ctrl = e.ctrl
-		ce.flags &= sfKicked | sfOppCrowned                       // a copy is not cast: no cast provenance (CR 707.10)
-		ce.prov, ce.spc, ce.etbSrc, ce.etbX = 0, 0, 0, [2]uint8{} // a copy is not the remembered card: no rider count, no rider source
-		ce.cvok = 0                                               // nor the convoked creatures (a copy is not cast, CR 707.10; kw_convokelist.go)
-		if ce.xi != 0 {
-			from := s.g.xtp[ce.xi-1]
-			ce.xi = 0
-			xt := s.xtMut(&ce)
-			if xt == nil {
-				return true
-			}
-			*xt = from
-		}
-		top := s.sp - 1
-		s.stack[top+1] = s.stack[top]
-		s.stack[top] = ce
-		s.sp++
-		if in.C&1 != 0 && !DebugCopyAbNoRetarget && s.copyDeclSlot(k, &ce) >= 0 && s.copyElect(k, uint8(c)) { // seat-ok: an instruction flag bit
+		if in.C&1 != 0 && !DebugCopyAbNoRetarget && s.copyDeclSlot(k, &s.stack[s.sp-2]) >= 0 && s.copyElect(k, uint8(c)) { // seat-ok: an instruction flag bit
 			return false
 		}
 	}
+	return true
+}
+
+// mintAbilityCopy puts one copy of the stack ability at index si below the
+// resolving entry, controlled by the resolving controller; false: the stack
+// is full (stalled) or the copy's extra targets found no room.
+func (s *State) mintAbilityCopy(si int) bool {
+	if int(s.sp) >= MaxStack {
+		s.capFull(StallStack)
+		return false
+	}
+	ce := s.stack[si]
+	s.stackSid(&ce)
+	ce.ctrl = s.res.e.ctrl
+	ce.flags &= sfKicked | sfOppCrowned                       // a copy is not cast: no cast provenance (CR 707.10)
+	ce.prov, ce.spc, ce.etbSrc, ce.etbX = 0, 0, 0, [2]uint8{} // a copy is not the remembered card: no rider count, no rider source
+	ce.cvok = 0                                               // nor the convoked creatures (a copy is not cast, CR 707.10; kw_convokelist.go)
+	if ce.xi != 0 {
+		from := s.g.xtp[ce.xi-1]
+		ce.xi = 0
+		xt := s.xtMut(&ce)
+		if xt == nil {
+			return false
+		}
+		*xt = from
+	}
+	top := s.sp - 1
+	s.stack[top+1] = s.stack[top]
+	s.stack[top] = ce
+	s.sp++
 	return true
 }
