@@ -205,6 +205,8 @@ func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 // own edge.
 var cardcImportEdges = []string{
 	module + "/engine/cards -> " + module + "/engine/cardc/ir",
+	module + "/dirac/kgen -> " + module + "/engine/cardc/forge",
+	module + "/dirac/kgen -> " + module + "/engine/cardc/ir",
 }
 
 // cardcImportViolations returns, sorted, one "importer -> imported" line per
