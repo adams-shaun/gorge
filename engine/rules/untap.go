@@ -185,7 +185,8 @@ func (e *Engine) untapOtherStaticsMatch(subject state.ObjID) bool {
 		o := e.G.Obj(id)
 		// CR 708.2a: a face-down source (a manifested Seedborn Muse) has
 		// no printed statics, nor one that lost all abilities.
-		if o == nil || o.Face() == nil || e.printedAbilitiesGone(o) {
+		// CR 702.26b: a phased-out source does not exist.
+		if o == nil || o.PhasedOut || o.Face() == nil || e.printedAbilitiesGone(o) {
 			return
 		}
 		for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
