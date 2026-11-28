@@ -31,7 +31,9 @@ bash -c "$corpus_check" >/dev/null 2>&1 || na "no corpus"
 # 3. The gate's step 4 slices, shortened. The cap is pr-precheck.sh's.
 pairs=${REFUSE_ON_RED_PAIRS:-300}
 cap=(systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB)
-command -v systemd-run >/dev/null 2>&1 || cap=()
+# A systemd-run binary can exist without a usable user manager (CI runners): probe it,
+# as precheck.sh and bench-tests.sh do, or the run fails before kfuzz ever starts.
+systemd-run --user --scope -q true >/dev/null 2>&1 || cap=()
 kfuzz=(go run ./dirac/oracle/cmd/kfuzz)
 [ -z "${REFUSE_ON_RED_KFUZZ:-}" ] || read -r -a kfuzz <<<"${REFUSE_ON_RED_KFUZZ}"
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/refuse-on-red.XXXXXX") || person "cannot make a temporary directory"

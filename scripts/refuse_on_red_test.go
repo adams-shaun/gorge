@@ -92,7 +92,12 @@ func refuseOnRedRun(t *testing.T, r *refuseOnRedRepo, env []string, args ...stri
 	t.Helper()
 	cmd := exec.Command("bash", append([]string{refuseOnRedAbs(t)}, args...)...)
 	cmd.Dir = r.dir
-	cmd.Env = append(os.Environ(), env...)
+	// apply mode commits; give the script the same identity r.git uses so the run does
+	// not depend on the machine's (or CI runner's) global git config.
+	cmd.Env = append(os.Environ(),
+		"GIT_AUTHOR_NAME=refuse-on-red", "GIT_AUTHOR_EMAIL=refuse-on-red@example.invalid",
+		"GIT_COMMITTER_NAME=refuse-on-red", "GIT_COMMITTER_EMAIL=refuse-on-red@example.invalid")
+	cmd.Env = append(cmd.Env, env...)
 	var out, errb bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errb
 	err := cmd.Run()
