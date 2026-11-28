@@ -11,9 +11,9 @@ import (
 
 // "Any player may pay" (UnlessPayer$ Player) in a four-seat pod: gorge
 // (effects/unless.go unlessPayerTargetsFor) asks every living player in
-// AliveFrom(0) seat order -- seat 0 first, whoever controls the resolving
-// object -- until one pays, and skips a player who has left the game (CR
-// 800.4a, 800.4f). The kernel walks the same seats
+// APNAP order (CR 101.4) -- the active player first, whoever controls the
+// resolving object -- until one pays, and skips a player who has left the game
+// (CR 800.4a, 800.4f). The kernel walks the same seats
 // (dirac/cost_anyplayerpays.go). The pod lockstep pins that both engines ask
 // the same seats in the same order.
 //
