@@ -1,0 +1,5 @@
+scenario	class	cr	first_diff	note
+conditional-static/gray-merchant-of-asphodel#additional-black-symbols	each-opponent	102.3	snap 2 p0.life: 24 != 32	Each opponent loses life and p0 gains the total, so two more opponents triple the gain.
+conditional-static/gray-merchant-of-asphodel#opponents-symbols-do-not-count	each-opponent	102.3	snap 2 p0.life: 22 != 26	Each opponent loses life and p0 gains the total, so two more opponents triple the gain.
+conditional-static/gray-merchant-of-asphodel#self-devotion-two	each-opponent	102.3	snap 2 p0.life: 22 != 26	Each opponent loses life and p0 gains the total, so two more opponents triple the gain.
+conditional-static/gray-merchant-of-asphodel#self-devotion-two-life-gain	each-opponent	102.3	snap 2 p0.life: 22 != 26	Each opponent loses life and p0 gains the total, so two more opponents triple the gain.

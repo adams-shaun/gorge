@@ -82,6 +82,11 @@ type oracleScenario struct {
 	// both engines (build drops the triggers their placement queued); the
 	// driver clears XMage's seeded entry history. Never decoded from JSON.
 	xmageFixture bool
+	// padInert is the number of inert seats a padded run (padOracleScenario)
+	// adds after the scenario's own, 0 otherwise; padBaseTurn is then the
+	// scenario's own turn. Never decoded from JSON.
+	padInert    int
+	padBaseTurn int
 }
 
 // oracleDieRoll is one recorded die result: the scenario step whose window
@@ -452,6 +457,8 @@ type oracleRun struct {
 	// exile/graveyard ref is rank-derived and unsafe. Tokens are exact by
 	// their live creation order and need no entry here.
 	exactRefs map[string]bool
+	// padInert mirrors sc.padInert: the inert seats of a padded run.
+	padInert int
 }
 
 func (r *oracleRun) logf(format string, a ...any) {
@@ -813,8 +820,8 @@ func collectSetupDecks(sc oracleScenario, seats, turn int, isCommander bool, loo
 		// Count named cards even when setup moves them OUT of the library;
 		// match ScenarioReplay.build's filler calculation.
 		deckSize := 40
-		if turn > 1 {
-			deckSize = max(deckSize, len(out.decks[p])+turn/2+1)
+		if t := padDeckTurn(sc, seats, p, turn); t > 1 {
+			deckSize = max(deckSize, len(out.decks[p])+t/2+1)
 		}
 		for len(out.decks[p]) < deckSize {
 			out.decks[p] = append(out.decks[p], filler)
@@ -1086,7 +1093,9 @@ func (r *oracleRun) build(sc oracleScenario) error {
 	// speed — at the beginning of your upkeep" trigger (Endrider
 	// Spikespitter) is never queued while speed is still 0, as in XMage.
 	speedSeeded := !sc.xmageFixture
+	drawUndone := false
 	for i := 0; i < 400*turn; i++ {
+		drawUndone = r.padUndoFirstDraw(drawUndone)
 		if !speedSeeded && e.G.Turn == targetTurn && !e.G.Over &&
 			(e.G.Step == state.StepDraw ||
 				(e.G.Step == state.StepUpkeep && skipFirstDrawStep(e.G, state.StepDraw) != state.StepDraw)) {
@@ -1671,6 +1680,9 @@ func (r *oracleRun) answer(d *decision.Decision, why string) error {
 		}
 		return r.e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}})
 	}
+	if r.inert(d.Player) || r.inert(r.e.G.Active) {
+		return r.answerFallback(d, why)
+	}
 	if d.Kind == decision.KTarget && len(r.targets) > 0 {
 		used := map[int]bool{}
 		usedGroups := map[string]bool{}
@@ -1742,6 +1754,15 @@ func (r *oracleRun) answer(d *decision.Decision, why string) error {
 		}
 		return r.submit(d, choices, "answer")
 	}
+	return r.answerFallback(d, why)
+}
+
+// answerFallback answers d by the runner's documented fallback (answer's
+// tail): accept an optional trigger, keep orders as offered, and otherwise
+// take the first Min options. A padded run answers every non-priority
+// decision of an inert seat, and every one posed during an inert seat's
+// turn, this way, so no scripted answer or target is spent there.
+func (r *oracleRun) answerFallback(d *decision.Decision, why string) error {
 	var choices []int
 	switch d.Kind {
 	case decision.KTriggerOptional:
@@ -1935,6 +1956,9 @@ func (r *oracleRun) addMana(seat state.PlayerID, mana string) error {
 }
 
 func (r *oracleRun) priorityFor(seat state.PlayerID, op string) (*decision.Decision, error) {
+	if err := r.skipInert(); err != nil {
+		return nil, err
+	}
 	d := r.e.Pending()
 	if d == nil || d.Kind != decision.KPriority || d.Player != seat {
 		got := "none"
@@ -2520,10 +2544,10 @@ func (r *oracleRun) do(st oracleStep) error {
 			if d == nil || e.G.Over {
 				return harnessf("pass_to: game stopped")
 			}
-			if st.Decision != "" && string(d.Kind) == st.Decision {
+			if st.Decision != "" && string(d.Kind) == st.Decision && !r.inert(d.Player) {
 				return nil
 			}
-			if st.Step != "" && i > 0 && e.G.Step == want && (!hasActive || e.G.Active == active) {
+			if st.Step != "" && i > 0 && e.G.Step == want && (!hasActive || e.G.Active == active) && !r.inert(e.G.Active) {
 				return nil
 			}
 			if err := r.answer(d, "pass_to"); err != nil {
@@ -2917,7 +2941,7 @@ func scenarioRevisitsUpkeep(sc oracleScenario) bool {
 // runOracleScenarioSpare is runOracleScenarioWith building its engines on
 // sp's recycled storage (see oracleRun.spare).
 func runOracleScenarioSpare(reg *cards.Registry, sc oracleScenario, noSnapshot bool, sp *Spare) (fails []string, transcript []string, run *oracleRun) {
-	r := &oracleRun{reg: reg, refs: map[string]state.ObjID{}, exactRefs: map[string]bool{}, noSnapshot: noSnapshot, step: -1, spare: sp, xmageFixture: sc.xmageFixture, revisitsUpkeep: scenarioRevisitsUpkeep(sc)}
+	r := &oracleRun{reg: reg, refs: map[string]state.ObjID{}, exactRefs: map[string]bool{}, noSnapshot: noSnapshot, step: -1, spare: sp, xmageFixture: sc.xmageFixture, revisitsUpkeep: scenarioRevisitsUpkeep(sc), padInert: sc.padInert}
 	run = r
 	defer func() {
 		if p := recover(); p != nil {
@@ -2950,6 +2974,9 @@ func runOracleScenarioSpare(reg *cards.Registry, sc oracleScenario, noSnapshot b
 		r.dieRolls.begin(sc.DieRolls, i)
 		top := r.passResolves(st)
 		if err := r.do(st); err != nil {
+			return append(fails, fmt.Sprintf("step %d (%s): %v", i, st.Op, err)), r.log, r
+		}
+		if err := r.skipInert(); err != nil {
 			return append(fails, fmt.Sprintf("step %d (%s): %v", i, st.Op, err)), r.log, r
 		}
 		if err := r.settleResolutionAsk(sc.Steps, i, top); err != nil {
