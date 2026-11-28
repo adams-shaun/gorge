@@ -1,0 +1,208 @@
+package rules
+
+// The Effect-created draw replacement whose remembered set lives on the
+// DB$ Effect activation, not on the source object: Urabrask, Heretic
+// Praetor's opponent-upkeep "the next time they would draw a card this turn,
+// instead they exile the top card of their library. They may play it this
+// turn." One `DB$ Effect | ReplacementEffects$ DrawReplace |
+// StaticAbilities$ PlayOpp | RememberObjects$ TriggeredPlayer |
+// ExileOnMoved$ Exile` activation registers TWO sibling registrations that
+// read ONE remembered list: the Draw line's
+// `IsPresent$ Card.IsRemembered | PresentZone$ Exile | PresentCompare$ EQ0`
+// one-shot gate (spent the moment the body exiles+remembers a card), and the
+// PlayOpp grant's `Affected$ Card.IsRemembered | AffectedZone$ Exile` filter
+// (which must hold nothing until the body runs, then exactly the exiled
+// card). The body (`DB$ Dig ... | RememberChanged$ True`) is what grows the
+// list -- through rules' RememberOnEffect, which appends to every live
+// registration of the activation's group in place. This test replaces the
+// sibling ticket's Urabrask-stays-noted guard: its Note assertion is the
+// registration assertion below.
+
+import (
+	"slices"
+	"strings"
+	"testing"
+
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/state"
+)
+
+// urabraskPending returns the two live registrations of Urabrask's
+// opponent-upkeep Effect activation: the Draw replacement and the may-play
+// grant. Either may be nil while that activation has not registered (or has
+// ended).
+func urabraskPending(e *Engine, src state.ObjID) (repl, grant *state.ContinuousEffect) {
+	act := e.active()
+	for i := range act {
+		ce := &act[i]
+		if ce.Source != src {
+			continue
+		}
+		if ce.ReplacementEvent == "Draw" && repl == nil {
+			repl = ce
+		}
+		if ce.MayPlay && strings.Contains(ce.Affects, "IsRemembered") && grant == nil {
+			grant = ce
+		}
+	}
+	return repl, grant
+}
+
+// TestEffectDrawReplacementUrabraskOneShot drives the real corpus card: the
+// opponent-upkeep trigger registers the Draw replacement + may-play grant
+// live (no unimplemented Note); the opponent's turn-based draw is replaced
+// by exiling their library top into the activation's shared remembered list;
+// the SECOND draw that turn is a plain draw (the EQ0 one-shot gate flipped
+// -- asserted by the exiled card being in the group list); the grant reads
+// the same list for the owner-side play permission; and Urabrask's own
+// upkeep self-dig chain (its DB$ Cleanup | ClearRemembered$ against the
+// object) neither clears nor is cleared by the opponent's pending
+// replacement -- the two remembered lists are distinct.
+func TestEffectDrawReplacementUrabraskOneShot(t *testing.T) {
+	t.Parallel()
+	e, cfg, id := drawReplGame(t, 137, "Urabrask, Heretic Praetor", false)
+
+	// The sibling ticket's Note refusal is gone: drive to seat 1's upkeep
+	// and require BOTH sibling registrations live.
+	passThroughTurns(t, e, func() bool {
+		repl, grant := urabraskPending(e, id)
+		return repl != nil && grant != nil
+	})
+	if hasNote(e, "continuous replacement unimplemented (DrawReplace)") {
+		t.Fatal("Urabrask's DrawReplace fell through to the unimplemented Note")
+	}
+	repl, grant := urabraskPending(e, id)
+	if repl == nil || grant == nil {
+		t.Fatal("no live Draw replacement / may-play grant from Urabrask's activation")
+	}
+	// The ValidPlayer$ Player.IsRemembered gate reads the registration's
+	// RememberedPlayers -- the triggered opponent, not the controller.
+	if !slices.Contains(repl.RememberedPlayers, state.PlayerID(1)) ||
+		slices.Contains(repl.RememberedPlayers, state.PlayerID(0)) {
+		t.Fatalf("registration RememberedPlayers %v, want exactly the triggered opponent [1]", repl.RememberedPlayers)
+	}
+
+	// Seat 1's turn-based draw is the replaced one (the line carries no
+	// NotFirstCardInDrawStep$).
+	h1 := len(e.G.Zone(state.ZHand, 1))
+	lib1 := len(e.G.Zone(state.ZLibrary, 1))
+	if lib1 == 0 {
+		t.Fatal("precondition: seat 1 library is empty")
+	}
+	if got := len(e.G.Zone(state.ZExile, 1)); got != 0 {
+		t.Fatalf("precondition: seat 1 exile = %d, want 0", got)
+	}
+	passThroughTurns(t, e, func() bool { return len(e.G.Zone(state.ZExile, 1)) > 0 })
+	exiled := e.G.Zone(state.ZExile, 1)
+	if len(exiled) != 1 {
+		t.Fatalf("seat 1 exile = %d cards, want exactly 1 (the replaced draw)", len(exiled))
+	}
+	exiledID := exiled[0]
+	if got := len(e.G.Zone(state.ZHand, 1)); got != h1 {
+		t.Fatalf("seat 1 hand %d -> %d, the replaced draw must move no card to hand", h1, got)
+	}
+	if got := len(e.G.Zone(state.ZLibrary, 1)); got != lib1-1 {
+		t.Fatalf("seat 1 library %d -> %d, want the top card exiled", lib1, got)
+	}
+
+	// The activation's remembered list holds the exiled card on BOTH sibling
+	// registrations -- appended in place, shared, this is the precondition
+	// the one-shot gate flipped on.
+	repl, grant = urabraskPending(e, id)
+	if repl == nil || grant == nil {
+		t.Fatal("the pending replacement/grant ended with its first use; the one-shot is the EQ0 gate, not the registration")
+	}
+	if !slices.Contains(repl.Remembered, exiledID) {
+		t.Fatalf("Draw registration Remembered %v, want the exiled card %d (the EQ0 gate must see it)", repl.Remembered, exiledID)
+	}
+	if !slices.Contains(grant.Remembered, exiledID) {
+		t.Fatalf("may-play grant Remembered %v, want the same in-place-appended card %d", grant.Remembered, exiledID)
+	}
+
+	// The SECOND draw this turn is NOT replaced (EQ0 now counts 1).
+	h2 := len(e.G.Zone(state.ZHand, 1))
+	l2 := len(e.G.Zone(state.ZLibrary, 1))
+	e.drawCard(1)
+	if got := len(e.G.Zone(state.ZHand, 1)); got != h2+1 {
+		t.Fatalf("second draw: hand %d -> %d, want a plain draw (the EQ0 gate flipped)", h2, got)
+	}
+	if got := len(e.G.Zone(state.ZLibrary, 1)); got != l2-1 {
+		t.Fatalf("second draw: library %d -> %d, want a plain draw", l2, got)
+	}
+
+	// The owner-side play grant reads the same live list.
+	_, grant = urabraskPending(e, id)
+	if grant == nil {
+		t.Fatal("the may-play grant ended before the opponent could use it")
+	}
+	if !grant.MayPlay || grant.MayPlayPlayer != "CardOwner" ||
+		grant.AffectedZone != "Exile" || !strings.Contains(grant.Affects, "IsRemembered") {
+		t.Fatalf("grant %+v, want MayPlay CardOwner over exiled remembered cards", grant)
+	}
+	if !slices.Contains(grant.Remembered, exiledID) {
+		t.Fatalf("grant Remembered %v still lacks the exiled card %d", grant.Remembered, exiledID)
+	}
+
+	// Urabrask's OWN upkeep self-dig chain, run while the opponent's pending
+	// replacement is live: its DB$ Dig | RememberChanged$ True and its
+	// DB$ Cleanup | ClearRemembered$ work on the object and the chain's own
+	// ctx -- they must neither clear the opponent's pending list nor grow
+	// from it.
+	face := e.G.Obj(id).Face()
+	trigExile := cards.ResolveSVar(face.SVars, "TrigExile")
+	if trigExile == nil {
+		t.Fatal("precondition: corpus script lost TrigExile")
+	}
+	ownBefore := e.G.Zone(state.ZExile, 0)
+	if len(face.Triggers) != 2 {
+		t.Fatalf("precondition: Urabrask face carries %d triggers, want the two upkeep triggers", len(face.Triggers))
+	}
+	effects.Resolve(e, effects.NewCtxPtr(id, 0, effects.CtxInit{SVars: face.SVars}), trigExile)
+	ownExiled := e.G.Zone(state.ZExile, 0)
+	if len(ownExiled) != len(ownBefore)+1 {
+		t.Fatalf("seat 0 exile %d -> %d, want the own-chain dig to exile exactly one card", len(ownBefore), len(ownExiled))
+	}
+	ownCard := state.ObjID(0)
+	for _, o := range ownBefore {
+		if ownExiled[len(ownExiled)-1] == o {
+			t.Fatal("own-chain dig re-exiled a card already exiled")
+		}
+	}
+	ownCard = ownExiled[len(ownExiled)-1]
+
+	// The opponent's pending replacement survived the own chain's
+	// ClearRemembered$ untouched, and holds no own-chain card.
+	repl, grant = urabraskPending(e, id)
+	if repl == nil || grant == nil {
+		t.Fatal("Urabrask's own-chain ClearRemembered$ cleared the opponent's pending registrations")
+	}
+	if !slices.Contains(repl.Remembered, exiledID) || !slices.Contains(grant.Remembered, exiledID) {
+		t.Fatalf("opponent pending Remembered %v/%v, want the exiled card %d kept through the own-chain cleanup",
+			repl.Remembered, grant.Remembered, exiledID)
+	}
+	if slices.Contains(repl.Remembered, ownCard) || slices.Contains(grant.Remembered, ownCard) {
+		t.Fatalf("opponent pending Remembered %v/%v hold the own-chain card %d: the two lists are not distinct",
+			repl.Remembered, grant.Remembered, ownCard)
+	}
+
+	// And the own chain's own may-play grant holds exactly its own card --
+	// the two activations' lists are distinct in both directions.
+	var ownGrant *state.ContinuousEffect
+	act := e.active()
+	for i := range act {
+		ce := &act[i]
+		if ce.Source == id && ce.MayPlay && slices.Contains(ce.Remembered, ownCard) {
+			ownGrant = ce
+		}
+	}
+	if ownGrant == nil {
+		t.Fatal("Urabrask's own upkeep chain registered no may-play grant for its exiled card")
+	}
+	if !slices.Contains(ownGrant.Remembered, ownCard) || slices.Contains(ownGrant.Remembered, exiledID) {
+		t.Fatalf("own grant Remembered %v, want exactly the own-chain card %d and not the opponent's %d",
+			ownGrant.Remembered, ownCard, exiledID)
+	}
+
+	replayCheck(t, e, cfg)
+}

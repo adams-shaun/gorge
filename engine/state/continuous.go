@@ -373,6 +373,24 @@ type ContinuousEffect struct {
 	// captured no players. Engine-runtime only, rebuilt by re-execution on
 	// replay like every other continuous-effect field.
 	RememberedPlayers []PlayerID
+	// EffectGroup identifies the ONE api:Effect activation (Forge's single
+	// effect object) that registered this effect: the game clock when that
+	// DB$ Effect resolution began, stamped by effects' effEffect on every
+	// registration it makes. Its sibling registrations -- the
+	// ReplacementEffects$ line and the StaticAbilities$ grants of one
+	// activation -- carry the same value while their Timestamps stay
+	// independent, so rules' RememberOnEffect can find the whole group and
+	// append a body-remembered card (Dig's RememberChanged$) to every live
+	// sibling's Remembered in place. That is Urabrask, Heretic Praetor's
+	// shared list: the Draw line's IsPresent$ Card.IsRemembered |
+	// PresentCompare$ EQ0 one-shot gate, the MayPlay$ grant's Affected$
+	// Card.IsRemembered filter and the ExileOnMoved$ sweep all read the one
+	// list that grows while the body runs. Zero on every registration not
+	// created by effEffect (printed statics, the other registration helpers);
+	// RememberOnEffect then scopes an ungrouped frame to its own
+	// registration alone. Engine-runtime only, rebuilt by re-execution on
+	// replay like every other continuous-effect field.
+	EffectGroup uint32
 	// Chosen is the resolution's chosen-card set (the ChooseCard answer)
 	// snapshotted when an Effect-delivered may-play grant registered, and
 	// ChosenBound says a snapshot was taken. Forge's EffectEffect copies the
