@@ -6,24 +6,36 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// lower_effectdurations.go: the two Effect shapes that outlive the turn and
-// have no emblem of their own.
+// lower_effectdurations.go: the two Effect shapes whose lifetime is not a
+// plain this-turn one-shot.
 //
 //   - A may-play grant over the chosen card that lasts to the end of the
 //     controller's next turn (a Dig, ChooseCard, then an Effect with no
-//     RememberObjects$): the per-card may-play record carries that lifetime
-//     (EndOfYourNextTurn), the same instruction a RememberObjects$ ChosenCard
-//     spelling lowers to.
+//     RememberObjects$) or, with no Duration$ at all, to the end of this turn
+//     (Party Thrasher): the per-card may-play record carries that lifetime
+//     (EndOfYourNextTurn / EOT), the same instruction a RememberObjects$
+//     ChosenCard spelling lowers to.
 //   - "It loses all abilities for as long as CARDNAME remains on the
 //     battlefield" over the one targeted permanent: a host-bound
 //     LoseAbilities override on it, which ends when the host leaves.
 
 // chosenMayPlayNextTurn reports whether the Effect is the exact chosen-card
-// may-play shape and returns the chosen-card reference it acts on. The only
-// lifetime taken is Duration$ UntilTheEndOfYourNextTurn; the one static is
-// the MayPlay$ True grant over Card.ChosenCard in exile.
+// may-play shape and returns the chosen-card reference it acts on. The
+// lifetime is either the explicit Duration$ UntilTheEndOfYourNextTurn or the
+// absent-Duration$ this-turn grant gorge gives a resolution-created Effect
+// (CR 611.2a: effectUntilEOT reads an absent Duration$ as until end of turn)
+// with ExileOnMoved$ Exile ending it when the chosen card leaves exile (Party
+// Thrasher). The one static is the MayPlay$ True grant over Card.ChosenCard
+// in exile.
 func (lc *lowerCtx) chosenMayPlayNextTurn(ps *params, ss []cards.Static) (lRef, bool) {
-	if len(ss) != 1 || ss[0].Mode != "Continuous" || !ps.is("Duration", "UntilTheEndOfYourNextTurn") {
+	if len(ss) != 1 || ss[0].Mode != "Continuous" {
+		return lRef{}, false
+	}
+	dur, hasDur := ps.get("Duration")
+	if hasDur && strings.TrimSpace(dur) != "UntilTheEndOfYourNextTurn" {
+		return lRef{}, false
+	}
+	if !hasDur && !ps.is("ExileOnMoved", "Exile") {
 		return lRef{}, false
 	}
 	for _, k := range []string{"ValidTgts", "RememberObjects"} {
