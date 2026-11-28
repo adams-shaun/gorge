@@ -37,7 +37,7 @@ func (s *State) flashbackReachable(k *prep, p uint8, c CardID, o Obj, fc kop.Man
 		return true
 	}
 	d := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
-	if s.affordsUngrantedCast(k, p, &fc, d) {
+	if s.affordsUngrantedCast(k, p, o, &fc, d) {
 		return true // gorge's planner prices it from the printed census: no search runs
 	}
 	if s.g.availX&availWalk != 0 {

@@ -745,7 +745,7 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 	// A table that merely holds a grant card (grantPC) excludes nothing: the ungranted census
 	// leaves a paid filter (Flooded Grove) out, which gorge's planner still funds, so only a
 	// live granted ability can make a cast payable by the grant alone.
-	if (len(k.gen.grantPC) != 0 && s.liveGrantGap(k, p) || k.gen.anyComboDyn && s.comboDynLive(k, p) || s.eachPickSources(k, p).any()) && !s.affordsUngrantedCast(k, p, &cost, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
+	if (len(k.gen.grantPC) != 0 && s.liveGrantGap(k, p) || k.gen.anyComboDyn && s.comboDynLive(k, p) || s.eachPickSources(k, p).any()) && !s.affordsUngrantedCast(k, p, o, &cost, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
 		if !(s.g.mayPlayAny || s.mayPlayAnyType(k, p, o) || s.convAnyType(k, SeatIx(p), o)) {
 			return false // payable only with a granted mana ability (the V1 exclusion above) or a Combo Any of an evaluated amount (mana_combodyn.go)
 		}
@@ -754,7 +754,7 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 		// census check prices the folded cost: a Lantern's lands and two
 		// Islands pay Beseech the Queen's {2/B}{2/B}{2/B} without a grant.
 		priced := anyType(cost)
-		if !s.affordsUngrantedCast(k, p, &priced, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
+		if !s.affordsUngrantedCast(k, p, o, &priced, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
 			return false
 		}
 	}
@@ -774,7 +774,7 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 		probe := kop.ManaCost{Generic: 1}
 		if s.adjustPlain(false, k, p, s.objs[o].card, o, probe).Generic != probe.Generic {
 			d := payDesc{class: pdSpell, card: s.objs[o].card, og: s.restrOriginOfObj(o)}
-			if !s.affordsUngrantedCast(k, p, &cost, d) {
+			if !s.affordsUngrantedCast(k, p, o, &cost, d) {
 				return false
 			}
 		}

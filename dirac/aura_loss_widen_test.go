@@ -122,7 +122,7 @@ func TestAuralossWidenReadsNoRestrictedAbility(t *testing.T) {
 		t.Fatalf("the restricted view widened the lost host's census unit (kind=%d): the Lesson-only any colour prices a Lesson the board cannot pay", kind)
 	}
 	cost := kop.ManaCost{Generic: 1, Pips: [6]uint8{0, 0, 1, 0, 0, 0}} // {1}{B}
-	if s.affordsUngrantedCast(k, 0, &cost, d) {
+	if s.affordsUngrantedCast(k, 0, NoObj, &cost, d) {
 		t.Fatal("the ungranted census pays {1}{B}: the widen read made a black source of the granted {C}")
 	}
 }

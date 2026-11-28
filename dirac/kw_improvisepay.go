@@ -67,7 +67,7 @@ func (s *State) improviseSourcesPay(k *prep, p uint8, o Obj, res slotMask, cost 
 		// the planner's census holds no granted mana ability (pay/board.go
 		// PaymentAbility): a credited price only a grant pays is its
 		// "cost:credit" decline, the prefix search's (potentialCensusNeeded)
-		ok = s.affordsUngrantedCast(k, p, cost, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)})
+		ok = s.affordsUngrantedCast(k, p, o, cost, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)})
 	}
 	s.ctrlM[SeatIx(p)] = m
 	return ok

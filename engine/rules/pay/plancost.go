@@ -336,8 +336,10 @@ func planPaymentCostResolved(e Engine, p state.PlayerID, demand [5]int, cost cos
 	phase1 := PhaseChoicesInto(phasePS, choices, TierNormal)
 	rankCtx := NewRankContext(choices, demand)
 	phaseChoices, phaseClasses := phase1, queryClasses(p, TierNormal, phase1)
+	env := PaymentSearchEnv(e.Verify())
+	env.Fundable = planVictimGate(e, p, kept, tapped, gone)
 	search := SearchInto(e.SearchScratch(), cost, pool, life, rankCtx,
-		phaseChoices, phaseClasses, PaymentSearchEnv(e.Verify()))
+		phaseChoices, phaseClasses, env)
 	nodes := search.Nodes
 	// Phase 2 runs only when phase 1 PROVES no plan exists (insufficient,
 	// not search_limit): normal plus last-resort alternatives, ranked by the
@@ -348,20 +350,20 @@ func planPaymentCostResolved(e Engine, p state.PlayerID, demand [5]int, cost cos
 		if phase2 := PlanLastResortChoicesInto(phasePS, choices, life); phase2 != nil {
 			phaseChoices, phaseClasses = phase2, queryClasses(p, TierLastResort, phase2)
 			search = SearchInto(e.SearchScratch(), cost, pool, life, rankCtx,
-				phaseChoices, phaseClasses, PaymentSearchEnv(e.Verify()))
+				phaseChoices, phaseClasses, env)
 			nodes += search.Nodes
 		}
 	}
 	if search.Best != nil && !AssignPlanVictims(e, p, search.Best, slices.Concat(kept, tapped), gone) {
-		// The search priced an other-sacrifice source the board cannot fund
-		// with distinct victims (two altars, one creature): no automatic
-		// plan; manual payment still offers the altar.
+		// The search's own gate (planVictimGate) admits only sets this call
+		// can name victims for; a refusal here offers no plan rather than an
+		// unfunded one.
 		return PlanOutcome{Reason: "insufficient", Detail: "source:last_resort", Nodes: nodes}
 	}
 	if search.Best != nil {
 		SacrificesLast(search.Best)
 		if want := e.Session().PlanAltsWant; want > 1 && len(tapped)+len(kept)+len(gone) == 0 && len(e.Session().PaymentPlanRelaxed) == 0 {
-			alts := planAlternatives(&ps.altsSearch, *search.Best, want, cost, pool, life, rankCtx, phaseChoices, phaseClasses, e.Verify())
+			alts := planAlternatives(&ps.altsSearch, *search.Best, want, cost, pool, life, rankCtx, phaseChoices, phaseClasses, env)
 			funded := alts[:0]
 			for i := range alts {
 				if AssignPlanVictims(e, p, &alts[i], nil, nil) {
@@ -407,9 +409,9 @@ func planPaymentCostResolved(e Engine, p state.PlayerID, demand [5]int, cost cos
 // (ResidualSignature) differ from best's and from each other's, rank-best
 // first, searched over the phase that found best: a plan from normal sources
 // never gives way to a last-resort one (ValidateCastPayment's phase rule).
-func planAlternatives(sc *SearchScratch, best decision.PaymentPlan, want int, cost costvocab.Cost, pool state.Mana, life int32, ctx RankContext, choices [][]Alt, classes []Class, verify bool) []decision.PaymentPlan {
+func planAlternatives(sc *SearchScratch, best decision.PaymentPlan, want int, cost costvocab.Cost, pool state.Mana, life int32, ctx RankContext, choices [][]Alt, classes []Class, env Env) []decision.PaymentPlan {
 	bestSig := ResidualSignature(classes, choices, best.Activations)
-	s := SearchAlternativesInto(sc, cost, pool, life, ctx, choices, classes, PaymentSearchEnv(verify), want)
+	s := SearchAlternativesInto(sc, cost, pool, life, ctx, choices, classes, env, want)
 	var out []decision.PaymentPlan
 	for _, k := range s.Kept {
 		if k.Sig == bestSig || len(out) == want-1 {
