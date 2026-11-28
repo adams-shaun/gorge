@@ -40,10 +40,10 @@ func Pools() []Pool {
 		{Name: "blb", Label: "17lands", Tree: "e01290b140e80bd559b2df92aaa9f9a846d8db647e098effce742c92fdefc7f0", Decks: 145},
 		{Name: "pauper", Label: "SpellBench pauper-bo1", Tree: "63423c92b1c867dc4e0406a23a08e6a84ba8e8975ff226902024674f40f9655a", Decks: 8},
 		{Name: "cmd5", Label: "gorge Foundations Commander precons", Tree: "bf7d262947055c44eb84c14e648249e7d907b0bfcca788f9fd04f9f53f300072", Decks: 5},
-		{Name: "standard-meta", Label: "MTGGoldfish Standard", Tree: "3788c0cc4bcecf3807a3c2045e33d466d04270f0d73145ed6c39a212f0122a9f", Decks: 60},
+		{Name: "standard-meta", Label: "MTGGoldfish Standard", Tree: "7f0fbb5c3776095cc8eb9ea95ee324adf87b9f99254de56077a1b05203c29076", Decks: 60},
 		{Name: "mbc", Label: "draftsim MBC Commander drafts, 50-card decks", Tree: "92732986d6ecb20f20b86231ad525c7f8ca2c0a2fb1e1ac2970c07774659bbc0", Decks: 234},
-		{Name: "edh", Label: "MTGJSON Commander precons gorge fully supports", Tree: "5ef5b2371cfa6985e8d458ab686f3a898dcb6d89fbf8216c8f1acd70a3b5122e", Decks: 52},
-		{Name: "hosted-cmdr", Label: "gorged's hosted Commander decks (testkit/testutil/decks, format commander), refused copies replaced by basics", Tree: "fcd9b96b24db774f00f49f04936257a1d202f3073fdd948dc507256faec853d8", Decks: 17},
+		{Name: "edh", Label: "MTGJSON Commander precons gorge fully supports", Tree: "44f98d63e11f3b25eec36040d93506602e1fbf53d6962356ec594f53a1b1b5fa", Decks: 49},
+		{Name: "hosted-cmdr", Label: "gorged's hosted Commander decks (testkit/testutil/decks, format commander), refused copies replaced by basics", Tree: "9cbd036c7b6f4d2d790f77d70602250caa6fe3adfe30a2926aada4391b4798e7", Decks: 15},
 	}
 }
 

@@ -1,0 +1,22 @@
+{
+  "card": "Overgrown Tomb",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "overgrown_tomb_nstack_differ"
+  },
+  "evidence": [
+    "ev-std-ecl-c000",
+    "ev-std-ecl",
+    "ev-std-trk-c000",
+    "ev-std-trk",
+    "std-ecl",
+    "std-trk"
+  ]
+}
