@@ -31,6 +31,17 @@ const (
 	VReceiptAmount
 	VExcessDamage
 	VCountReceipt
+	VIf
+	VCastThisTurn
+	VEnteredThisTurn
+	VDomain
+	VPartySize
+	VConverge
+	VAttackersDeclared
+	VTimesKicked
+	VCardsDrawnThisTurn
+	VMin
+	VMax
 	valueKindCount
 )
 
@@ -60,6 +71,17 @@ var valueKindNames = [...]string{
 	VReceiptAmount:            "receipt-amount",
 	VExcessDamage:             "excess-damage",
 	VCountReceipt:             "count-receipt",
+	VIf:                       "if",
+	VCastThisTurn:             "cast-this-turn",
+	VEnteredThisTurn:          "entered-this-turn",
+	VDomain:                   "domain",
+	VPartySize:                "party-size",
+	VConverge:                 "converge",
+	VAttackersDeclared:        "attackers-declared",
+	VTimesKicked:              "times-kicked",
+	VCardsDrawnThisTurn:       "cards-drawn-this-turn",
+	VMin:                      "min",
+	VMax:                      "max",
 }
 
 // String returns the lower-kebab name of k.
@@ -77,6 +99,12 @@ func (k *ValueKind) UnmarshalJSON(b []byte) error {
 }
 
 // Value is a numeric expression.
+//
+//   - VIf is Args[0] when Test holds, else Args[1].
+//   - VMin and VMax are the lesser and the greater of their two Args.
+//   - VCastThisTurn counts the spells matching Filter cast this turn.
+//   - VEnteredThisTurn counts the objects matching Filter that entered its
+//     scope zone this turn, from Zones when Zones is set.
 type Value struct {
 	Kind   ValueKind `json:"kind,omitempty"`
 	N      int32     `json:"n,omitempty"`
@@ -90,4 +118,8 @@ type Value struct {
 	Colors  ColorSet    `json:"colors,omitempty"`
 	Receipt ReceiptKind `json:"receipt,omitempty"`
 	Src     string      `json:"src,omitempty"`
+	// Test is VIf's condition.
+	Test *Cond `json:"test,omitempty"`
+	// Zones is VEnteredThisTurn's origin.
+	Zones ZoneSet `json:"zones,omitempty"`
 }

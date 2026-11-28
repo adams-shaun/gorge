@@ -260,6 +260,8 @@ func prValue(p *printer, n *Value) {
 	p.kstr("word", n.Word)
 	p.kbare("colors", n.Colors.String())
 	p.kenum("receipt", n.Receipt != 0, n.Receipt.String())
+	knode(p, "test", n.Test, prCond)
+	p.kbare("zones", n.Zones.String())
 	p.end()
 }
 
