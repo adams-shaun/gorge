@@ -429,6 +429,11 @@ func (s *State) execSet(k *prep, in *kop.Instr) bool {
 	}
 	hr := s.holdOpen(k)
 	defer s.holdClose(k, hr)
+	if in.Op == kop.OpLoseLife && s.lossBatchOpen(k) {
+		// every member's loss is one LifeLostAll group (gorge effLoseLife
+		// brackets all its players); each member's own bracket is swallowed
+		defer s.lossBatchClose(k)
+	}
 	s.g.inLoop = true
 	one := *in
 	one.Obj = tgtRef(setBindSlot)
