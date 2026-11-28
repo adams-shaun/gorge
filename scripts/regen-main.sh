@@ -13,12 +13,17 @@ cap=(systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPRO
 pins='^(TestCorpusAcceptance|TestSetAcceptance|TestCorpusBuildAcceptance|TestPinTablesParse|TestRememberedSpanCensus|TestStdMetaPoolBuilds)$'
 files=(dirac/docs/support.md dirac/kgen/testdata/acceptance.tsv dirac/kgen/testdata/build_acceptance.tsv dirac/kgen/testdata/remspan.tsv dirac/kgen/stdmeta_test.go dirac/support/refused dirac/support/unrefused.tsv dirac/support/evidence dirac/support/evidence-keys dirac/oracle/testdata/repro)
 
-pr=$(gh pr list --head "$branch" --state open --json number,labels,mergeable,statusCheckRollup --jq '.[0] | select(.) | "\(.number) \(if any(.statusCheckRollup[]?; .name == "fast" and .conclusion == "FAILURE") then "RED" else .mergeable end) \([.labels[].name] | join(","))"')
+# 11-28: #5600 sat 13 h draft, conflicting and dequeued while every run said "merges; left alone": GitHub answers
+# UNKNOWN for a PR nobody has asked about, and only CONFLICTING was rebuilt. Now UNKNOWN is asked again (GitHub
+# computes it on the first ask), and a draft or a dequeued regen PR is rebuilt too: neither can ever merge.
+regen_pr() { gh pr list --head "$branch" --state open --json number,labels,mergeable,isDraft,statusCheckRollup --jq '.[0] | select(.) | "\(.number) \(if any(.statusCheckRollup[]?; .name == "fast" and .conclusion == "FAILURE") then "RED" elif .isDraft then "DRAFT" elif any(.labels[]; .name == "dequeued") then "DEQUEUED" else .mergeable end) \([.labels[].name] | join(","))"'; }
+pr=$(regen_pr)
+for _ in 1 2 3; do case " $pr " in *" UNKNOWN "*) sleep "${REGEN_UNKNOWN_WAIT:-10}"; pr=$(regen_pr) ;; *) break ;; esac; done
 # An open regen PR that still merges is left alone: a push restarts its checks, and main moves more often than they
 # finish (11-17: #749 re-pushed every tick, its fast never ended). It carries a rise up to its own base; the next run
 # after it merges carries the rest. Only a conflicting one, or one whose fast is red, is rebuilt (11-24: #4249 was cut
 # over 9499e39379, main then re-pinned remspan up, and the open PR sat red lowering it back).
-case " $pr " in "  ") ;; *" CONFLICTING "*|*" RED "*) ;; *) echo "regen-main: #${pr%% *} is open and merges; left alone"; exit 0 ;; esac
+case " $pr " in "  ") ;; *" CONFLICTING "*|*" RED "*|*" DRAFT "*|*" DEQUEUED "*) ;; *) echo "regen-main: #${pr%% *} is open and merges; left alone"; exit 0 ;; esac
 
 git -C "$repo" fetch -q "$remote" main || { echo "regen-main: fetch failed"; exit 1; }
 wt=$main/.worktrees/regen-main
@@ -56,5 +61,7 @@ if [ -z "$pr" ]; then
     { echo "regen-main: gh pr create failed"; exit 1; }
   pr=${url##*/}
 fi
+case " $pr " in *" DRAFT "*) gh pr ready "${pr%% *}" >/dev/null || { echo "regen-main: gh pr ready failed"; exit 1; } ;; esac
+case " $pr " in *" DEQUEUED "*) gh api -X DELETE "repos/{owner}/{repo}/issues/${pr%% *}/labels/dequeued" >/dev/null 2>&1 ;; esac
 gh api -X POST "repos/{owner}/{repo}/issues/${pr%% *}/labels" -f 'labels[]=queue' >/dev/null || { echo "regen-main: label failed"; exit 1; }
 echo "regen-main: pushed $(git diff --stat HEAD~1 | tail -1) to #${pr%% *}"
