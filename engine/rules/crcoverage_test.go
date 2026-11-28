@@ -41,6 +41,11 @@ const (
 
 	// cr-index.tsv lists every id of the pinned rules text (2026-08-07),
 	// derived by scripts/cr_index.py; the two allow-lists only shrink.
+	// untested-ceilings.tsv caps, per table file, how many follows/partial
+	// rows may name no test. A ceiling only comes down, in its own change.
+	crUntestedCeilingsFile   = "untested-ceilings.tsv"
+	crUntestedCeilingsHeader = "file\tuntested"
+
 	crIndexFile       = "cr-index.tsv"
 	crIndexHeader     = "id\tkind\ttitle\tin_scope\texamples"
 	crUnknownRowsFile = "cr-index-unknown-rows.txt"
@@ -159,6 +164,7 @@ func TestCRCoverageIsCurrent(t *testing.T) {
 	checkCRAllowList(t, crDeviatesUntestedFile, untested)
 	checkCRSummary(t, rows)
 	checkCRIndexCoverage(t, rows, readCRIndex(t))
+	checkCRUntestedCeilings(t, rows, readCRIndex(t))
 	// status vs registry
 	checkCRStatusVsRegistry(t, rows, readCRIndex(t), effects.Supported())
 	// end status vs registry
@@ -831,4 +837,188 @@ func TestCRRegisteredKeyword(t *testing.T) {
 			t.Errorf("crRegisteredKeyword(%q, %v) = %v, want %v", c.title, c.supported, got, c.want)
 		}
 	}
+}
+
+// TestCRUntestedProblems covers the pure ceiling comparison behind
+// TestCRCoverageIsCurrent: a count above its ceiling, a table file the ceiling
+// file does not name, or a ceiling naming no table file all fail; a count below
+// its ceiling is only a note, so naming tests never has to edit the ceiling
+// file.
+func TestCRUntestedProblems(t *testing.T) {
+	t.Parallel()
+	const ceilingsFile = crUntestedCeilingsFile
+	for _, tc := range []struct {
+		name             string
+		counts, ceilings map[string]int
+		wantFail         []string
+		wantNote         []string
+	}{
+		{
+			name:     "a count at its ceiling passes",
+			counts:   map[string]int{"100-game-concepts.md": 3},
+			ceilings: map[string]int{"100-game-concepts.md": 3},
+		},
+		{
+			name:     "a count above its ceiling fails",
+			counts:   map[string]int{"100-game-concepts.md": 4},
+			ceilings: map[string]int{"100-game-concepts.md": 3},
+			wantFail: []string{"100-game-concepts.md: 4 untested follows/partial rows, ceiling 3: name a test in the new row"},
+		},
+		{
+			name:     "a count below its ceiling is a note",
+			counts:   map[string]int{"100-game-concepts.md": 2},
+			ceilings: map[string]int{"100-game-concepts.md": 3},
+			wantNote: []string{"100-game-concepts.md: 2 untested, ceiling 3: the ceiling can be lowered"},
+		},
+		{
+			name:     "a table file with no ceiling line fails",
+			counts:   map[string]int{"300-card-types.md": 61, "400-zones.md": 5},
+			ceilings: map[string]int{"400-zones.md": 5},
+			wantFail: []string{"300-card-types.md: 61 untested follows/partial rows and no ceiling line in " + ceilingsFile + ": add one"},
+		},
+		{
+			name:     "a ceiling naming no table file fails",
+			counts:   map[string]int{"400-zones.md": 5},
+			ceilings: map[string]int{"400-zones.md": 5, "750-fake.md": 0},
+			wantFail: []string{"750-fake.md: a ceiling of 0 names no table file: delete the line"},
+		},
+		{
+			name:   "several files report in file order",
+			counts: map[string]int{"600-spells-abilities-effects.md": 9, "200-parts-of-a-card.md": 1},
+			ceilings: map[string]int{
+				"200-parts-of-a-card.md":          2,
+				"600-spells-abilities-effects.md": 8,
+			},
+			wantFail: []string{"600-spells-abilities-effects.md: 9 untested follows/partial rows, ceiling 8: name a test in the new row"},
+			wantNote: []string{"200-parts-of-a-card.md: 1 untested, ceiling 2: the ceiling can be lowered"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fail, note := crUntestedProblems(tc.counts, tc.ceilings)
+			if got, want := strings.Join(fail, "\n"), strings.Join(tc.wantFail, "\n"); got != want {
+				t.Errorf("fail =\n%s\nwant\n%s", got, want)
+			}
+			if got, want := strings.Join(note, "\n"), strings.Join(tc.wantNote, "\n"); got != want {
+				t.Errorf("note =\n%s\nwant\n%s", got, want)
+			}
+		})
+	}
+}
+
+// checkCRUntestedCeilings holds the count of follows/partial rows that name no
+// test to the per-file ceilings in untested-ceilings.tsv, so an untested claim
+// cannot arrive unannounced, and logs how many in-scope index ids those rows
+// cover. A count below its ceiling is logged, never failed: naming tests is
+// then a change of its own that never touches the ceiling file.
+func checkCRUntestedCeilings(t *testing.T, rows []crRow, index []crIndexRow) {
+	t.Helper()
+	inScope := map[string]bool{}
+	for _, r := range index {
+		inScope[r.id] = r.inScope
+	}
+	counts := map[string]int{}
+	var untested []crRow
+	for _, r := range rows {
+		if _, ok := counts[r.file]; !ok {
+			counts[r.file] = 0
+		}
+		if (r.status == "follows" || r.status == "partial") && len(r.tests) == 0 {
+			counts[r.file]++
+			untested = append(untested, r)
+		}
+	}
+	fail, note := crUntestedProblems(counts, readCRCeilings(t))
+	for _, f := range fail {
+		t.Error(f)
+	}
+	for _, n := range note {
+		t.Log(n)
+	}
+	total := 0
+	for _, r := range untested {
+		covered, _ := crRowIDs(r.rule, index)
+		seen := map[string]bool{}
+		for _, id := range covered {
+			if inScope[id] && !seen[id] {
+				seen[id] = true
+				total++
+			}
+		}
+	}
+	t.Logf("untested follows/partial rows: %d, untested in-scope ids: %d", len(untested), total)
+}
+
+// readCRCeilings reads untested-ceilings.tsv, failing on a malformed or
+// unsorted one.
+func readCRCeilings(t *testing.T) map[string]int {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join(crCoverageDir, crUntestedCeilingsFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSuffix(string(data), "\n"), "\n")
+	if len(lines) == 0 || lines[0] != crUntestedCeilingsHeader {
+		header := ""
+		if len(lines) > 0 {
+			header = lines[0]
+		}
+		t.Fatalf("%s: header is %q, want %q", crUntestedCeilingsFile, header, crUntestedCeilingsHeader)
+	}
+	ceilings := map[string]int{}
+	var order []string
+	for n, line := range lines[1:] {
+		at := fmt.Sprintf("%s:%d", crUntestedCeilingsFile, n+2)
+		cells := strings.Split(line, "\t")
+		if len(cells) != 2 {
+			t.Errorf("%s: want 2 columns, got %d", at, len(cells))
+			continue
+		}
+		count := -1
+		if _, err := fmt.Sscanf(cells[1], "%d", &count); err != nil || count < 0 || fmt.Sprint(count) != cells[1] {
+			t.Errorf("%s: ceiling %q is not a count", at, cells[1])
+			continue
+		}
+		if _, dup := ceilings[cells[0]]; dup {
+			t.Errorf("%s: %s has two ceiling lines", at, cells[0])
+		}
+		ceilings[cells[0]] = count
+		order = append(order, cells[0])
+	}
+	if !sort.StringsAreSorted(order) {
+		t.Errorf("%s: lines are not sorted by file", crUntestedCeilingsFile)
+	}
+	return ceilings
+}
+
+// crUntestedProblems compares each table file's count of follows/partial rows
+// that name no test (counts holds an entry for every table file, zero
+// included) against its ceiling. Everything that must be fixed goes to fail; a
+// count below its ceiling goes to note, so the ceiling file never has to move
+// in step with a change that names tests. Both slices come back in file order.
+func crUntestedProblems(counts, ceilings map[string]int) (fail, note []string) {
+	files := make([]string, 0, len(counts)+len(ceilings))
+	for f := range counts {
+		files = append(files, f)
+	}
+	for f := range ceilings {
+		if _, ok := counts[f]; !ok {
+			files = append(files, f)
+		}
+	}
+	sort.Strings(files)
+	for _, f := range files {
+		count, hasTable := counts[f]
+		ceil, hasCeiling := ceilings[f]
+		switch {
+		case !hasCeiling:
+			fail = append(fail, fmt.Sprintf("%s: %d untested follows/partial rows and no ceiling line in %s: add one", f, count, crUntestedCeilingsFile))
+		case !hasTable:
+			fail = append(fail, fmt.Sprintf("%s: a ceiling of %d names no table file: delete the line", f, ceil))
+		case count > ceil:
+			fail = append(fail, fmt.Sprintf("%s: %d untested follows/partial rows, ceiling %d: name a test in the new row", f, count, ceil))
+		case count < ceil:
+			note = append(note, fmt.Sprintf("%s: %d untested, ceiling %d: the ceiling can be lowered", f, count, ceil))
+		}
+	}
+	return fail, note
 }

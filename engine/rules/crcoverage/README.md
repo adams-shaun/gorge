@@ -44,6 +44,11 @@ when a row stops matching the code.
 - The per-file counts are not committed (every CR change used to rewrite them,
   so open tickets conflicted). `go test -v -run TestCRCoverageIsCurrent
   ./engine/rules` logs them. The test never rewrites references.
+- A new `follows` or `partial` row names a test in the tests column: the count of
+  rows naming none is capped per file in `untested-ceilings.tsv`, and going above a
+  file's ceiling fails the test.
+- A ceiling only ever comes down, in a change of its own; a count below it is logged,
+  so naming tests for old rows never edits the ceiling file.
 - `unknown` rows are open questions. Settling one is a welcome small change.
 
 ## Summary
