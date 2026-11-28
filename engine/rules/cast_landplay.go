@@ -36,31 +36,31 @@ func (e *Engine) settleLandPlay(id state.ObjID) {
 	logged := e.etbLandLogged
 	e.etbLandPlay, e.etbLandObj, e.etbLandLogged = false, 0, false
 	if !logged {
-		e.logLandPlay(id)
+		e.emit(takeLandPlayedEvent(e.G, e.etbLandPlayer, &e.etbLandPerm, e.etbLandFrom, id))
 	}
 }
 
-// logLandPlay emits id's LandPlayed event for the armed land play.
-func (e *Engine) logLandPlay(id state.ObjID) {
-	p := e.etbLandPlayer
+// takeLandPlayedEvent builds the LandPlayed event for p's play of id and
+// spends the may-play permission the play carries.
+func takeLandPlayedEvent(g *state.Game, p state.PlayerID, perm *string, from state.Zone, id state.ObjID) events.Event {
 	// A land played through a limited untyped may-play static carries the
 	// static's permission token (mayPlayKeyLimitReached counts it); every
 	// other land play is byte-identical.
 	text := ""
-	if e.etbLandPerm != "" {
-		text = "perm=" + e.etbLandPerm
+	if *perm != "" {
+		text = "perm=" + *perm
 	}
-	e.etbLandPerm = ""
+	*perm = ""
 	// A play off the hand, or of a card p does not own, names the land and
 	// its origin so events.Apply records it for the filtered
 	// PlayerCountPropertyYou$LandsPlayed <filter> read (Spider-Man 2099,
 	// Visions of Phyrexia). The ordinary hand play of an owned land stays
 	// byte-identical: Obj zero means "from p's hand, owned by p".
 	ev := events.Event{Kind: events.LandPlayed, Player: p, Text: text}
-	if o := e.G.Obj(id); o != nil && (e.etbLandFrom != state.ZHand || o.Owner != p) {
-		ev.Obj, ev.From = id, e.etbLandFrom
+	if o := g.Obj(id); o != nil && (from != state.ZHand || o.Owner != p) {
+		ev.Obj, ev.From = id, from
 	}
-	e.emit(ev)
+	return ev
 }
 
 // landEntryParked reports whether some engine machinery still holds id's
@@ -84,12 +84,19 @@ func (e *Engine) landEntryParked(id state.ObjID) bool {
 }
 
 // landEntryOrderParked reports whether id's battlefield entry waits on a
-// CR 616.1 order ask between competing entry replacements (a tapped land
-// beside "lands you control enter untapped"). The answer composes the entry
-// and reaches finishLandPlay.
-func (e *Engine) landEntryOrderParked(id state.ObjID) bool {
-	for i := range e.replChoices {
-		if ev := &e.replChoices[i].ev; ev.Kind == events.MoveZone && ev.Obj == id {
+// replacement ask: the CR 616.1 order between competing entry replacements (a
+// tapped land beside "lands you control enter untapped"), a lone "you may"
+// entry replacement, or the order of its entry-counter replacements (whose
+// parked event is the counter, with the move held on the stage). The answer
+// need not put the land onto the battlefield, so whoever dispatches it settles
+// the play afterwards (settleLandPlayIfDone).
+func landEntryOrderParked(choices []replChoice, id state.ObjID) bool {
+	for i := range choices {
+		ev := &choices[i].ev
+		if st := choices[i].stage; choices[i].kind == replChoiceEntryOrder && st != nil {
+			ev = &st.move
+		}
+		if ev.Kind == events.MoveZone && ev.Obj == id && ev.To == state.ZBattlefield {
 			return true
 		}
 	}
@@ -100,19 +107,20 @@ func (e *Engine) landEntryOrderParked(id state.ObjID) bool {
 // play's battlefield entry has finished being processed, it logs the land play
 // unless the entry is still parked on an outstanding answer. An entry that
 // completed normally already settled through finishLandPlay, so this is a
-// no-op there; it fires exactly for the fully-replaced entry, which never
-// reaches the battlefield at all.
+// no-op there; it fires for the fully-replaced entry, which never reaches the
+// battlefield at all, and for an answered entry whose Updated body left an ask
+// of its own pending.
 func (e *Engine) settleLandPlayIfDone(id state.ObjID) {
 	if e.landEntryParked(id) {
 		return
 	}
-	if e.landEntryOrderParked(id) {
-		// The play is counted as it is made, before the order ask (the
-		// special action is taken, CR 305.1), but the play stays in flight:
-		// the answered entry's MoveZone is what a Mode$ LandPlayed trigger
-		// matches (playingLand), and finishLandPlay disarms it then.
+	if landEntryOrderParked(e.replChoices, id) {
+		// The play is counted as it is made, before the ask (the special
+		// action is taken, CR 305.1), but the play stays in flight: the
+		// answered entry's MoveZone is what a Mode$ LandPlayed trigger
+		// matches (playingLand).
 		if e.etbLandPlay && id == e.etbLandObj && !e.etbLandLogged {
-			e.logLandPlay(id)
+			e.emit(takeLandPlayedEvent(e.G, e.etbLandPlayer, &e.etbLandPerm, e.etbLandFrom, id))
 			e.etbLandLogged = true
 		}
 		return

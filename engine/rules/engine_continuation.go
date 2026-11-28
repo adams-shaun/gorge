@@ -165,8 +165,8 @@ type engineContinuation struct {
 	// player does not own (settleLandPlay).
 	etbLandFrom state.Zone `clone:"deep"`
 	// etbLandLogged marks an armed land play whose LandPlayed was already
-	// logged as the play was made, its entry parked on a CR 616.1 order ask
-	// (settleLandPlayIfDone): the answered entry disarms it without a second.
+	// logged as the play was made, its entry parked on a replacement ask
+	// (settleLandPlayIfDone): the settle disarms it without a second.
 	etbLandLogged bool `clone:"deep"`
 	// riotMove parks a non-cast battlefield entry while its controller makes
 	// Riot's as-enters choice. The event is emitted only after Choose records

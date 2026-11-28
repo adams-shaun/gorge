@@ -117,7 +117,7 @@ func (e *Engine) payCast() {
 		// boundary, not during this proposal. Keep LandPlayed behind that
 		// boundary so it is logged only after the answered entry completes.
 		e.cast, e.choosing = nil, chooseNone
-		e.etbLandPlay, e.etbLandObj, e.etbLandPlayer = true, pc.card, pc.player
+		e.etbLandPlay, e.etbLandObj, e.etbLandPlayer, e.etbLandLogged = true, pc.card, pc.player, false
 		e.etbLandPerm, e.etbLandFrom = pc.mayPlayPerm, pc.from
 		card := pc.card
 		// CR 305.1/110.2: the player who plays a land puts it onto the
