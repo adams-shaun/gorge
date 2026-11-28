@@ -100,6 +100,10 @@ func TestOracleWorkflowCadenceAndAutoRevert(t *testing.T) {
 	if !strings.Contains(job, `git push --force origin "$br"`) {
 		t.Error("the auto-revert must force-push the bot branch (an earlier bisect may have left it behind)")
 	}
+	// The revert branch carries the failing tests into the sentinel set (st-qhealth-05).
+	if !strings.Contains(job, "bash scripts/sentinel-append.sh failing.txt") {
+		t.Error("the auto-revert must append the failing tests with scripts/sentinel-append.sh")
+	}
 	if !strings.Contains(job, "contents: write") || !strings.Contains(job, "pull-requests: write") {
 		t.Error("bisect needs contents: write and pull-requests: write")
 	}
