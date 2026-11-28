@@ -1,39 +1,22 @@
 package oracle
 
-import (
-	"os"
-	"testing"
-
-	"github.com/adams-shaun/gorge/dirac/cardset"
-)
+import "testing"
 
 const grantedAnyManaRepro = "granted_any_mana_prefix_search_budget_overoffers"
 
-// Wakeroot Elemental's {G}{G}{G}{G}{G} activation beside Dune Chanter's
-// "{T}: Add one mana of any color" granted to five untapped lands (pool
-// tail-71, surface full, the recorded game; decision 636): CR 605.1a lets the
-// five granted abilities pay it, but gorge's composed planner skips granted
+// Wakeroot Elemental's {G}{G}{G}{G}{G} activation beside Dune Chanter's "{T}:
+// Add one mana of any color" granted to five untapped lands (pool tail-71,
+// surface full, the recorded game; decision 636): CR 605.1a lets the five
+// granted abilities pay it, but gorge's composed planner skips granted
 // abilities (census_incomplete) and its prefix search, whose plain, phased and
-// subsume runs all spend the potentialScriptNodes budget over the granted gaps, finds no
-// script, so gorge offers only pass. The kernel's subsume run reaches the
-// five-G line at its 162nd node and offers the play. Wakeroot Elemental is
-// refused by name; the recorded game still shows the divergence with it
-// implicated.
+// subsume runs all spend the potentialScriptNodes budget over the granted gaps,
+// finds no script, so gorge offers only pass. The kernel's subsume run reaches
+// the five-G line at its 162nd node and offers the play. That was the
+// divergence the card was refused for. At the recorded decision both engines
+// now offer the activation of Wakeroot Elemental, and the recorded game replays
+// clean on a table of its own cards, so the card is unrefused with this game as
+// its proof (dirac/support/unrefused.tsv).
 func TestMBCWakerootElementalRefusalReprosLockstep(t *testing.T) {
-	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for i := range entries {
-		e := &entries[i]
-		if e.Card != "Wakeroot Elemental" {
-			continue
-		}
-		if e.Repro.Pool != "custom" || e.Repro.File != grantedAnyManaRepro {
-			t.Fatalf("Wakeroot Elemental's entry replays %s/%s, want custom/%s", e.Repro.Pool, e.Repro.File, grantedAnyManaRepro)
-		}
-		checkRefusedRepro(t, e)
-		return
-	}
-	t.Fatal("Wakeroot Elemental has no dirac/support/refused entry: gorge's prefix search spends its node budget over the granted any-colour gaps")
+	t.Parallel()
+	oneOffReproClean(t, grantedAnyManaRepro)
 }

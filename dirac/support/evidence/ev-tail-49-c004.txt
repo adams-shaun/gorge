@@ -158,6 +158,7 @@ Kor Cartographer
 Kor Entanglers
 Kor Outfitter
 Kor Scythemaster
+Krosan Druid
 Lantern of Revealing
 Lantern of the Lost
 Lapis Lazuli Talisman

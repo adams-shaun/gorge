@@ -6,37 +6,39 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 
 `cardset.EnforceEvidence` is true: a game plays supported cards only, and a deck holding an unverified or refused card is turned away.
 
-| list | cards | lowered | refused | unverified | supported | 4-seat | pod-evidenced |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| BIG | 30 | 29 | 0 | 4 | 25 | 25 | 0 |
-| BLB | 278 | 265 | 1 | 2 | 262 | 262 | 1 |
-| DFT | 276 | 259 | 0 | 1 | 258 | 258 | 2 |
-| DSK | 276 | 260 | 2 | 6 | 252 | 252 | 1 |
-| ECL | 273 | 251 | 0 | 3 | 248 | 248 | 1 |
-| EOE | 266 | 254 | 0 | 3 | 251 | 251 | 1 |
-| FDN | 517 | 517 | 0 | 0 | 517 | 517 | 9 |
-| FIN | 312 | 283 | 0 | 1 | 282 | 282 | 1 |
-| FRA | 269 | 255 | 0 | 5 | 250 | 250 | 1 |
-| HOB | 172 | 164 | 0 | 4 | 160 | 160 | 1 |
-| LCI | 290 | 265 | 1 | 4 | 260 | 260 | 2 |
-| MKM | 279 | 260 | 1 | 10 | 249 | 249 | 1 |
-| MSH | 276 | 252 | 0 | 3 | 249 | 249 | 1 |
-| OTJ | 276 | 258 | 0 | 5 | 253 | 253 | 1 |
-| SOS | 270 | 261 | 0 | 2 | 259 | 259 | 1 |
-| SPM | 192 | 179 | 2 | 10 | 167 | 167 | 1 |
-| TDM | 276 | 261 | 1 | 1 | 259 | 259 | 2 |
-| TLA | 285 | 264 | 1 | 2 | 261 | 261 | 1 |
-| TMT | 194 | 188 | 0 | 1 | 187 | 187 | 1 |
-| TRC | 337 | 307 | 0 | 29 | 278 | 278 | 6 |
-| TRK | 311 | 311 | 1 | 0 | 310 | 310 | 1 |
-| WOE | 281 | 268 | 0 | 4 | 264 | 264 | 1 |
-| MBC | 2214 | 2057 | 3 | 57 | 1997 | 1997 | 8 |
-| CMM | 737 | 641 | 2 | 41 | 598 | 598 | 9 |
-| MH3 | 308 | 248 | 1 | 22 | 225 | 225 | 1 |
-| MH2 | 309 | 273 | 0 | 19 | 254 | 254 | 1 |
-| CM2 | 279 | 247 | 1 | 10 | 236 | 236 | 10 |
-| hosted-cmdr | 1234 | 1161 | 0 | 96 | 1065 | 1064 | 33 |
-| ALL | 34480 | 27259 | 41 | 1325 | 25893 | 25890 | 33 |
+| list | cards | lowered | refused | unverified | supported | 4-seat | pod-evidenced | in-scope | in-scope lowered | in-scope supported |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| BIG | 30 | 29 | 0 | 4 | 25 | 25 | 0 | 30 | 29 | 25 |
+| BLB | 278 | 265 | 1 | 2 | 262 | 262 | 1 | 278 | 265 | 262 |
+| DFT | 276 | 259 | 0 | 1 | 258 | 258 | 2 | 276 | 259 | 258 |
+| DSK | 276 | 261 | 2 | 7 | 252 | 252 | 1 | 276 | 261 | 252 |
+| ECL | 273 | 251 | 0 | 3 | 248 | 248 | 1 | 273 | 251 | 248 |
+| EOE | 266 | 256 | 0 | 5 | 251 | 251 | 1 | 266 | 256 | 251 |
+| FDN | 517 | 517 | 0 | 0 | 517 | 517 | 9 | 517 | 517 | 517 |
+| FIN | 312 | 284 | 0 | 2 | 282 | 282 | 1 | 312 | 284 | 282 |
+| FRA | 269 | 255 | 0 | 5 | 250 | 250 | 1 | 269 | 255 | 250 |
+| HOB | 172 | 164 | 0 | 4 | 160 | 160 | 1 | 172 | 164 | 160 |
+| LCI | 290 | 266 | 1 | 5 | 260 | 260 | 2 | 290 | 266 | 260 |
+| MKM | 279 | 261 | 1 | 11 | 249 | 249 | 1 | 279 | 261 | 249 |
+| MSH | 276 | 253 | 0 | 4 | 249 | 249 | 1 | 276 | 253 | 249 |
+| OTJ | 276 | 258 | 0 | 5 | 253 | 253 | 1 | 276 | 258 | 253 |
+| SOS | 270 | 261 | 0 | 2 | 259 | 259 | 1 | 270 | 261 | 259 |
+| SPM | 192 | 179 | 2 | 10 | 167 | 167 | 1 | 192 | 179 | 167 |
+| TDM | 276 | 261 | 1 | 1 | 259 | 259 | 2 | 276 | 261 | 259 |
+| TLA | 285 | 265 | 1 | 3 | 261 | 261 | 1 | 285 | 265 | 261 |
+| TMT | 194 | 188 | 0 | 1 | 187 | 187 | 1 | 194 | 188 | 187 |
+| TRC | 337 | 308 | 0 | 30 | 278 | 278 | 6 | 337 | 308 | 278 |
+| TRK | 311 | 311 | 1 | 0 | 310 | 310 | 1 | 311 | 311 | 310 |
+| WOE | 281 | 269 | 0 | 4 | 265 | 265 | 1 | 281 | 269 | 265 |
+| MBC | 2214 | 2060 | 3 | 60 | 1997 | 1997 | 8 | 2213 | 2059 | 1997 |
+| CMM | 737 | 650 | 3 | 50 | 597 | 597 | 9 | 737 | 650 | 597 |
+| MH3 | 308 | 252 | 1 | 26 | 225 | 225 | 1 | 308 | 252 | 225 |
+| MH2 | 309 | 275 | 0 | 21 | 254 | 254 | 1 | 309 | 275 | 254 |
+| CM2 | 279 | 247 | 1 | 10 | 236 | 236 | 10 | 279 | 247 | 236 |
+| hosted-cmdr | 1234 | 1220 | 2 | 152 | 1066 | 1065 | 33 | 1233 | 1219 | 1066 |
+| ALL | 34480 | 27441 | 33 | 1504 | 25904 | 25901 | 33 | 32729 | 26946 | 25532 |
+
+`in-scope` counts the cards `dirac/support/scope/out-of-scope.txt` (1751 lines, written by `scripts/dirac-scope-list.py` from the public carddb) does not name: it leaves out digital-only and Alchemy-rebalanced cards, paper cards that are not Commander-legal (a banned card stays in), non-tournament types and mechanics, and Mutate and Splice cards deferred until 2027-01-15, and the two columns after it count the lowered and supported cards among them.
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; `hosted-cmdr` is the union of every card of gorged's hosted Commander decks (`testkit/testutil/decks`, format commander), so each deck is judged in one set; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field of three or more — a clean pod game, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A four-seat row evidences its card (OD-4 stage 2, `oracle.EvidencePodMinPlays` = 1): a Commander-only key such as Command Tower's colour-identity mana is used there and credited as any own key is, while a three-seat row stays in this column only. The `4-seat` column's pod requirement is report only until pod coverage is large enough to gate it; read `pod-evidenced` beside it.
 
@@ -5291,13 +5293,13 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-41 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+33 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
-| lockstep | 18 |
-| options | 6 |
-| options-options | 5 |
+| lockstep | 14 |
+| options | 4 |
+| options-options | 3 |
 | projection-Cards.Damage | 1 |
 | projection-Cards.Flags | 2 |
 | projection-Cards.Zone | 1 |
