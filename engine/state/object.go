@@ -171,7 +171,7 @@ const (
 	// FlagHarmonize and FlagSuspend exile the spell after it resolves.
 	FlagHarmonize
 	FlagSuspend
-	// FlagEscaped marks a cast paid for with its Escape cost (CR 702.42a);
+	// FlagEscaped marks a cast paid for with its Escape cost (CR 702.138a);
 	// it survives onto the permanent, where the "sacrifice it unless it
 	// escaped" ETB family and the escape-with-counters replacements read it
 	// through the Card.Self+escaped spec.
@@ -297,7 +297,7 @@ const (
 	// append-only precedent.
 	FlagReplaceGraveyard
 	// FlagAftermath marks a cast of a Split card's Aftermath alternate face
-	// from the graveyard (CR 702.85a; the Flashback convention): the flag is
+	// from the graveyard (CR 702.34a; the Flashback convention): the flag is
 	// what the resolution reader (spellRestZone) and the fizzle reader
 	// (spellFizzleZone) read to exile the card instead of the graveyard,
 	// both on resolution and when countered. Appended per the enum's own
@@ -418,7 +418,7 @@ const (
 	// Appended per the enum's own append-only precedent.
 	FlagPromisedGift
 	// FlagRebound marks a spell cast from its controller's HAND whose face
-	// carries K:Rebound (CR 702.95a: "If you cast this spell from your hand,
+	// carries K:Rebound (CR 702.88a: "If you cast this spell from your hand,
 	// exile it as it resolves"). It is set by payCast from the pendingCast's
 	// origin zone, so the re-bound cast from exile -- which CR 702.95e says
 	// "doesn't rebound again" -- carries no bit and resolves to the
@@ -1668,7 +1668,7 @@ type Object struct {
 	// It is folded by events.Choose so a replay makes the same turn-based
 	// decision; the turn boundary clears it before the next election.
 	UntapChoice string
-	// UnleashChoice is set by the logged as-enters Unleash choice (CR 702.86:
+	// UnleashChoice is set by the logged as-enters Unleash choice (CR 702.98:
 	// "counter" = enter with a +1/+1 counter, "plain" = enter without). It
 	// survives the hand/stack path and Move consumes it on battlefield entry,
 	// exactly like RiotChoice.
@@ -1973,7 +1973,7 @@ type Object struct {
 	FaceDownToughness int32
 	FaceDownHasPT     bool
 
-	// Paired is the permanent this Soulbond creature is paired with (CR 702.103):
+	// Paired is the permanent this Soulbond creature is paired with (CR 702.95):
 	// a creature its controller may pair it with when either enters an the
 	// battlefield, as long as the controller controls both. 0 means unpaired.
 	// Reset whenever the object leaves the battlefield (events.Move).

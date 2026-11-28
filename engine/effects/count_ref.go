@@ -554,7 +554,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		}
 		return c.DelayedRemembered, true
 	case refTargetsTriggeredExploited:
-		// The exploited creature (CR 702.58c's "that creature"): the Exploit
+		// The exploited creature (CR 702.110's "that creature"): the Exploit
 		// marker's triggerReferents case binds ev.IDs[0] to TriggerCard at
 		// fire time, so Henry Wu's TriggeredExploited$CardPower and Profaner
 		// of the Dead's TriggeredExploited$CardToughness read exactly the

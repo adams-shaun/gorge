@@ -5,7 +5,7 @@
 package cards
 
 func kwGravestorm(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
-	// CR 702.84: Storm's shape with a different amount -- one copy per
+	// CR 702.40: Storm's shape with a different amount -- one copy per
 	// permanent put into a graveyard from the battlefield this turn
 	// (Forge's CardFactoryUtil expansion). The count head resolves
 	// through effects.countEntered's zone-aware spec match.

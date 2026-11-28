@@ -9,7 +9,7 @@ import (
 
 func init() { Register("Demonstrate", effDemonstrate) }
 
-// effDemonstrate implements DB$ Demonstrate (CR 702.152): the resolution of
+// effDemonstrate implements DB$ Demonstrate (CR 702.144): the resolution of
 // the demonstrate trigger both the printed K:Demonstrate expansion
 // (engine/cards/kw_demonstrate.go) and the granted-keyword synthesis
 // (engine/rules/trigger_granted.go's checkGrantedDemonstrateTriggers) queue. The

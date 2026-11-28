@@ -21,7 +21,7 @@ func init() { Register("Incubate", effIncubate) }
 // (the corpus ships incubator_dark_confidant for exactly such a variant).
 const incubatorTokenKey = "incubator_c_0_0_a_phyrexian"
 
-// effIncubate implements the Incubate primitive (CR 701.57a-b, 30 corpus
+// effIncubate implements the Incubate primitive (CR 701.53a-b, 30 corpus
 // DB$ lines over 29 files): create an Incubator token with Amount$
 // +1/+1 counters on it. The token's "{2}: Transform" half needs no engine
 // support here -- the token script carries the AB$ SetState ability itself,

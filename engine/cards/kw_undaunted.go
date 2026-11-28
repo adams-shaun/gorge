@@ -9,7 +9,7 @@ func kwUndaunted(f *Face, i int, k, head, param string, has func(kind, line stri
 	// ability, so its idempotence rides the shared has("S", ...) arm
 	// (which reads f.Statics) on the KeywordLine tag. One shared check, so
 	// a second Link() of a cached face does not double the discount and
-	// two identical K:Undaunted lines each expand (CR 702.2).
+	// two identical K:Undaunted lines each expand (CR 702.125).
 	if has("S", k) {
 		return
 	}
