@@ -24,7 +24,7 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)
-# LC_ALL=C: ck must be a function of the committed files, never of the box's locale. 2026-11-27: metal2
+# LC_ALL=C: ck must be a function of the committed files, never of the box's locale. 2026-11-27: the owned box
 # (en_US.UTF-8) and spotci (C) logged different ck/dk for the same merge-queue commit because sort -z collated
 # the same bytes two ways; dk's list order is pinned the same way in scripts/table-key-files.sh.
 h() { git ls-files -z -- "$@" | LC_ALL=C sort -z | xargs -0 cat | sha256sum | cut -c1-12; }
