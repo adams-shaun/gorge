@@ -375,12 +375,13 @@ func (lc *lowerCtx) playerCountRemembered(rest string, depth int) (lValue, error
 	case "CardsInHand":
 		return lValue{Kind: vHandSizeOf, Ref: each}, nil
 	case "LifeLostThisTurn":
-		// gorge LifeLostThisTurn of the repeated player; over the opponents
-		// that player is the one opponent (Gul Dukat, Colonial Prefect)
+		// gorge LifeLostThisTurn of the repeated player, that player's own
+		// tally at any seat count (CR 119.3; Archfiend of Despair). Lowered
+		// only over the opponents: no every-player body is evidenced
 		if !lc.repeatOpp {
 			return lValue{}, fmt.Errorf("PlayerCountRemembered$%s over every player", rest)
 		}
-		return lValue{Kind: vOppLifeLostThisTurn}, nil
+		return lValue{Kind: vLifeLostThisTurn, Ref: each}, nil
 	}
 	spec, ok := strings.CutPrefix(rest, "Valid ")
 	if !ok || strings.Contains(spec, "$") {

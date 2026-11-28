@@ -1474,6 +1474,9 @@ func (e *Engine) enteringObjectMatches(spec string, ev events.Event, sc effects.
 			entering := *o
 			entering.FaceDown = true
 			entering.Zone = state.ZBattlefield
+			// A FaceDownSetType$ and P/T ride the entry's Counter until it
+			// folds: Yedora's return enters a Forest land, no creature (CR 708.2a).
+			entering.FaceDownSetType, entering.FaceDownPower, entering.FaceDownToughness, entering.FaceDownHasPT, _ = events.FaceDownEntryFields(ev.Counter)
 			return effects.MatchesObjectCtx(e.G, spec, &entering, sc)
 		}
 	}

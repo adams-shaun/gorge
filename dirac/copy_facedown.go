@@ -61,7 +61,7 @@ func (s *State) copyBlankLayer(k *prep, sl, tmpl Slot) bool {
 		}
 		return false
 	}
-	p.gty = kop.TCreature | gtyFaceDown | gtyBlankCopy
+	p.gty = kop.TCreature | gtyFaceDown | gtyBlankCopy | s.perms[tmpl].gty&gtyEffectDown // the template's ward, or none, is copiable
 	p.ovr.flags |= ovGenTy
 	p.ovr.walk = walkOn
 	s.touchSl(sl)

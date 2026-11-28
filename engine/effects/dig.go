@@ -192,6 +192,17 @@ func digGreedyTakeRest(take func(state.ObjID) bool, greedy, top []state.ObjID, r
 	rest(restIDs)
 }
 
+// digMayTake reports whether the looked-at object id may be taken: it matches
+// ChangeValid$ and it can leave the library. A token shuffled in by an earlier
+// part of the same resolution (Chaos Warp) is no card and cannot move again
+// (CR 111.8, 108.2b), so it stays with the rest until it ceases to exist.
+func digMayTake(g *state.Game, spec string, id state.ObjID, sc SpecContext) bool {
+	if o := g.Obj(id); o != nil && tokenCannotChangeZone(g, o) {
+		return false
+	}
+	return MatchesSpecCtx(g, spec, id, sc)
+}
+
 func effDig(h Host, c *Ctx, sa *cards.SA) {
 	dp := DigOf(sa)
 	digNum := numText(h, c, dp.DigNum, 1)
@@ -664,7 +675,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		}
 		eligible := make([]state.ObjID, 0, len(top))
 		for _, id := range top {
-			if MatchesSpecCtx(g, spec, id, forgetOtherPreClearContext(&selection, c)) {
+			if digMayTake(g, spec, id, forgetOtherPreClearContext(&selection, c)) {
 				eligible = append(eligible, id)
 			}
 		}

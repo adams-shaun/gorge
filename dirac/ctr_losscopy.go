@@ -68,9 +68,10 @@ var coldContractOwed = newCold[contractOwed]("contractOwed", func(g *genPrep) in
 type contractMod struct {
 	card CardID   // perms[sl].card, the card it is (not the face it shows)
 	ovr  override // its copy basis (flags ovCopy, copyOf only)
-	// fd is 0 when the permanent was face up, else 1 + its provenance
-	// (gtyProvMask >> 13): 1 a plain face-down permanent (a Morph-family
-	// cast), 2 manifested, 3 cloaked, 4 both (a permanent copy of one).
+	// fd is 0 when the permanent was face up, else its fdMark: 1 a plain
+	// face-down permanent (a Morph-family cast), 2 manifested, 3 cloaked, 4
+	// both (a permanent copy of one), each plus 4 when an effect put it face
+	// down.
 	// Gorge mints the copy on its empty faceDownCopyCard over
 	// CopiableFace's face-down set (copyTokenBasis); the kernel mints on
 	// the snapshot basis with copyTokenEnterFrom's face-down branch, which
@@ -255,7 +256,7 @@ func (s *State) contractModAt(sl Slot) (contractMod, bool) {
 		c.ovr = override{flags: ovCopy, copyOf: p.ovr.copyOf}
 	}
 	if p.gty&gtyFaceDown != 0 {
-		c.fd = 1 + uint8(p.gty&gtyProvMask>>13)
+		c.fd = fdMark(p.gty)
 	}
 	if s.fxM.has(sl) {
 		for i := 0; i < int(s.g.nfx) && int(c.nexc) < maxOvr; i++ {
