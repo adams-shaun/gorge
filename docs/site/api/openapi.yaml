@@ -888,6 +888,54 @@ components:
           type: "string"
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/server/host/httpapi.DeckCheckRequest"
+    DeckEngineCard:
+      description: "DeckEngineCard is one card a second engine's set does not play: its copies in the deck, its status (not in set, not lowered, refused, unverified) and the set's reason."
+      properties:
+        count:
+          format: "int64"
+          type: "integer"
+        name:
+          type: "string"
+        reason:
+          type: "string"
+        status:
+          type: "string"
+      required:
+        - "count"
+        - "name"
+        - "reason"
+        - "status"
+      type: "object"
+      x-go-type: "github.com/adams-shaun/gorge/server/protocol.DeckEngineCard"
+    DeckEngineVerdict:
+      description: "DeckEngineVerdict is a second engine's verdict on the deck a report describes: the set it would play the deck on, every card that set does not play, and, when no card is named but the deck is still refused, why."
+      properties:
+        engine:
+          type: "string"
+        playable:
+          type: "boolean"
+        problems:
+          items:
+            type: "string"
+          type:
+            - "array"
+            - "null"
+        set:
+          type: "string"
+        unsupported:
+          items:
+            $ref: "#/components/schemas/DeckEngineCard"
+          type:
+            - "array"
+            - "null"
+      required:
+        - "engine"
+        - "playable"
+        - "problems"
+        - "set"
+        - "unsupported"
+      type: "object"
+      x-go-type: "github.com/adams-shaun/gorge/server/protocol.DeckEngineVerdict"
     DeckInfo:
       description: "DeckInfo is one selectable deck loaded by the server. Format is the game format used by CreateGame (not free-form authoring metadata), so the client can filter the catalogue without reproducing the server's pool rules."
       properties:
@@ -954,7 +1002,11 @@ components:
           type:
             - "array"
             - "null"
+        dirac:
+          $ref: "#/components/schemas/DeckEngineVerdict"
+          description: "Dirac is the second engine's verdict on the deck, absent when the server judges no deck on dirac."
         engine:
+          description: "Engine is the engine whose support Unsupported measures, always gorge."
           type: "string"
         format:
           type: "string"

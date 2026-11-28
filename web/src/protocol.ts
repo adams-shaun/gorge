@@ -1943,6 +1943,31 @@ export interface DeckSubstitution {
 }
 
   /**
+   * DeckEngineCard is one card a second engine's set does not play: its copies
+   * in the deck, its status (not in set, not lowered, refused, unverified) and
+   * the set's reason.
+   */
+export interface DeckEngineCard {
+  name: string;
+  count: number;
+  status: string;
+  reason: string;
+}
+
+  /**
+   * DeckEngineVerdict is a second engine's verdict on the deck a report
+   * describes: the set it would play the deck on, every card that set does not
+   * play, and, when no card is named but the deck is still refused, why.
+   */
+export interface DeckEngineVerdict {
+  engine: string;
+  set: string;
+  playable: boolean;
+  unsupported: DeckEngineCard[];
+  problems: string[];
+}
+
+  /**
    * DeckReport is POST /api/decks/check's answer, and the deck field of a
    * refused POST /api/games: what the server found in a submitted deck. Every
    * field is computed on the server; every list is empty, never null.
@@ -1950,6 +1975,9 @@ export interface DeckSubstitution {
 export interface DeckReport {
   name: string;
   format: string;
+  /**
+   * Engine is the engine whose support Unsupported measures, always gorge.
+   */
   engine: string;
   cards: number;
   commanders: string[];
@@ -1981,6 +2009,11 @@ export interface DeckReport {
    * Playable is Legal and no Unsupported card.
    */
   playable: boolean;
+  /**
+   * Dirac is the second engine's verdict on the deck, absent when the
+   * server judges no deck on dirac.
+   */
+  dirac?: DeckEngineVerdict | null;
 }
 
   /**
