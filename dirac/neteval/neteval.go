@@ -407,6 +407,11 @@ func (n *Net) HasPrior() bool { return true }
 func sigmoid(x float32) float32 { return float32(1 / (1 + math.Exp(-float64(x)))) }
 
 func (n *Net) same(s *dirac.State, d *dirac.Decision) bool {
+	if d.Kind == dirac.DkChoose && d.Sub == dirac.ChCastDivide {
+		// a division's points are one decision (SeqNo stays) whose picks
+		// repeat the same options: nothing here tells two picks apart
+		return false
+	}
 	return n.haveV && n.lastS == s && n.lastSeq == s.SeqNo() && n.lastN == d.N && (d.N == 0 || n.lastO0 == d.Options[0])
 }
 

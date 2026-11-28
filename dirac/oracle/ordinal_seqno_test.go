@@ -6,25 +6,18 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset"
 )
 
-// ordinalAgreedFloor is the fewest decisions every game must play with the
-// counters equal before the first drift: the mulligans and the opening turns,
-// which precede the first multi-pick declaration and the first internal answer.
-const ordinalAgreedFloor = 20
-
 // TestLockstepOrdinalMatchesSeqNo runs OrdinalCheck over two-seat FDN pairs
-// and a four-seat cmd5 pod. The kernel counts each pick of a multi-pick
-// declaration (attackers, blockers, multi-target, multi-choose, trigger
-// order) where gorge counts one answer, and gorge answers internal decisions
-// (payment windows, forced choices) the kernel never poses, so the counters
-// still drift at the first such decision (filed:
-// dirac-decisions-count-gorge-answers). Until that lands this pins what
-// agrees: every decision before the first drift, at least the opening, and the
-// check must fire as an "ordinal" divergence, not some other one.
+// and two four-seat cmd5 pods: at every decision of every game the kernel's
+// SeqNo is gorge's Ordinal net of the answers gorge gives beneath the
+// canonical surface. The games reach multi-pick declarations (attackers,
+// blockers, trigger orders, cost picks), which gorge answers once and the
+// kernel pick by pick; the kernel counts the closing pick only.
 func TestLockstepOrdinalMatchesSeqNo(t *testing.T) {
 	type game struct {
-		name string
-		res  Result
-		n    int
+		name  string
+		res   Result
+		n     int
+		multi int
 	}
 	var games []game
 	c, pool := testCorpus(t)
@@ -38,10 +31,10 @@ func TestLockstepOrdinalMatchesSeqNo(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		var n int
-		res := Lockstep(m, p.Seed, k, RandomPolicy(p.Seed), RunConfig{Config: cfg, MaxTurns: 40, Check: OrdinalCheck(&n)})
+		var n, multi int
+		res := Lockstep(m, p.Seed, k, RandomPolicy(p.Seed), RunConfig{Config: cfg, MaxTurns: 40, Check: multiPickCounted(&multi, OrdinalCheck(&n))})
 		CloseSide(k)
-		games = append(games, game{"fdn " + p.A + " vs " + p.B, res, n})
+		games = append(games, game{"fdn " + p.A + " vs " + p.B, res, n, multi})
 	}
 	two := len(games)
 	pc, names := cmd5MiniCorpus(t, 40)
@@ -64,10 +57,10 @@ func TestLockstepOrdinalMatchesSeqNo(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var n int
-		res := Lockstep(m, pod.Seed, k, AffordableTargetPolicy(RandomPolicy(pod.Seed)), RunConfig{MaxTurns: 40, Check: OrdinalCheck(&n)})
+		var n, multi int
+		res := Lockstep(m, pod.Seed, k, AffordableTargetPolicy(RandomPolicy(pod.Seed)), RunConfig{MaxTurns: 40, Check: multiPickCounted(&multi, OrdinalCheck(&n))})
 		CloseSide(k)
-		games = append(games, game{"cmd5 pod", res, n})
+		games = append(games, game{"cmd5 pod", res, n, multi})
 	}
 	if two == 0 || len(games) == two {
 		t.Fatalf("precondition: %d two-seat games, %d four-seat", two, len(games)-two)
@@ -76,17 +69,31 @@ func TestLockstepOrdinalMatchesSeqNo(t *testing.T) {
 		if g.n == 0 {
 			t.Fatalf("%s: the check compared no decision", g.name)
 		}
-		d := g.res.Div
-		if d == nil {
-			t.Logf("%s: counters agree at all %d decisions", g.name, g.n)
+		if d := g.res.Div; d != nil {
+			t.Errorf("%s: divergence %s/%s at %d after %d decisions compared: %s", g.name, d.What, d.Field, d.At, g.n, d.Detail)
 			continue
 		}
-		if d.What != "ordinal" {
-			t.Fatalf("%s: divergence %s/%s at %d before any ordinal drift: %s", g.name, d.What, d.Field, d.At, d.Detail)
+		if g.multi == 0 {
+			t.Errorf("%s: precondition: no multi-pick declaration in %d decisions", g.name, g.n)
 		}
-		if g.n-1 < ordinalAgreedFloor {
-			t.Errorf("%s: counters drift after %d agreed decisions (floor %d): %s", g.name, g.n-1, ordinalAgreedFloor, d.Detail)
+		t.Logf("%s: counters agree at all %d decisions (%d multi-pick declarations)", g.name, g.n, g.multi)
+	}
+}
+
+// multiPickCounted wraps check, counting in *multi the gorge decisions the
+// kernel posed as two or more picks (the same gorge decision pending at
+// consecutive checks).
+func multiPickCounted(multi *int, check func(*GorgeSide, Side) *Divergence) func(*GorgeSide, Side) *Divergence {
+	last, counted := ^uint64(0), false
+	return func(ref *GorgeSide, k Side) *Divergence {
+		if gd := ref.Pending(); gd != nil {
+			if gd.Seq != last {
+				last, counted = gd.Seq, false
+			} else if !counted {
+				*multi++
+				counted = true
+			}
 		}
-		t.Logf("%s: %d decisions agree, then %s", g.name, g.n-1, d.Detail)
+		return check(ref, k)
 	}
 }
