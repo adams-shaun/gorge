@@ -10,7 +10,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
-	"github.com/adams-shaun/gorge/engine/events"
 	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -2731,17 +2730,8 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 	if out.complete {
 		out.relaxable, out.relaxed, out.paid, out.gaps = false, nil, nil, nil
 	}
-	if !out.complete && !e.produceManaReplacementPossible(events.Event{Kind: events.ManaAdd, Player: p, Amount: 1}) {
-		// A ProduceMana replacement (Mana Reflection) can make more than one
-		// mana from a tap, so the supply count is no bound. A plain cast's
-		// bound (castOutrunsSupply) reads each source's best net production
-		// instead (censusTapSupply).
-		pool := int32(e.G.Players[p].Pool.Total())
-		if tapSupply, tapOK := censusTapSupply(e, p); plain || tapOK {
-			out.outruns = func(o decision.Option) bool {
-				return plain && abilityOutrunsSupply(e, p, o, pool+sources) || tapOK && castOutrunsSupply(e, p, o, tapSupply)
-			}
-		}
+	if !out.complete {
+		out.outruns = censusOutruns(e, p, plain, sources)
 	}
 	out.bounded = bounded && !out.complete && !out.relaxable
 	if !out.bounded {

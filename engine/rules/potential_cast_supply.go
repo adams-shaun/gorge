@@ -4,6 +4,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -21,6 +22,33 @@ type castSupplyHost interface {
 	hasCastConvoke(id state.ObjID) bool
 	hasCastImprovise(id state.ObjID) bool
 	hasCastDelve(id state.ObjID, ability bool) bool
+}
+
+// censusOutrunsHost is the narrow slice of the engine censusOutruns reads:
+// the two supply proofs' reads plus the ProduceMana replacement probe.
+type censusOutrunsHost interface {
+	castSupplyHost
+	produceManaReplacementPossible(ev events.Event) bool
+}
+
+// censusOutruns is paymentPlanCensus.outruns for a census with a gap, or nil
+// when no supply bound holds. A ProduceMana replacement (Mana Reflection) can
+// make more than one mana from a tap, so then there is none. An activated
+// ability's bound needs a plain board, whose sources permanents each have a
+// mana ability; a plain cast's bound (castOutrunsSupply) reads each source's
+// best net production instead (censusTapSupply).
+func censusOutruns(e censusOutrunsHost, p state.PlayerID, plain bool, sources int32) func(o decision.Option) bool {
+	if e.produceManaReplacementPossible(events.Event{Kind: events.ManaAdd, Player: p, Amount: 1}) {
+		return nil
+	}
+	pool := int32(e.Game().Players[p].Pool.Total())
+	tapSupply, tapOK := censusTapSupply(e, p)
+	if !plain && !tapOK {
+		return nil
+	}
+	return func(o decision.Option) bool {
+		return plain && abilityOutrunsSupply(e, p, o, pool+sources) || tapOK && castOutrunsSupply(e, p, o, tapSupply)
+	}
 }
 
 // castOutrunsSupply is abilityOutrunsSupply for a plain cast (CR 601.2f):
