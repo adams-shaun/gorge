@@ -89,8 +89,11 @@ func (s *State) transformObj(k *prep, o Obj) {
 		}
 		return
 	}
-	s.subscribeTop(k, sl, &k.cards[p.card], false)
 	c := cd.Faces[next]
+	if k.gen != nil && k.gen.anyRepl2&rb2XformRepl != 0 { // the gate word prepFoldReplBits folds (gen.go)
+		s.transformRepls(k, sl, o, c)
+	}
+	s.subscribeTop(k, sl, &k.cards[p.card], false)
 	ob.card, p.card = c, c
 	s.subscribe(sl, &k.cards[c], true)
 	s.subscribeGrants(k, sl)
@@ -104,4 +107,29 @@ func (s *State) transformObj(k *prep, o Obj) {
 	if cd.FaceMode != kop.FaceFlip { // a flip is not a transform (gorge: no "Transformed" FlipFace)
 		s.fireTransformed(k, sl, o, p.ctrl)
 	}
+}
+
+// transformRepls runs the "as this transforms into CARDNAME" bodies the
+// destination face c prints (kop.ReplTransform, kgen lower_transformrepl.go:
+// emblem creations only, so nothing asks) before the flip, as gorge's
+// applyTransformReplacement resolves them before the FlipFace folds and
+// leaves the flip intact. The body resolves as the face's own ability under
+// the permanent's controller; the interrupted resolution is restored.
+//
+//go:noinline
+func (s *State) transformRepls(k *prep, sl Slot, o Obj, c CardID) {
+	cd := &k.t.Cards[c]
+	saved := s.res
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplTransform {
+			continue
+		}
+		s.res = resCtx{e: stackEntry{kind: seAbility, obj: o, srcVer: s.objs[o].ver, card: c, ab: uint8(i), ctrl: s.perms[sl].ctrl, trigObj: NoObj}}
+		s.res.e.tgt = noTargets
+		for j := range a.Prog {
+			s.exec(k, &a.Prog[j])
+		}
+	}
+	s.res = saved
 }

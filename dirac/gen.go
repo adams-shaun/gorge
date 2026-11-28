@@ -613,6 +613,7 @@ const (
 	rb2DmgInst                        // ReplDamageInstead: the damage is replaced by counters, mill, exile or draw (repl_dmginstead.go)
 	rb2DrawProgram                    // ReplDrawProgram: the draw pipeline runs the ability's Prog (repl_drawprogram.go)
 	rb2RollPlanar                     // ReplRollPlanarDice: the planar roll reads its plus/ignore counts (zone_planechase.go planarRollRepl)
+	rb2XformRepl                      // ReplTransform: the destination face's body runs as it transforms (act_transform.go transformRepls)
 )
 
 // rb2DmgAny are the rb2 damage replacements the damage sites' gates open for.
@@ -1519,6 +1520,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.anyTurnUpRepl = true
 				case kop.ReplTurnUpAttach:
 					g.anyTurnUpRepl = true // the attach ask the fold waits on (face_turnupattach.go)
+				case kop.ReplTransform:
+					g.replBits2[i] |= rb2XformRepl // the destination face's body runs as it transforms (act_transform.go)
 				}
 			case kop.AbStatic:
 				switch a.Static.Kind {
