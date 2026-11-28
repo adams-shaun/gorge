@@ -10,7 +10,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
-	"github.com/adams-shaun/gorge/engine/events"
 	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -2534,11 +2533,14 @@ type paymentPlanCensus struct {
 	// misses (potentialPrefixScript activates them).
 	gaps []state.ObjID
 	// outruns reports that play o's offer cost needs more mana than the
-	// floating pool and every mana source on the board can make (CR 602.2b:
-	// one tap each). Set only when every mana ability on the board is a lone
-	// {T} making one mana (manaTapSingle), so the count is exact however the
-	// planner prices a source; nil otherwise. A necessary condition only: a
-	// search it skips could not have found a prefix.
+	// floating pool and every mana source on the board can make (CR 107.5:
+	// one tap each). An activated ability's is proven only when every mana
+	// ability on the board is a lone {T} making one mana (manaTapSingle), so
+	// the count is exact however the planner prices a source; a plain
+	// cast's against each source's best net production (castOutrunsSupply,
+	// censusTapSupply). nil when a mana replacement can make more. A
+	// necessary condition only: a search it skips could not have found a
+	// prefix.
 	outruns func(o decision.Option) bool
 	// onceGap: a missed ability is one-shot (its cost taps, sacrifices or
 	// returns the source, or it has a once-only activation limit) and has no
@@ -2728,11 +2730,8 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 	if out.complete {
 		out.relaxable, out.relaxed, out.paid, out.gaps = false, nil, nil, nil
 	}
-	if plain && !out.complete && !e.produceManaReplacementPossible(events.Event{Kind: events.ManaAdd, Player: p, Amount: 1}) {
-		// A ProduceMana replacement (Mana Reflection) can make more than one
-		// mana from a tap, so the supply count is no bound.
-		pool := int32(e.G.Players[p].Pool.Total())
-		out.outruns = func(o decision.Option) bool { return abilityOutrunsSupply(e, p, o, pool+sources) }
+	if !out.complete {
+		out.outruns = censusOutruns(e, p, plain, sources)
 	}
 	out.bounded = bounded && !out.complete && !out.relaxable
 	if !out.bounded {
