@@ -1,0 +1,18 @@
+# the Drawn trigger scoped by the drawn card's OWNER
+# (dirac/oracle/drawnownerscope_lockstep_test.go): Tataru Taru (an opponent
+# draws off their own turn, a once-each-turn Treasure), Curse of Fool's
+# Wisdom and Psychic Possession (the enchanted player draws), beside
+# instant-speed draws, a scry draw, and basics
+Tataru Taru
+Curse of Fool's Wisdom
+Psychic Possession
+Into the Story
+Opt
+Vampiric Touch
+Grizzly Bears
+Savannah Lions
+Hill Giant
+Plains
+Island
+Swamp
+Mountain

@@ -1845,6 +1845,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags3 |= kop.Tf3FirstAttack
 	}
 	kt.Flags5 = drawStepFlags(t)
+	if t.DrawerNotActive {
+		if t.Event != "Drawn" {
+			return kt, fmt.Errorf("not-active drawer gate on a %s trigger", t.Event)
+		}
+		kt.Flags6 |= kop.Tf6DrawerNotActive
+	}
 	if t.OppCause {
 		if t.Event != "Discarded" || kt.Flags&kop.TfSelf == 0 || t.Cycled {
 			return kt, fmt.Errorf("discard cause on a %s trigger", t.Event)
@@ -2804,9 +2810,9 @@ func trigWhoseScope(whose kop.Whose, a *lAbility) error {
 		// the kernel reads it only for a printed battlefield Phase listener (chosenIs)
 		return fmt.Errorf("Player.Chosen outside a printed battlefield Phase trigger")
 	}
-	if whose == kop.WhoseEnchanted && (a.Latent || a.Trigger.Event != "Phase" && a.Trigger.Event != "DamageDone" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
-		// the kernel reads it only for a printed battlefield Phase or DamageDone listener (defEnchanted)
-		return fmt.Errorf("Player.EnchantedBy outside a printed battlefield Phase or DamageDone trigger")
+	if whose == kop.WhoseEnchanted && (a.Latent || a.Trigger.Event != "Phase" && a.Trigger.Event != "DamageDone" && a.Trigger.Event != "Drawn" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
+		// the kernel reads it only for a printed battlefield Phase, DamageDone or Drawn listener (defEnchanted)
+		return fmt.Errorf("Player.EnchantedBy outside a printed battlefield Phase, DamageDone or Drawn trigger")
 	}
 	if whose == kop.WhoseMonarch && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
 		// the kernel reads it only for a printed battlefield Phase listener (monarchTurnIs)

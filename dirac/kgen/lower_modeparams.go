@@ -59,6 +59,29 @@ func (lc *lowerCtx) drawnScope(tp *params, tr *lTrigger) error {
 		// is its owner (CR 108.4a; gorge matches OppCtrl on the drawn
 		// object's Controller, its owner's seat): Sheoldred
 		tr.Whose = whoOpp
+	case "Card.OwnedBy Opponent.NonActive":
+		// Tataru Taru's "whenever an opponent draws a card, if it isn't
+		// that player's turn" (Forge writes Opponent.!Active, folded by
+		// the cards parse): the drawn card's owner is the drawer
+		// (CR 108.4a), so this owner scope is a player scope on the
+		// drawer -- an opponent of the controller (gorge
+		// playerSpecQualifierOpponent) who is not the active player
+		// (playerSpecQualifierNonActive); the kernel gates the second
+		// half with Tf6DrawerNotActive on the draw event.
+		tr.Whose = whoOpp
+		tr.DrawerNotActive = true
+	case "Card.OwnedBy Player.EnchantedBy":
+		// the draw Curses' "whenever enchanted player draws a card"
+		// (Curse of Fool's Wisdom, Psychic Possession): the owner scope
+		// is the player the source Aura is attached to, gorge
+		// playerSpecQualifierEnchantedBy read source-relative on the
+		// drawn card's owner (the drawer) -- the same read as the
+		// Phase/DamageDone WhoseEnchanted lines (lower_enchantedby.go,
+		// defEnchanted), so it needs a printed battlefield listener.
+		if lc.granted != 0 || tr.Zone != zNone && tr.Zone != zBattlefield {
+			return refuse("Drawn ValidCard %q off a printed battlefield trigger", vc)
+		}
+		tr.Whose = whoEnchanted
 	case "Card":
 		// every draw (Spiteful Visions, Phyrexian Tyranny); no ValidPlayer$
 		// rides beside it

@@ -142,6 +142,23 @@ const (
 // per-colour spend (stackEntry.spc, trig_nocoloredmana.go).
 const Tf5CastNoColoredMana TrigFlags5 = 1 << 0
 
+// TrigFlags6 are the qualifiers the Flags5 word cannot carry (all eight of
+// its bits are taken). Appended after the existing flag words, as Flags5 was
+// before it (Trigger.Flags6).
+type TrigFlags6 uint8
+
+// Tf6DrawerNotActive (Trigger.Flags6): a Drawn line whose ValidCard$ is
+// Card.OwnedBy Opponent.NonActive (Forge writes Opponent.!Active; the cards
+// parse folds the spelling, engine/cards/parse.go canonicalNonActive): the
+// drawn card's OWNER -- the drawing player, CR 108.4a -- is not the active
+// player (Tataru Taru's "whenever an opponent draws a card, if it isn't that
+// player's turn"). gorge evaluates the qualifier through
+// playerSpecQualifierNonActive (engine/effects/player_filter.go) on the
+// owner seat, beside the WhoseOpp gate that reads the opponent half; the
+// kernel reads the bit against State.active in its TrigDrawn arms
+// (dirac/triggers_gen.go playerTrigGenObj, dirac/zones.go firePlayer).
+const Tf6DrawerNotActive TrigFlags6 = 1 << 0
+
 // TrigEvent is a triggered ability's subscription: the event kind it listens
 // for. The kernel keeps, per event, a bitmask of battlefield slots whose card
 // has a trigger on it, so an event only scans the subscribers. Append-only.
@@ -270,6 +287,7 @@ type Trigger struct {
 	Flags3  TrigFlags3 // still more qualifiers (values.go; a padding byte)
 	Flags4  TrigFlags4 // single-target qualifiers (triggers.go)
 	Flags5  TrigFlags5 // Drawn: the draw-step position (FirstCardInDrawStep$)
+	Flags6  TrigFlags6 // Drawn: the owner-side ValidCard$ qualifier outside the Whose grammar (Tf6DrawerNotActive)
 
 	// TapPlan classes a lowered non-Self TrigTaps watcher for the payment
 	// planner (TapPlan); TapPainN is the vetted literal damage amount of a

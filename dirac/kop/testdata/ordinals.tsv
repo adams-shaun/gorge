@@ -1731,6 +1731,7 @@ Tf5OppCause	TrigFlags5	4
 Tf5OptSrcCtrl	TrigFlags5	64
 Tf5TapperNonActive	TrigFlags5	32
 Tf5TapsForMana	TrigFlags5	16
+Tf6DrawerNotActive	TrigFlags6	1
 TfCombat	TrigFlags	4
 TfNontokenSrc	TrigFlags	64
 TfNotToGrave	TrigFlags	128
