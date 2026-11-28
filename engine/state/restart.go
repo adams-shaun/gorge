@@ -124,6 +124,7 @@ func (g *Game) Restart(life int32, keep []ObjID) {
 	g.DelayedNext = 0
 	g.ExtraTurns, g.SkipTurns, g.ExtraTurnQueue, g.ExtraPhases = nil, nil, nil, nil
 	g.PhaseSkips = nil
+	g.Rotation = TurnRotation{}
 	g.CombatsThisTurn, g.EndStepsThisTurn, g.MainPhasesThisTurn, g.UpkeepsThisTurn = 0, 0, 0, 0
 	g.MaxDistinctOnStackThisTurn = 0
 	g.ResolvedThisTurn = nil

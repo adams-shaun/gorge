@@ -154,6 +154,89 @@ func expireTurnGoads(in []state.GoadEffect, p state.PlayerID) []state.GoadEffect
 	return out
 }
 
+// rotationSeat is the seat the ordinary turn rotation stands on.
+func rotationSeat(g *state.Game) state.PlayerID {
+	if g.Rotation.Away {
+		return g.Rotation.Seat
+	}
+	return g.Active
+}
+
+// foldRotationExtraTurn marks the next TurnChange as an extra turn when an
+// ExtraTurn consumption takes one: a skipped grant begins no turn. Neither
+// does a departed seat's grant, but it is consumed where that turn would have
+// begun, which ends the seat's goads (CR 800.4m).
+func foldRotationExtraTurn(g *state.Game, e *Event) {
+	switch {
+	case e.Text == ExtraTurnSkippedText:
+	case g.Players[e.Player].Lost:
+		expireSeatGoads(g, e.Player)
+	default:
+		g.Rotation.ExtraNext = true
+	}
+}
+
+// foldRotationSkip moves the rotation on to a seat whose ordinary turn is
+// skipped. A SkipTurn consumed while an extra turn is still queued skips that
+// extra turn instead (rules drains the queue before the rotation resumes), and
+// a grant moves nothing.
+func foldRotationSkip(g *state.Game, e *Event) {
+	if e.Amount > 0 || len(g.ExtraTurnQueue) > 0 {
+		return
+	}
+	expireDepartedGoads(g, rotationSeat(g), e.Player)
+	g.Rotation.Away, g.Rotation.Seat = true, e.Player
+}
+
+// foldRotationTurn folds the turn seat is beginning into the rotation. An
+// extra turn leaves the rotation where it stood; an ordinary turn moves it to
+// seat, the incoming active player.
+func foldRotationTurn(g *state.Game, seat state.PlayerID) {
+	if g.Rotation.ExtraNext {
+		g.Rotation = state.TurnRotation{Away: true, Seat: rotationSeat(g)}
+		return
+	}
+	expireDepartedGoads(g, rotationSeat(g), seat)
+	g.Rotation = state.TurnRotation{}
+}
+
+// expireDepartedGoads drops the default-duration goads made by every departed
+// seat the ordinary rotation passes going from one seat to another (CR 800.4m:
+// their "until their next turn" ends when that turn would have begun). from ==
+// to is a full cycle. The walk follows g.ReverseTurnOrder as Game.NextAlive
+// does; a living seat in between keeps its goads.
+func expireDepartedGoads(g *state.Game, from, to state.PlayerID) {
+	if !g.GoadsSeen() || !validPlayer(g, from) || !validPlayer(g, to) {
+		return
+	}
+	n := state.PlayerID(len(g.Players))
+	for i := state.PlayerID(1); ; i++ {
+		q := from + i
+		if g.ReverseTurnOrder {
+			q = from + n - i
+		}
+		q %= n
+		if q == to {
+			return
+		}
+		if g.Players[q].Lost {
+			expireSeatGoads(g, q)
+		}
+	}
+}
+
+// expireSeatGoads drops p's default-duration goads from every object.
+func expireSeatGoads(g *state.Game, p state.PlayerID) {
+	if !g.GoadsSeen() {
+		return
+	}
+	for i := range g.Objs {
+		if g.Objs[i].Goads != nil {
+			g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, p)
+		}
+	}
+}
+
 // pruneGoads enforces source/control conditions from replayable state.
 // ArenaSkipVerify makes the arena walks the flags skip run anyway and panic
 // on anything they would have had to do: the blocker-tombstone walks while no
