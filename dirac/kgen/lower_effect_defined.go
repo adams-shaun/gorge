@@ -377,7 +377,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 	case "CardOwner":
 		return lRef{Kind: rSrcOwner}, nil // gorge definedSpecCardOwner
 	}
-	return lRef{}, refuse("Defined$ %q", v)
+	return lc.definedSet(v) // lower_definedset.go
 }
 
 // triggeredAttackingPlayerDefined is Defined$ TriggeredAttackingPlayer:

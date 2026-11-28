@@ -50,7 +50,9 @@ const sampleDataBaseSum = "8edbc7d107c3f9c1ce656d17c67baf1149ef694228c5088d86a1e
 // did before set expressions existed. The new fields are their structs' last,
 // so every other field keeps its codec index; an empty value encodes to
 // nothing (the fixture's digest is the merge base's); and every pool table this
-// binary publishes carries no set and re-encodes to its manifest digest.
+// binary publishes re-encodes to its manifest digest, with every RefSet operand
+// backed by one SetRefs entry naming a set the table holds (kgen lowers
+// Defined$ compositions onto sets, so a pool may now carry them).
 func TestTablesUnchangedBySetExpr(t *testing.T) {
 	for _, c := range []struct {
 		typ   reflect.Type
@@ -91,25 +93,45 @@ func TestTablesUnchangedBySetExpr(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if pd.Sets != nil {
-			t.Errorf("%s: %d set expressions; no lowering emits one", r.Pool, len(pd.Sets))
-		}
-		for i := range pd.Defs {
-			for j := range pd.Defs[i].Abilities {
-				ab := &pd.Defs[i].Abilities[j]
-				if ab.SetRefs != nil {
-					t.Errorf("%s: card %d ability %d has SetRefs", r.Pool, i, j)
-				}
-				for pc, in := range ab.Prog {
-					if in.Obj == kop.RefSet {
-						t.Errorf("%s: card %d ability %d pc %d reads RefSet", r.Pool, i, j, pc)
-					}
-				}
-			}
-		}
+		checkSetRefs(t, r.Pool, pd)
 		payload := sha256.Sum256(encodeValue(nil, reflect.ValueOf(*pd)))
 		if got := hex.EncodeToString(payload[:]); got != r.Sum {
 			t.Errorf("%s: re-encodes to %s, manifest %s", r.Pool, got, r.Sum)
 		}
+	}
+}
+
+// checkSetRefs: each RefSet operand of pd has exactly one SetRefs entry at its
+// pc, every entry names an in-range set at a RefSet pc, and a table with no
+// RefSet operand carries no set.
+func checkSetRefs(t *testing.T, pool string, pd *PoolData) {
+	t.Helper()
+	used := false
+	for i := range pd.Defs {
+		for j := range pd.Defs[i].Abilities {
+			ab := &pd.Defs[i].Abilities[j]
+			refs := map[int]int{}
+			for _, sr := range ab.SetRefs {
+				refs[int(sr.PC)]++
+				if int(sr.Set) >= len(pd.Sets) {
+					t.Errorf("%s: card %d ability %d pc %d names set %d of %d", pool, i, j, sr.PC, sr.Set, len(pd.Sets))
+				}
+				if int(sr.PC) >= len(ab.Prog) || ab.Prog[sr.PC].Obj != kop.RefSet {
+					t.Errorf("%s: card %d ability %d has a SetRef at pc %d, which reads no RefSet", pool, i, j, sr.PC)
+				}
+			}
+			for pc, in := range ab.Prog {
+				if in.Obj != kop.RefSet {
+					continue
+				}
+				used = true
+				if refs[pc] != 1 {
+					t.Errorf("%s: card %d ability %d pc %d reads RefSet with %d SetRefs entries", pool, i, j, pc, refs[pc])
+				}
+			}
+		}
+	}
+	if !used && pd.Sets != nil {
+		t.Errorf("%s: %d set expressions and no RefSet operand", pool, len(pd.Sets))
 	}
 }

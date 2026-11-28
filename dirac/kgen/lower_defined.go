@@ -77,6 +77,12 @@ func (lc *lowerCtx) playerSetSpec(api, v string) (pred playerSetPred, matched bo
 	case "Player.Opponent", "Player.Other", "Player.IsRemembered":
 		return pred, false, nil
 	}
+	if rest, ok := strings.CutPrefix(q, "OpponentOf "); ok {
+		if base == "Player" && rest == "TriggeredCardController" {
+			return pred, false, nil // a player's opponents: defined()'s set grammar (lower_definedset.go)
+		}
+		return pred, true, refuse("Defined$ %q: %s", v, errOpponentOfRef)
+	}
 	pred.base = base
 	neg := 0
 	switch {

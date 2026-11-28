@@ -98,7 +98,7 @@ func TestDefinedPlayerSetRefusals(t *testing.T) {
 		{"Draw", "Defined", "Player.controlsCreature.powerGE3", "reads more than printed colours"},
 		{"Draw", "Defined", "Player.controlsCreature.YouCtrl", "reads more than printed colours"},
 		{"Draw", "Defined", "Player.withMostLife", "player qualifier"},
-		{"Draw", "Defined", "Player.OpponentOf Remembered", "player qualifier"},
+		{"Draw", "Defined", "Player.OpponentOf Remembered", "Player.OpponentOf lowers only over TriggeredCardController"},
 		{"Draw", "Defined", "Player.EnchantedBy", "player qualifier"},
 		{"Draw", "Defined", "Player.HasCardsInGraveyard", "player qualifier"},
 		{"Draw", "Defined", "Player.TappedLandForManaThisTurn", "player qualifier"},
