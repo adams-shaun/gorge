@@ -140,7 +140,7 @@ func (s *Seat) searchedKind(d *decision.Decision) SearchKind {
 // full search keeps). The seed is DecisionSeed either way.
 func (s *Seat) rootOptions(d *decision.Decision, turn int32) (Options, bool) {
 	opts := s.cfg.Search
-	opts.Seed = DecisionSeed(s.seed, d.Seq)
+	opts.Seed = DecisionSeed(s.seed, d.Ordinal)
 	opts.Noise, opts.Sample = false, false
 	if !s.fullSearch(d, opts.Seed) {
 		opts.Sims, opts.ForcedK = s.cfg.CheapSims, 0

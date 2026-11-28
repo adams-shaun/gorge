@@ -136,6 +136,10 @@ func (e *Engine) ask(d *decision.Decision) {
 	}
 	e.hideFaceDownNames(d)
 	d.Seq = uint64(len(e.L.Events))
+	// Every answer logs exactly one intent beside its DecisionMade
+	// (submitCommit, resolveBoard.Record), and a tape re-execution steps the
+	// log back with the events, so this is the decisions answered so far.
+	d.Ordinal = uint64(len(e.L.Intents))
 	// Cache the ordinary offer-walk tail before any opt-in consumer requests
 	// the separate payment extension. EnsurePaymentActions may run later, after
 	// this ask has returned.
