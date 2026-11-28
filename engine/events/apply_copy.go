@@ -52,6 +52,7 @@ func foldMutate(g *state.Game, e *Event) {
 		// Both token tests ride the snapshot too: the statuses are exchanged
 		// with the cards.
 		wasToken, srcIsToken := survivor.IsToken, src.IsToken || src.IsCopy
+		srcBasis, srcBack, srcNonLegendary := src.CopyFace, src.CopyFaceBack, src.CopyNonLegendary
 		parked := g.AddObject(oldCard, owner)
 		parked.Zone = state.ZCeased
 		parked.IsToken = wasToken
@@ -65,6 +66,7 @@ func foldMutate(g *state.Game, e *Event) {
 		// topped by a real card must shed both marks, or engine/rules/sba.go's
 		// ceaseDeadTokens would cease the card in the graveyard.
 		survivor.IsToken, survivor.IsCopy = srcIsToken, false
+		mutateTopCopiable(survivor, srcBasis, srcBack, srcNonLegendary)
 		// The cards changed objects: the survivor's ID now carries the
 		// mutating card and parkedID the demoted one. A commander's
 		// designation is an attribute of the card (CR 903.3), so a
@@ -507,6 +509,26 @@ func foldCloneStatic(g *state.Game, e *Event) {
 			o.SetCopyFace(&face)
 		}
 	}
+}
+
+// mutateTopCopiable gives a top-merged pile its new top component's own
+// copiable values (CR 730.2a): the merged permanent has only its topmost
+// component's characteristics, and that is itself a copiable effect whose
+// timestamp is the moment the objects merged (CR 613.2, 613.7). Every copy
+// effect applied to the pile before the merge therefore loses the layer-1
+// timestamp order: its locked CloneLayers are dropped (it keeps applying,
+// CR 730.2c, but can no longer win) and the new top's copy basis, including
+// its non-legendary rider, replaces the demoted top's. TokenBasis becomes the
+// basis a later clear of those superseded layers restores, so ending one of
+// those effects cannot bring its face back.
+func mutateTopCopiable(o *state.Object, basis, back *cards.Face, nonLegendary bool) {
+	o.CopyNonLegendary = nonLegendary
+	o.CloneLayers = nil
+	o.CopyGainThisAbility = false
+	o.SetCopyFace(basis)
+	o.CopyFaceBack = back
+	o.TokenBasis, o.TokenBasisBack = basis, back
+	o.TokenBasisSaved = basis != nil || back != nil
 }
 
 // foldClonePermanent folds Kind ClonePermanent into state.
