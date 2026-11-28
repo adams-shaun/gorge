@@ -1,0 +1,4 @@
+kfuzz: synth pool fdn-autopay, 4 pairs
+pair 0 seed 1 ok
+pair 1 seed 2 ok
+kfuzz: 0 divergent
