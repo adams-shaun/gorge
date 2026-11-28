@@ -893,6 +893,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.controlSpellExt(k, in) // act_controlspell.go
 	case kop.ExtEncore:
 		return s.encoreExt(k, in) // kw_encore.go
+	case kop.ExtEnterDevour:
+		return s.enterDevourExt(k, in) // kw_devour.go
 	case kop.ExtExchangeLife:
 		return s.exchangeLifeExt(k, in) // act_exchangelife.go
 	case kop.ExtExileFaceDown:

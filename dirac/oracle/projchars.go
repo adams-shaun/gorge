@@ -200,6 +200,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Bargain":                 "CardDef.Bargain (an optional additional cost, no battlefield characteristic; compared through the cast options; kw_bargain.go)",
 	"Infect":                  "CardDef.Infect, a Continuous static's Static.Infect grant, or the until-end-of-turn mark ExtKwMark sets (kw_kwmark.go; compared through the counters and poison)",
 	"Toxic":                   "CardDef.Toxic (compared through poison)",
+	"Devour":                  "gorge kwDevour's Moved replacement (CR 702.82: the optional sacrifice ask over the controller's lands or creatures, then three-per-sacrificed +1/+1 counters; kgen expandedKeywords + etbDevour in lower_devour.go; compared through the sacrifice ask, the graveyard moves and the +1/+1 counters), no battlefield characteristic",
 	"Ravenous":                "an enters-with-counters replacement and an enters trigger reading the paid X (gorge's Ravenous expansion; kxpaid)",
 	"You may choose not to untap CARDNAME during your untap step.": "ReplMayNotUntap (the untap-step election, ChGenKeepTapped; compared through the choose options and the tapped flag, repl_untapchoice.go)",
 	"HIDDEN This card doesn't untap during your next untap step.":  "the one-shot perm flag pfSkipUntap (compared through the untap step)",

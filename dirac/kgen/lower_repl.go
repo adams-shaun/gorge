@@ -797,6 +797,9 @@ func chainElectionOK(sa, node *cards.SA) bool {
 // SkipIf over that node); an absent Defined$ names the
 // entering object.
 func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
+	if ok, err := lc.etbDevour(sa, other, cond); ok { // lower_devour.go
+		return err
+	}
 	for node := sa; node != nil; node = node.Sub {
 		ps := newParams(node.Params)
 		ps.consume("SubAbility")
