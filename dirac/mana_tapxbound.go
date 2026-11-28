@@ -23,16 +23,26 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // tapXBoundWalk fills out with the plays the bounded walk lists and returns
 // it, or nil when the board is not one the bound reads (the search then runs
-// for every walk play, as before). sac: a sacrifice-any source makes the
-// board unrelaxable (scriptOffers' sacAny, sacOpen, sacRepeat).
-func (s *State) tapXBoundWalk(k *prep, p uint8, rt *scriptRoute, sac bool, out *Decision) *Decision {
-	if !rt.twoLive || sac || rt.repeatLive || !k.tapMana || !s.tapXTwoLive(k, p) || !s.tapXOnlyGaps(k, p, rt) {
+// for every walk play, as before). sacAny, sacOpen, sacRepeat are
+// scriptOffers': any sacrifice-any source makes the board unrelaxable.
+func (s *State) tapXBoundWalk(k *prep, p uint8, rt *scriptRoute, sacAny, sacOpen, sacRepeat bool, out *Decision) *Decision {
+	if !rt.twoLive || sacAny || sacOpen || sacRepeat || rt.repeatLive || !k.tapMana || !s.tapXTwoLive(k, p) || !s.tapXOnlyGaps(k, p, rt) {
 		return nil
 	}
 	s.g.turnF |= turnTapXBound
 	s.plainOptions(k, out, availGaps)
 	s.g.turnF &^= turnTapXBound
 	return out
+}
+
+// scriptCandDrop is scriptOffers' drop test for one counted candidate: a play
+// the bound walk does not list is dropped unsearched (gorge's bounded proof
+// skips the search), and any other takes scriptRouteDrop's search.
+func (s *State) scriptCandDrop(k *prep, rt *scriptRoute, a Action, p uint8) bool {
+	if rt.bound != nil && !hasOption(rt.bound, a) {
+		return true
+	}
+	return s.scriptRouteDrop(k, rt, a, p)
 }
 
 // turnTapXBound is genState.turnF's bit 13: the gaps walk is tapXBoundWalk's
