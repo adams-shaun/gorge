@@ -154,6 +154,42 @@ func expireTurnGoads(in []state.GoadEffect, p state.PlayerID) []state.GoadEffect
 	return out
 }
 
+// expireDepartedGoads drops the default-duration goads made by every seat
+// the turn advance walked over on its way to seat (CR 800.4m: a departed
+// seat never takes a turn, so the advance skipping past it is the boundary
+// where that seat's "until their next turn" effects end -- the turn that
+// would have begun). outgoing is the seat whose turn is ending, read before
+// the TurnChange fold moves g.Active on; an extra turn (outgoing == seat)
+// passes over no one, so it expires nothing. The walk follows
+// g.ReverseTurnOrder exactly as Game.NextAlive does, naming precisely the
+// seats the advance actually skipped; a non-departed seat in between (its
+// turn skipped by an effect) keeps its goads.
+func expireDepartedGoads(g *state.Game, outgoing, seat state.PlayerID) {
+	if !g.GoadsSeen() || outgoing == seat || !validPlayer(g, outgoing) || !validPlayer(g, seat) {
+		return
+	}
+	n := state.PlayerID(len(g.Players))
+	for i := state.PlayerID(1); ; i++ {
+		q := outgoing + i
+		if g.ReverseTurnOrder {
+			q = outgoing + n - i
+		}
+		q %= n
+		if q == seat {
+			return
+		}
+		if !g.Players[q].Lost {
+			continue
+		}
+		for j := range g.Objs {
+			if g.Objs[j].Goads == nil {
+				continue
+			}
+			g.Objs[j].Goads = expireTurnGoads(g.Objs[j].Goads, q)
+		}
+	}
+}
+
 // pruneGoads enforces source/control conditions from replayable state.
 // ArenaSkipVerify makes the arena walks the flags skip run anyway and panic
 // on anything they would have had to do: the blocker-tombstone walks while no

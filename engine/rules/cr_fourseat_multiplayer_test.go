@@ -210,12 +210,11 @@ const fourSeatDecorum = `{"name":"cr800-4m","format":"constructed","players":4,"
 // turn would have begun. p1's goad holds through p0's turn 5 (p1 is no
 // longer an offered defender) and the rule ends it when p1's turn 6 would
 // have begun, so on p0's next turn the Bears need not attack. With p1 gone
-// that turn is 8 (p2 takes 6, p3 takes 7), not 9.
-//
-// DEVIATES: gorge expires a goad only at the goader's own TurnBegin
-// (events.expireTurnGoads), which a departed player never gets, so the goad
-// outlives p1 and the Bears still must attack on turn 8. Pinned as the
-// engine does it; the row in 800-multiplayer.md is "deviates".
+// that turn is 8 (p2 takes 6, p3 takes 7), not 9. The turn-5 expect pins
+// the other half: the goad is still required before that boundary (a goad
+// dropped at p2's turn 3, the first turn "after" the departed seat, would
+// fail it), and events.expireDepartedGoads expires it at the advance that
+// walks over p1's seat.
 func TestCR800_4mDurationEndsAtTheDepartedPlayersNextTurn(t *testing.T) {
 	run := runFourSeat(t, strings.Replace(fourSeatDecorum, "%s",
 		`,{"op":"pass_to","seat":0,"step":"declare-attackers","active":"p0","expect":[{"attack_required":{"attacker":"p0:Grizzly Bears"}}]}`, 1))
@@ -238,7 +237,7 @@ func TestCR800_4mDurationEndsAtTheDepartedPlayersNextTurn(t *testing.T) {
 		`,{"op":"pass_to","seat":0,"step":"declare-attackers","active":"p0"},`+
 			`{"op":"attack","seat":0,"attackers":["p0:Grizzly Bears"],"defender":"p2"},`+
 			`{"op":"pass_to","seat":0,"step":"end"},`+
-			`{"op":"pass_to","seat":0,"step":"declare-attackers","active":"p0","expect":[{"attack_required":{"attacker":"p0:Grizzly Bears"}}]}`, 1))
+			`{"op":"pass_to","seat":0,"step":"declare-attackers","active":"p0","expect":[{"attack_required":{"attacker":"p0:Grizzly Bears"},"want":false}]}`, 1))
 	if d := run8.e.G.Active; run8.e.G.Turn != 8 || d != 0 {
 		t.Fatalf("precondition: p%d active on turn %d, want p0 on turn 8", d, run8.e.G.Turn)
 	}
