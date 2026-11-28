@@ -497,6 +497,9 @@ func (lc *lowerCtx) pumpRememberTargeted(ps *params, t0 int) error {
 		ps.consume("RememberObjects")
 		return nil
 	}
+	if v == "Targeted.RememberedPlayerCtrl" {
+		return lc.pumpRememberEachTarget(ps)
+	}
 	if v != "ThisTargetedCard" {
 		return refuse("Pump RememberObjects$ %q", v)
 	}
@@ -515,6 +518,30 @@ func (lc *lowerCtx) pumpRememberTargeted(ps *params, t0 int) error {
 	lc.remTgt |= 1 << t
 	lc.ab.RemTgt = true
 	ps.consume("RememberObjects")
+	return nil
+}
+
+// pumpRememberEachTarget lowers a Pump's RememberObjects$
+// Targeted.RememberedPlayerCtrl inside a RepeatEach player body: the target of
+// the chain's slot controlled by the repeated player joins the resolution's
+// remembered set (gorge rememberDefinedObjects over Player.RememberedPlayerCtrl
+// -> the repeated player; Disorienting Choice's DBDoNotKeep). The slot must be
+// one target per controller (a different-controllers slot), so RefTgtOfEach
+// names at most one object.
+func (lc *lowerCtx) pumpRememberEachTarget(ps *params) error {
+	if lc.repeatPl == 0 {
+		return refuse("Pump RememberObjects$ Targeted.RememberedPlayerCtrl outside a RepeatEach player body")
+	}
+	t := lc.lastTarget()
+	if t < 0 {
+		return refuse("Pump RememberObjects$ Targeted.RememberedPlayerCtrl without a target slot")
+	}
+	lt := lc.ab.Targets[t]
+	if lt.Zone != zBattlefield || !lt.DiffCtrl || lt.F == nil || lt.F.Players != 0 {
+		return refuse("Pump RememberObjects$ Targeted.RememberedPlayerCtrl over a slot that is not one target per controller")
+	}
+	ps.consume("RememberObjects")
+	lc.emit(lInstr{Op: "RememberAll", Obj: lRef{Kind: rTgtOfEach}, CS: "Target", Note: "remember target"})
 	return nil
 }
 

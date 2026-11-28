@@ -1777,11 +1777,11 @@ var readsKeywordsFront [1 << readsKeywordsBits]atomic.Pointer[specBoolEntry]
 
 // specReadsKeywords is SpecReadsKeywords' uncached body.
 func specReadsKeywords(spec string) bool {
-	// Fast path: every keyword predicate spells out `with`, and the Affinity
-	// base carries `ffinity` (case-insensitive shapes are capitalised in
-	// practice, so the lowercase probe stays cheap); anything else is a
-	// single reject on the hot walk.
-	if !strings.Contains(spec, "with") && !strings.Contains(spec, "ffinity") {
+	// Fast path: every keyword predicate spells out `with` (or Forge's
+	// exact-keyword `hasKeyword`), and the Affinity base carries `ffinity`
+	// (case-insensitive shapes are capitalised in practice, so the lowercase
+	// probe stays cheap); anything else is a single reject on the hot walk.
+	if !strings.Contains(spec, "with") && !strings.Contains(spec, "hasKeyword") && !strings.Contains(spec, "ffinity") {
 		return false
 	}
 	for alt := range filterAlternatives(spec) {

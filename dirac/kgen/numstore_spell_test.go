@@ -57,15 +57,26 @@ func TestOfferLowers(t *testing.T) {
 	}
 }
 
-// TestOfferRefusals: the spell's number must be handed back on every path, and
-// the offer only lowers over opponents.
+// TestOfferLowersWithoutReset: a spell's stored number does not need an
+// in-chain reset. The object becomes a new one when the spell leaves the stack
+// for the graveyard (CR 400.7), and both engines clear the runtime SVar store
+// there (engine/events/apply_zone.go, dirac/act_storenum.go numStackExit).
+func TestOfferLowersWithoutReset(t *testing.T) {
+	src := strings.Replace(offerProbe, "SVar:DBDrawYou:DB$ Draw | NumCards$ X | SubAbility$ DBClear\nSVar:DBClear:DB$ StoreSVar | Type$ Number | SVar$ X | Expression$ 0\n",
+		"SVar:DBDrawYou:DB$ Draw | NumCards$ X\n", 1)
+	if src == offerProbe {
+		t.Fatal("the edit changed nothing")
+	}
+	c := lowerScriptCard(t, "Offer Probe", src)
+	for _, rf := range c.Refusals {
+		t.Errorf("refused: %s", rf.Reason)
+	}
+}
+
+// TestOfferRefusals: the offer only lowers over opponents, and a condition
+// that names the stored SVar stays unread.
 func TestOfferRefusals(t *testing.T) {
 	for _, tc := range []struct{ name, from, to, want string }{
-		{"no reset", "SVar:DBDrawYou:DB$ Draw | NumCards$ X | SubAbility$ DBClear\nSVar:DBClear:DB$ StoreSVar | Type$ Number | SVar$ X | Expression$ 0\n",
-			"SVar:DBDrawYou:DB$ Draw | NumCards$ X\n", "is not reset"},
-		{"reset to another number", "SVar$ X | Expression$ 0", "SVar$ X | Expression$ 2", "is not reset"},
-		{"reset in the loop", "SVar:DBTally:DB$ StoreSVar | Type$ CountSVar | SVar$ X | Expression$ X/Plus.1\nSVar:DBDrawYou:DB$ Draw | NumCards$ X | SubAbility$ DBClear\nSVar:DBClear:DB$ StoreSVar | Type$ Number | SVar$ X | Expression$ 0\n",
-			"SVar:DBTally:DB$ StoreSVar | Type$ CountSVar | SVar$ X | Expression$ X/Plus.1 | SubAbility$ DBClear\nSVar:DBDrawYou:DB$ Draw | NumCards$ X\nSVar:DBClear:DB$ StoreSVar | Type$ Number | SVar$ X | Expression$ 0\n", "not on every path"},
 		{"conditional reset", "SVar:DBClear:DB$ StoreSVar | Type$ Number", "SVar:DBClear:DB$ StoreSVar | ConditionCheckSVar$ X | ConditionSVarCompare$ GE1 | Type$ Number", "CheckSVar"},
 		{"every player", "RepeatPlayers$ Player.Opponent", "RepeatPlayers$ Player", "RepeatOptionalForEachPlayer$"},
 	} {

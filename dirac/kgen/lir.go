@@ -69,6 +69,8 @@ const (
 	rTriggeredSpellTarget          // inside a SpellCast trigger with IsSingleTarget$ True: the cast spell's one object target, captured as the trigger was queued (kop.RefTriggerSpellTarget; Defined$ TriggeredSpellAbilityTargets, lower_spelltarget.go)
 	rEquippedByEnchanted           // Defined$ Valid Card.EquippedByEnchanted: the permanent the source Aura's enchanted Equipment is attached to (kop.RefEquippedByEnchanted; Artificer's Hex, lower_effect_defined.go)
 	rTriggeredSpellTargets         // Defined$ TriggeredSpellAbilityTargets without IsSingleTarget$ True: every distinct object target of the cast spell, the op run once per object (kop.RefTriggerSpellTargets; Dack Fayden, Storm, Windrider, lower_spelltarget.go)
+	rTgtControllers                // the controllers of every target of the resolving ability, each seat once, AliveFrom(controller) order (kop.RefTgtControllers; RepeatPlayers$ TargetedController)
+	rTgtOfEach                     // the resolving ability's target controlled by the enclosing repeat player (kop.RefTgtOfEach; Targeted.RememberedPlayerCtrl in a RepeatEach body)
 	rSet                           // entry N of the card's Sets: a Defined$ composition the kernel evaluates (kop.RefSet; lower_definedset.go)
 	rCount
 )
@@ -124,6 +126,8 @@ var refNames = [...]string{
 	rTriggeredSpellTarget:  "TriggeredSpellTarget",
 	rEquippedByEnchanted:   "EquippedByEnchanted",
 	rTriggeredSpellTargets: "TriggeredSpellTargets",
+	rTgtControllers:        "TgtControllers",
+	rTgtOfEach:             "TgtOfEach",
 	rSet:                   "Set",
 }
 

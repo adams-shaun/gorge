@@ -591,6 +591,7 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 				c.damageBatchLog[i0].instAmt = append([]int32(nil), e.damageBatchLog[i0].instAmt...)
 			}
 		}
+		c.damageBatchStart = e.damageBatchStart
 	}
 	if e.excessDamageBaseline != nil {
 		c.excessDamageBaseline = make(map[state.ObjID]excessBase, len(e.excessDamageBaseline))

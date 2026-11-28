@@ -2200,6 +2200,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	}
 	pk.runOrder(bn, &run)
 	res := s.planSacReserved(k, pk, &pk.bestSeq, bn) // the other-sacrifice victim exclusions (mana_othersac.go)
+	var feeMade [kop.NumManaKinds]int
 	for r := 0; r < bn; r++ {
 		i := int(run[r])
 		u := best[i]
@@ -2208,6 +2209,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		ty := &pk.types[pk.bestTy[i]]
 		col := int(cols[i])
 		s.planPayFee(k, p, ty, &claim, pk.anyColor, pk.feeLent)
+		col = s.feeUnitCol(p, pk, ty, col, &feeMade) // a fee that ate a pip's mana (mana_feerecolour.go)
 		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && k.cards[s.cardAt(sl)].castSrc != 0 {
 			s.planNoteTap(k, sl, col)
 		}

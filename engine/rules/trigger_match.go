@@ -2423,6 +2423,7 @@ func damageBatchLatchMode(mk cards.TriggerMode) bool {
 func (e *Engine) openDamageBatch() {
 	if e.damageBatchDepth == 0 {
 		e.damageBatchOpen = true
+		e.damageBatchStart = len(e.L.Events)
 		e.damageBatchIdx = nil
 		e.damageBatchLog = nil
 		e.excessDamageBaseline = nil
@@ -2464,7 +2465,7 @@ func (e *Engine) closeDamageBatch() {
 	if e.damageBatchDepth != 0 {
 		return
 	}
-	e.damageBatchOpen = false
+	e.damageBatchOpen, e.damageBatchStart = false, 0
 	var dead []bool
 	for li, ent := range e.damageBatchLog {
 		if ent.idx >= len(e.pendingTriggers) {

@@ -289,6 +289,7 @@ func (s *State) forgetRemGen(o Obj) {
 	for i := 0; i < int(s.g.nrem); i++ {
 		if s.g.rem[i] == o {
 			copy(s.g.rem[i:], s.g.rem[i+1:s.g.nrem])
+			s.remCtlDrop(i, int(s.g.nrem)) // act_repeatremembered.go
 			s.g.nrem--
 			return
 		}

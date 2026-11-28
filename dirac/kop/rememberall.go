@@ -23,4 +23,10 @@ const RememberAllImprint = 2
 // only). The pre-move half of a Return's Imprint$ (kgen returnImprint).
 const RememberAllImprintCard = 4
 
+// RememberAllTarget (ExtRememberAll C): do not scan F; Obj names one object
+// that joins the resolution's remembered set (gorge Pump RememberObjects$
+// Targeted.RememberedPlayerCtrl, effects pump.go rememberDefinedObjects: the
+// target the repeated player controls). Disorienting Choice.
+const RememberAllTarget = 8
+
 func init() { extOpNames[ExtRememberAll] = "RememberAll" }

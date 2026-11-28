@@ -35,9 +35,9 @@ func (s *State) witherAt(k *prep, sl Slot) bool {
 func printsWither(cd *kop.CardDef) bool { return cd.Wither }
 
 // srcWither is the resolving source's wither (kw: srcKw's result): the
-// permanent's while it is on the battlefield; else gorge's LKI wither
-// (effects/damage.go resolveDamageRider: lki.Wither, derived at departure)
-// when the entry holds the source's snapshot, else its card's printed wither.
+// permanent's while it is on the battlefield; else its card's printed wither,
+// or gorge's LKI wither (effects/damage.go resolveDamageRider: lki.Wither,
+// derived at departure) from its last known information (srcLastRec).
 func (s *State) srcWither(k *prep, kw kop.KwMask) bool {
 	if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
 		return s.witherKw(k, sl, kw)
@@ -46,12 +46,17 @@ func (s *State) srcWither(k *prep, kw kop.KwMask) bool {
 	if k.t.Cards[e.card].Wither {
 		return true
 	}
-	if k.gen.anyWitherGrant && !DebugWitherGrantIgnored && e.li != 0 && e.kind != seSpell {
-		if l := s.lk(e.li); l.obj == e.obj && l.kw&kop.KwWither != 0 {
-			return true
-		}
-	}
-	return false
+	l := s.srcLastRec(e)
+	return l != nil && s.lkiWithered(k, l)
+}
+
+// lkiWithered: the snapshot l has wither -- the printed one derived at
+// departure over the whole pile (the lkiWither bit, gorge's lki.Wither,
+// CR 113.7a), or a granted one (l.kw holds only that keyword bit,
+// kw_wither.go's granted rule).
+func (s *State) lkiWithered(k *prep, l *lkiRec) bool {
+	return l.bits&lkiWither != 0 ||
+		k.gen != nil && k.gen.anyWitherGrant && !DebugWitherGrantIgnored && l.kw&kop.KwWither != 0
 }
 
 // tableGrantsWither reports whether some part of t can grant wither
