@@ -23,7 +23,7 @@ func (s *State) typesAt(k *prep, sl Slot) kop.TypeMask {
 		if p.ovr.flags&ovGenTy != 0 {
 			// a generated table's overrides (refreshTy); a face-down
 			// permanent always reads here (face_facedown.go)
-			return p.gty &^ (gtyFaceDown | gtyProvMask)
+			return p.gty &^ gtyMarks
 		}
 		return p.ovr.types
 	}

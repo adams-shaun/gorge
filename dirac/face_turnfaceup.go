@@ -116,9 +116,10 @@ func (s *State) turnUpRepls(k *prep, sl Slot, o Obj) {
 // as a base keyword (CR 702.168b, 701.58b): one cast face down with
 // Disguise, or a cloaked one. A MANIFESTED card has no abilities, a printed
 // Disguise included (CR 701.40a; gorge BaseKeywords), so a manifested
-// Bubble Smuggler has no ward.
+// Bubble Smuggler has no ward. Nor has one an effect put or turned face down
+// (gtyEffectDown, CR 708.2: Yedora's returned Experiment Twelve).
 func (s *State) faceDownWard(k *prep, sl Slot) bool {
-	return s.cloaked(sl) || !s.manifested(sl) && k.t.Cards[s.cardAt(sl)].MorphFamily == kop.MorphDisguise
+	return s.cloaked(sl) || !s.manifested(sl) && s.perms[sl].gty&gtyEffectDown == 0 && k.t.Cards[s.cardAt(sl)].MorphFamily == kop.MorphDisguise
 }
 
 // turnUpHybOK reports whether a turn-up cost is one the floating pool prices:

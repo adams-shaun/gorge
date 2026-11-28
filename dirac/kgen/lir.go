@@ -181,7 +181,7 @@ const (
 	vLastLifeLost        // life lost by the previous LoseLife
 	vTokensCreated       // tokens created by the previous CreateToken (RememberOriginalTokens)
 	vCountCast           // spells cast this turn matching F (refused: copy machinery)
-	vLifeLostThisTurn    // life the controller lost this turn
+	vLifeLostThisTurn    // life the controller, or the Ref player, lost this turn
 	vSum                 // Sub[0] + Sub[1]
 	vHandSizeOf          // cards in player Ref's hand
 	vCountExile          // exiled cards matching F

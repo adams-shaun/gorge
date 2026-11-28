@@ -3476,8 +3476,8 @@ func (s *State) refreshTy(k *prep) {
 		if p.ovr.walk != w0 {
 			s.tyCacheDrop() // walkSlot reads the flag (static_typecache.go)
 		}
-		fd := p.gty & (gtyFaceDown | gtyProvMask)
-		p.gty = s.typesGen(k, sl)&^(gtyFaceDown|gtyProvMask) | fd
+		fd := p.gty & gtyMarks
+		p.gty = s.typesGen(k, sl)&^gtyMarks | fd
 		p.ovr.flags |= ovGenTy
 		if p.ovr.flags != f0 || p.gty != t0 {
 			s.touchSl(sl)
