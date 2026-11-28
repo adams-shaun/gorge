@@ -1371,7 +1371,10 @@ func (s *State) addPainAvail(k *prep, sl Slot, pc *pcard, p uint8, a *avail, ms 
 	}
 	for c := range xc {
 		nx := xp[c]
-		if both && !colours {
+		if both && !colours && !pc.painOnly {
+			// a painland's separate {C} ability brings xc; a pain-only
+			// source's only tap is the painful one, whose extra is xp
+			// (srcExtraPain never fills xc for it)
 			nx = xc[c]
 		}
 		if nx > 0 {
