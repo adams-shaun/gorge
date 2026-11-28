@@ -955,6 +955,9 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         const bot = page.getByLabel('Bot deck');
         await human.locator('option[value="the-epic-storm"]').waitFor({ state: 'attached', timeout: WAIT_MS });
         await page.locator('input[value="commander"]').check();
+        // Commander opens on a four-seat pod, which has no per-seat deck picker (a7f2ecc313); the two-seat table
+        // still lists the format's decks, which is what this step checks.
+        await page.getByLabel('Seats').selectOption('2');
         await expect(human.locator('option[value="foundations-calling-all-angels"]')).toContainText('Giada, Font of Hope');
         await expect(human.locator('option[value="the-epic-storm"]')).toHaveCount(0);
         await page.locator('input[value="constructed"]').check();
