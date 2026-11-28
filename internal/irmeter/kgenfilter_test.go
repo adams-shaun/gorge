@@ -12,7 +12,7 @@ import (
 // sentinel the typed reader matches with errors.Is is a fallback, not a
 // site), one shared setter, three string-only sites (the fallback call from
 // the typed reader does not make parseFilter's own site shared), and one
-// site no reader reaches.
+// site no reader reaches, which only the package total counts.
 func TestKgenFilterSection(t *testing.T) {
 	root := "testdata/kgenfilter"
 	files, err := filepath.Glob(filepath.Join(root, "dirac/kgen/*.go"))
@@ -26,7 +26,7 @@ func TestKgenFilterSection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := (KgenFilter{TypedOnly: 1, StringOnly: 3, Shared: 1}); k != want {
+	if want := (KgenFilter{TypedOnly: 1, StringOnly: 3, Shared: 1, AllSites: 6}); k != want {
 		t.Fatalf("got %+v, want %+v", k, want)
 	}
 	if got, want := k.DropRow(), "kgen_filter_refuse_drop_pct\tdirac/kgen\t66.7"; got != want {
@@ -39,7 +39,8 @@ func TestKgenFilterSection(t *testing.T) {
 	if (KgenFilter{}).DropPct() != 0 {
 		t.Error("no string-only site: want a 0 drop")
 	}
-	// refuse_sites_all differs, so the share names its denominator.
+	// refuse_sites and refuse_sites_all differ from AllSites, so the share
+	// names its denominator.
 	printed := func(k KgenFilter, refuseSites int) string {
 		t.Helper()
 		var b strings.Builder
@@ -56,15 +57,16 @@ func TestKgenFilterSection(t *testing.T) {
 		"kgen_filter_refuse_typed_only\tdirac/kgen\t1\n"+
 		"kgen_filter_refuse_drop_pct\tdirac/kgen\t66.7\n"+
 		"kgen_filter_refuse_sites\tdirac/kgen\t5\n"+
-		"kgen_filter_refuse_site_share_pct\tdirac/kgen\t62.5\n"+
+		"kgen_refusal_sites_total\tdirac/kgen\t6\n"+
+		"kgen_filter_refuse_site_share_pct\tdirac/kgen\t83.3\n"+
 		"kgen_refuse_sites_removed_by_typed\tdirac/kgen\t2\n"; got != want {
 		t.Errorf("printed %q, want %q", got, want)
 	}
 	noString := KgenFilter{TypedOnly: 2, Shared: 1}
-	if noString.StringOnly != 0 || noString.TypedOnly <= noString.StringOnly {
-		t.Fatalf("precondition: no string-only site and a negative difference to clamp: %+v", noString)
+	if noString.StringOnly != 0 || noString.TypedOnly <= noString.StringOnly || noString.AllSites != 0 {
+		t.Fatalf("precondition: no string-only site, a negative difference to clamp and a zero total: %+v", noString)
 	}
-	got := printed(noString, 0)
+	got := printed(noString, 8)
 	for _, want := range []string{
 		"\nkgen_filter_refuse_sites\tdirac/kgen\t3\n",
 		"\nkgen_filter_refuse_site_share_pct\tdirac/kgen\t0.0\n",
