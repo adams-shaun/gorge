@@ -221,12 +221,17 @@ func (e *Engine) grantedKeywordLinesFull(id state.ObjID) []string {
 // printedKeywordCovered reports whether a compiled face of id's pile already
 // carries the granted keyword line -- either as a keyword entry of its own
 // (the printed K: line the link expanded, or one the printed-A:-line guard
-// suppressed) or as a compiled ability tagged KeywordLine = line. A stale
+// suppressed) or as a compiled ability tagged KeywordLine = line. Nothing is
+// covered while the printed abilities do not exist (printedAbilitiesGone): the
+// offer walk offers none of them, so the grant is the only instance. A stale
 // object reads covered (withhold), the offer walk's degradation direction.
 func (e *Engine) printedKeywordCovered(id state.ObjID, line string) bool {
 	o := e.G.Obj(id)
 	if o == nil {
 		return true
+	}
+	if e.printedAbilitiesGone(o) {
+		return false
 	}
 	for i := 0; i < o.PileFaceCount(); i++ {
 		pf, ok := o.PileFaceAt(i)
