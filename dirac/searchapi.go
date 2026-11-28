@@ -430,6 +430,12 @@ func (s *State) BuildingCast() (kicked bool, x int, ok bool) {
 
 // pickKeepsOpen reports whether answering the pending pick with a leaves the
 // same gorge decision open. Apply calls it before it answers.
+//
+// A kept-open pick leaves SeqNo unchanged, so dirac/neteval's same-decision
+// memo (Net.same) tells two picks of one declaration apart only by (N,
+// Options[0]). Every pick kind here consumes its option, so N drops. A new
+// kept-open pick kind must do the same, or join same()'s exclusion beside
+// ChCastDivide.
 func (s *State) pickKeepsOpen(k *prep, a Action) bool {
 	switch s.ctl {
 	case ctlAttackers, ctlBlockers:
