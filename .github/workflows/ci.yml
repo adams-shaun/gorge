@@ -156,12 +156,17 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      - name: Every test package is on exactly one shard
+      - name: Every test package is on exactly one shard (GitHub-hosted)
         # ci_shard.sh's comment says `all` "is how the self-check in CI proves no package was dropped"; scripts/
         # ci-shard-check.sh is that check, and it was missing from every workflow. A package that falls out of all
         # shards never runs, and a green batch where a test never ran is indistinguishable from one where it
-        # passed; a package placed twice runs twice. It needs only `go list`, runs before the corpus work, and a
-        # failure here fails prepare, so the test shards (which need prepare) never start.
+        # passed; a package placed twice runs twice. On a self-hosted box the check runs beside the corpus/tables
+        # build and the shared compile in the step below (speed-S1, 11-28): it needs only `go list` and touches
+        # neither .cards nor the build cache, so its measured 2.1-5.3 s per box (merge-queue batches 46149285673,
+        # 46147513195, 46146677244) no longer sits in front of prepare's long pole. A failure still fails prepare
+        # — that step waits on it — so the test shards (which need prepare) never start. A GitHub-hosted prepare
+        # has no corpus step, so the check stays a step here.
+        if: runner.environment == 'github-hosted'
         run: bash scripts/ci-shard-check.sh "$SHARDS"
       - name: Corpus keys (self-hosted)
         if: runner.environment == 'self-hosted'
@@ -246,6 +251,11 @@ jobs:
           # shellcheck disable=SC2086
           go test -exec /bin/true $repkgs ./dirac/oracle >/dev/null &
           compile=$!
+          # speed-S1 (11-28): the shard-split gate needs only `go list` and touches neither .cards nor the build
+          # cache the compile writes, so it runs beside them instead of in front of them. The wait below still
+          # fails this step (and so prepare) if the gate fails; the test shards need prepare and never start.
+          bash scripts/ci-shard-check.sh "$SHARDS" &
+          check=$!
           rc=0
           # A tree restored from the Actions cache (above) installs as the box's tree instead of a fetch and a
           # fresh make dirac-tables; a warm box (tree-present) skipped the restore and has nothing here.
@@ -253,6 +263,7 @@ jobs:
           bash scripts/ci-corpus.sh || rc=$?
           rm -rf .cards-restore
           wait "$compile" || rc=$?
+          wait "$check" || rc=$?
           exit "$rc"
       - name: Save the corpus tree (self-hosted)
         # Main only, the workflow's cache policy (a PR reads main's cache and never writes one). Publishes the
