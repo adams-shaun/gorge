@@ -1,0 +1,130 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Buy Your Silence	a312c275193abc42	77	0/0		2/2	
+A-Return Upon the Tide	2a991c102af50d3b	46	0/0		3/4	cast/alt:foretold
+Aether Charge	2c8b0c59634cea34	34	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Akki Lavarunner	8c2c9cfcb710447a	22	1/1		0/1	ix:resp
+Alabaster Kirin	c50a335e19b24834	76	0/0		0/0	
+Ancestral Vision	99d91d5103ab0ccf	14	0/0		3/4	cast/alt:none
+Angel of Fury	567aac6e8e19cb0b	47	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Angel of Suffering	f59c2371e926bd1c	20	0/0		0/0	
+Angelic Reward	af6b728213b16cec	58	0/0		2/2	
+Anger	97dd76a318a08e28	63	0/0		0/0	
+Aspect of Hydra	a55de6c785c62ba0	120	0/0		2/2	
+Audacious Thief	691873168b45c17f	85	1/1		1/1	
+Aven Redeemer	ea529e0a9f208713	71	1/1		1/1	
+Azra Smokeshaper	4ecb14873cbacc39	67	2/2		0/1	ix:resp
+Bad Deal	2ea2965ceab6850b	40	0/0		2/2	
+Balduvian War-Makers	89f1edc06dcaa057	29	1/1		1/1	
+Banshee of the Dread Choir	5743fa20e80c8f87	41	2/2		0/1	ix:resp
+Bladed Sentinel	14cd6d0c897a75e7	70	1/1		1/1	
+Bloodvial Purveyor	f779f2c3a299a7c5	66	2/2		1/1	
+Bounty Hunter	96f419e5b4fb6814	57	2/2		1/1	
+Branchsnap Lorian	af05094d5947c29f	81	0/0		1/2	cast/alt:morphed
+Center Soul	6220e9f5151dbe3c	172	0/0		2/2	
+Corrupted Roots	fe4c9501483521b9	95	1/1		2/2	
+Craw Giant	efa65e98e8c3ddd4	22	1/1		1/1	
+Crimson Cowl, Master of Evil	a1b02f90672895e3	74	1/1		1/1	
+Crossway Vampire	b24e2e4e83bfb029	68	1/1		1/1	
+Crowd of Cinders	1e863885968d1e0c	48	0/0		0/0	
+Dark Withering	fd6c1fbb999f384d	33	0/0		1/2	ix:resp
+Dawnfeather Eagle	420effdb3198136b	41	1/1		1/1	
+Deathgreeter	3337b6a184e0ad81	109	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Deceive the Messenger	37b012fa8485ebae	134	0/0		2/2	
+Defenestrate	a726f7598108340b	71	0/0		2/2	
+Destructive Force	989d36703a6e3879	16	0/0		2/2	
+Drakewing Krasis	92eedacbd037db68	83	0/0		0/0	
+Dread Presence	612f3e57a1876936	36	1/1		1/1	
+Elemental Eruption	1f0ca29bfad1a927	27	1/1		2/2	
+Erratic Cyclops	d00da0589f3258ef	50	1/1		1/1	
+Explosive Shot	9b1bfd3b8dd46d36	54	0/0		2/2	
+Fain, the Broker	12ab8cd51273c884	54	4/4		1/1	
+Fencer's Magemark	15a4fbb379154de5	61	0/0		2/2	
+Fevered Convulsions	39f56b6804b85d59	67	1/1		1/1	
+Flame Javelin	411000cf856c8b9a	65	0/0		2/2	
+Forest	6d0466c30f825dba	7531	1/1		0/1	ix:resp
+Fowl Play	6f8cb6ff05c69de7	94	0/0		2/2	
+Freedom Fighter Recruit	d1cbf796c9ba10a7	80	0/0		0/0	
+From the Catacombs	9ddd8fe329240150	24	0/0		2/4	cast/alt:escaped,ix:resp
+Frontline Rebel	cb29ac555d2e6ca0	65	0/0		0/0	
+Fungal Sprouting	e6bb62de127f4930	78	0/0		2/2	
+Gatebreaker Ram	bf4e3c76f8d96e09	128	0/0		0/0	
+Gerrard's Battle Cry	51636ef4b7c8d1f8	86	1/1		1/1	
+Gifted Aetherborn	6ad61d26c6d5648c	37	0/0		0/0	
+Glint Hawk Idol	fd69cda8b65d9fe1	106	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Glyph Keeper	c14cb21e7a5d7e20	47	2/2		1/1	
+Gorilla Tactics	a1870b558e8414b8	118	1/1		2/2	
+Grim Discovery	1e1ac2e899836235	62	0/0		2/2	
+Grisly Salvage	099b2a872d6d721f	47	0/0		2/2	
+Hag of Inner Weakness	6706d0c4e4da2fe1	74	1/1		1/1	
+Hammerhead Tyrant	9219e0f4c4814a52	41	1/1		1/1	
+Heroes Remembered	b2f994d76c9cf750	21	0/0		4/4	
+Instill Furor	1b65bd0d3288f8ef	91	0/0		2/2	
+Invasion of Ixalan	6079aab6cec072ba	156	2/2		1/1	
+Island	763c67ef7a27eaf5	2691	1/1		0/1	ix:resp
+Jukai Messenger	96fbcbd74b48a3b5	93	0/0		0/0	
+Kazuul's Fury	4ec22259c2b45f2b	102	1/1		2/2	
+Knightly Valor	31ad6c62a2b01d99	61	1/1		2/2	
+Krovikan Plague	a11e367f1d503288	64	2/2		2/2	
+Kyren Sniper	9ceee8ab576da06a	78	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Laccolith Warrior	a13c01148034f632	26	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Lifegift	1aac82579127f10b	108	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Lost Soul	6b7c265f215f2aec	78	0/0		0/0	
+Manticore Eternal	110080aef68e163d	44	1/1		0/1	ix:resp
+Merfolk Mistbinder	de3acf1601f536a3	48	0/0		0/0	
+Metallic Rebuke	7ee13ee539c116a2	110	0/0		2/2	
+Molten Monstrosity	1cd96cb416585816	37	0/0		0/0	
+Moonveil Dragon	0054ae6c56118bd5	18	1/1		1/1	
+Mountain	9e71388353e907ed	1886	1/1		0/1	ix:resp
+Mudbrawler Raiders	3bb0d81c35d4cae1	32	0/0		0/0	
+Myr Reservoir	8747d26667c9ad31	98	2/2		1/1	
+Necrite	5c711b2d44249fe5	84	1/1		1/1	
+Nether Horror	63e45e9f6415af9f	51	0/0		0/0	
+Night Out in Vegas	2b8be86bdee00dcb	36	1/1		1/1	
+Oblivion's Hunger	b9b23da6e0eda55e	52	0/0		2/2	
+Ogre Berserker	ef84f8fe08a052e6	45	0/0		0/0	
+Orcish Cannoneers	6d80c9c089db4935	68	1/1		1/1	
+Oyobi, Who Split the Heavens	a52cda785c5971d2	31	1/1		1/1	
+Painbringer	fd9724b951784472	36	1/1		1/1	
+Paroxysm	a151c4dc982fddb5	95	1/1		2/2	
+Pitiless Gorgon	73609b48ac3a84d2	31	0/0		0/0	
+Plains	82d63a695487e567	2320	1/1		0/1	ix:resp
+Price of Fame	2e662cfb711e69e9	35	0/0		2/2	
+Primeval Shambler	1cf2fe3d78bb9ec5	46	1/1		1/1	
+Prismari Pianist	2ee91d9758fb2090	52	1/1		1/1	
+Prized Elephant	dda2384957ff846b	47	1/1		1/1	
+Pyroblast	8eac13b059fadbc5	74	0/0		2/2	
+Raging Kronch	5efed1d07d7a9a51	71	0/0		0/0	
+Raiders' Wake	cfcfaf8c3e1d0bf7	100	2/2		1/1	
+Ravenous Necrotitan	9562618f216bd8f8	76	1/1		1/1	
+Resistance Reunited	9e3a70f4d1e8f765	92	0/0		2/2	
+Rip-Clan Crasher	d66562b3381a1343	96	0/0		0/0	
+Rush of Adrenaline	7cc8aa35b3f18e2b	96	0/0		2/2	
+Second Wind	452e6f6adc633939	82	2/2		2/2	
+Serene Sunset	8b5bc5eec4e8634c	55	0/0		3/4	f0/s/x0
+Shield of the Avatar	f0c0a497e81e9feb	95	1/1		1/1	
+Sicken	3a24c33fac1c5ef4	9	1/1		2/2	
+Siege Dragon	eac6e4ca682c7b87	22	2/2		0/1	ix:resp
+Siren Reaver	240f9ef70f9eefd6	64	0/0		0/0	
+Skystrike Officer	e0bcc676df806f48	111	2/2		1/1	
+Slaying Fire	c36dbfea84ce713f	31	0/0		2/2	
+Sloppity Bilepiper	ee7a64b5d63b5469	54	1/1		1/1	
+Spike Hatcher	faf985d913101fbd	28	2/2		1/1	
+Spinal Centipede	dec303f3c14c3a97	86	1/1		1/1	
+Spotted Griffin	01266869f9ec93dc	78	0/0		0/0	
+Su-Chi	e4a2d04c7a5d466e	83	1/1		1/1	
+Swamp	342b413902f441c3	1877	1/1		0/1	ix:resp
+Symbiote Spawn	ad89de85cd52c512	41	1/1		1/1	
+Synchronous Sliver	2b0f7711ffa7fb83	50	0/0		0/0	
+Tar Snare	642588cfc4f8a1d3	39	0/0		2/2	
+Teeterpeak Ambusher	aa5bff875880eb9d	85	1/1		1/1	
+The Black Breath	0ba09a5cdb215a45	74	0/0		2/2	
+Towering Baloth	3e94970d91f2d179	26	0/0		1/2	cast/alt:morphed
+Tuskeri Firewalker	e71760152ef79694	51	1/1		1/1	
+Underdark Explorer	6f50c901ddb6e476	48	1/1		0/1	ix:resp
+Underworld Dreams	2a185aa4aa700ba2	56	1/1		1/1	
+Unmask	5be3cd47937e072e	92	0/0		1/2	ix:resp
+Urborg Emissary	1e739c1b1cecee83	49	1/1		2/3	ix:resp
+Vraska, Swarm's Eminence	e809b365efdcb9ec	26	2/2		1/1	
+Warped Devotion	69ad3fa43a9da861	44	1/1		0/1	ix:resp
+Wild Slash	07e1ffb402aa21a5	67	0/0		1/2	ix:resp
+Yargle and Multani	22f2d7cac8452ef1	61	0/0		0/0	

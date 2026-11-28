@@ -1,0 +1,2 @@
+# ev-cmdr-horizon-explorer: Horizon Explorer, beside the cards of its hosted-cmdr games that implicate it first (cli-20261127T093705Z-1fed1794)
+Horizon Explorer	Lord Windgrace;Copperline Gorge;Angel of Vitality;Woodland Cemetery;Azusa, Lost but Seeking;Fog;Valakut Exploration;Blackcleave Cliffs

@@ -1,0 +1,14 @@
+{
+  "card": "Ashcloud Phoenix",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack; recorded from ev-cmdr-ashcloud-phoenix pair 167",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 16109308407730677699,
+    "pair": 167,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "ashcloud_phoenix_hosted_cmdr_focus"
+  }
+}

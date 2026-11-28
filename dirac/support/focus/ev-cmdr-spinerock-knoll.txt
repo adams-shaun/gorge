@@ -1,0 +1,3 @@
+# ev-cmdr-spinerock-knoll: Spinerock Knoll, unverified in hosted-cmdr (cli-20261127T093705Z-1fed1794)
+# replay: host pool tail-21; kfuzz -synth tail-21 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-spinerock-knoll.txt -play-refused -seed 1 -first-pair 26 -pairs 1 -surface autopay -mulligans 0
+Spinerock Knoll

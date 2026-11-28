@@ -43,7 +43,7 @@ func Pools() []Pool {
 		{Name: "standard-meta", Label: "MTGGoldfish Standard", Tree: "3788c0cc4bcecf3807a3c2045e33d466d04270f0d73145ed6c39a212f0122a9f", Decks: 60},
 		{Name: "mbc", Label: "draftsim MBC Commander drafts, 50-card decks", Tree: "92732986d6ecb20f20b86231ad525c7f8ca2c0a2fb1e1ac2970c07774659bbc0", Decks: 234},
 		{Name: "edh", Label: "MTGJSON Commander precons gorge fully supports", Tree: "5ef5b2371cfa6985e8d458ab686f3a898dcb6d89fbf8216c8f1acd70a3b5122e", Decks: 52},
-		{Name: "hosted-cmdr", Label: "gorged's hosted Commander decks (testkit/testutil/decks, format commander), refused copies replaced by basics", Tree: "a8ded8fb3109daf48fe1ef4c0540f1a2b7a674dd394414f01bea01710d36caa0", Decks: 17},
+		{Name: "hosted-cmdr", Label: "gorged's hosted Commander decks (testkit/testutil/decks, format commander), refused copies replaced by basics", Tree: "2be690d24cf9b08c0edc41c816a71710643dfdf99c1d95d5b871195386089b01", Decks: 17},
 	}
 }
 

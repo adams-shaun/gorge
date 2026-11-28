@@ -1,0 +1,3 @@
+# ev-cmdr-urza-s-workshop: Urza's Workshop, unverified in hosted-cmdr (cli-20261127T093705Z-1fed1794)
+# replay: host pool tail-76; kfuzz -synth tail-76 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-urza-s-workshop.txt -play-refused -seed 1 -first-pair 110 -pairs 1 -surface autopay -mulligans 0
+Urza's Workshop	Urza's Mine;Urza's Tower

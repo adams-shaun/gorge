@@ -1,0 +1,14 @@
+{
+  "card": "\"Name Sticker\" Goblin",
+  "class": "projection-Cards.Zone",
+  "why": "the engines' state differs at projection Cards.Zone; recorded from ev-cmdr-name-sticker-goblin pair 44",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 16256398713181607051,
+    "pair": 44,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "name_sticker_goblin_hosted_cmdr_focus"
+  }
+}

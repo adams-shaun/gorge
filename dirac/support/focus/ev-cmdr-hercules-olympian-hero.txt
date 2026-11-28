@@ -1,0 +1,3 @@
+# ev-cmdr-hercules-olympian-hero: Hercules, Olympian Hero, refused on hosted-cmdr; its witness game (cli-20261127T093705Z-1fed1794)
+# replay: host pool tail-18; kfuzz -synth tail-18 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-hercules-olympian-hero.txt -play-refused -seed 1 -first-pair 21 -pairs 1 -surface autopay -mulligans 0
+Hercules, Olympian Hero

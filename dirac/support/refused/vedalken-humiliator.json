@@ -1,0 +1,14 @@
+{
+  "card": "Vedalken Humiliator",
+  "class": "unmodelled-band",
+  "why": "gorge does something the kernel does not model here (stall band); recorded from ev-cmdr-vedalken-humiliator pair 197",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 16608817795355751548,
+    "pair": 197,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "vedalken_humiliator_hosted_cmdr_focus"
+  }
+}

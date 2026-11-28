@@ -150,10 +150,44 @@ def deck_cleared(out):
     return {c for c, n in plays.items() if n >= DECK_CLEARED_PLAYS}
 
 
-def blame(games, cleared):
-    """Set each game's cards: who may answer it, first choice first. Only a card in its decks can."""
+def focus_cards(top):
+    """pool -> the cards its focus file deals into every game (dirac/support/focus/<pool>.txt).
+
+    A focus pool exists to test the cards its file names: the file's first column is a card,
+    enablers after a tab. A comment or empty line is skipped."""
+    files = {}
+    for path in glob.glob(os.path.join(top, "dirac/support/focus", "*.txt")):
+        cards = set()
+        with open(path) as f:
+            for line in f:
+                line = line.rstrip("\n")
+                if not line or line.startswith("#"):
+                    continue
+                card = line.split("\t", 1)[0].strip()
+                if card:
+                    cards.add(card)
+        files[path_pool(path)] = cards
+    return files
+
+
+def blame(games, cleared, focus=None):
+    """Set each game's cards: who may answer it, first choice first. Only a card in its decks can.
+
+    A focus pool deals its focus cards into every game, so a divergence there is answered by
+    the focus card the game implicates first (the head of its implicated cards, else of its
+    latest actions' sources when it implicates none) before a bystander the deck happens to
+    hold: blaming the bystander refuses a card that plays clean and leaves the card under test
+    credited from its clean games. A focus card the game holds but does not implicate first
+    answers it no more than any other card: refusing it would refuse the card under test for
+    a bystander's divergence."""
+    focus = focus or {}
     for g in games:
-        impl, recent = [c for c in g["impl"] if c in g["held"]], [c for c in g["recent"] if c in g["held"]]
+        held = g["held"]
+        impl, recent = [c for c in g["impl"] if c in held], [c for c in g["recent"] if c in held]
+        first = (impl or recent)[:1]
+        if first and first[0] in focus.get(g["pool"], set()):
+            g["cards"] = set(first)
+            continue
         options = [[c for c in impl if c not in cleared], [c for c in recent if c not in cleared], impl, recent]
         g["cards"] = set(next((o for o in options if o), []))
     return games
@@ -266,11 +300,12 @@ def settle(top, out, rounds, resume):
         print(f"playing {len(corpus)} pools with the refused cards in", flush=True)
         evidence_run(top, played_in, corpus, PLAY_REFUSED="1")
     cleared = deck_cleared(played_in)
+    focus = focus_cards(top)
     known = {game_key(g): g for g in bad_games(played_in)}
     kept = {c for c in refused_names(top) if entry_key(top, c)[0] not in corpus}
     print(f"{len(known)} bad games, {len(kept)} refusals outside the corpus", flush=True)
     for n in range(rounds):
-        games = blame(list(known.values()), cleared)
+        games = blame(list(known.values()), cleared, focus)
         refused, orphans = settled(games, kept)
         for g in orphans[:20]:
             print(f"  no card: {g['pool']} {g['surface']} m{g['m']} pair {g['pair']}: {g['outcome']} {g['cls']}")

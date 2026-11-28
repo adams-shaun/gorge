@@ -1,0 +1,14 @@
+{
+  "card": "Plasma Caster",
+  "class": "projection-Cards.Pos",
+  "why": "the engines' state differs at projection Cards.Pos; recorded from ev-cmdr-plasma-caster pair 49",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 9102045067543216305,
+    "pair": 49,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "plasma_caster_hosted_cmdr_focus"
+  }
+}

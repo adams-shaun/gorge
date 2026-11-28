@@ -1,0 +1,14 @@
+{
+  "card": "Vault 112: Sadistic Simulation",
+  "class": "options",
+  "why": "the engines offer different options; recorded from ev-cmdr-vault-112-sadistic-simulation pair 86",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 6091236503189715497,
+    "pair": 86,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "vault_112_sadistic_simulation_hosted_cmdr_focus"
+  }
+}

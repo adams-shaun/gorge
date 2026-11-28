@@ -1,0 +1,3 @@
+# ev-cmdr-thundermane-dragon: Thundermane Dragon, unverified in hosted-cmdr (cli-20261127T093705Z-1fed1794)
+# replay: host pool tail-30; kfuzz -synth tail-30 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-thundermane-dragon.txt -play-refused -seed 1 -first-pair 357 -pairs 1 -surface full -mulligans 0
+Thundermane Dragon

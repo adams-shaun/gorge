@@ -1,0 +1,14 @@
+{
+  "card": "Cursed Mirror",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards.Flags; recorded from ev-cmdr-cursed-mirror pair 70",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 7908291994107955140,
+    "pair": 70,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "cursed_mirror_hosted_cmdr_focus"
+  }
+}

@@ -1,0 +1,218 @@
+A-Baleful Beholder
+A-Cloister Gargoyle
+A-Pseudodragon Familiar
+A-Pyre-Sledge Arsonist
+A-The One Ring
+Aerial Modification
+Aeromunculus
+Alaborn Veteran
+Angel of Mercy
+Angel's Tomb
+Arc Trail
+Archdemon of Unx
+Archivist
+Auriok Glaivemaster
+Baeloth Barrityl, Entertainer
+Baithook Angler
+Bandage
+Bazaar Trademage
+Benalish Heralds
+Benefactor's Draught
+Biolume Egg
+Blinding Light
+Boreal Druid
+Brandywine Farmer
+Braulios of Pheres Band
+Capashen Standard
+Chandra, Legacy of Fire
+Cloister Gargoyle
+Collector's Case
+Conifer Strider
+Consulate Crackdown
+Crowd's Favor
+Dauntless Dourbark
+Daybreak Chimera
+Deepwood Tantiv
+Depth Charge Colossus
+Dimir Guildmage
+Dirgur Nemesis
+Distemper of the Blood
+Diviner of Mist
+Doomsday
+Dredge
+Drinker of Sorrow
+Durkwood Boars
+Dáin, Lord of the Iron Hills
+Elemental Spectacle
+Elvish Skysweeper
+Emberwilde Caliph
+Entropic Eidolon
+Estwald Shieldbasher
+Ethersworn Adjudicator
+Exalted Flamer of Tzeentch
+Expel from Orazca
+Explosive Vegetation
+Eyes Everywhere
+Femeref Knight
+Fervent Mastery
+Fight Rigging
+Final Flare
+Flailing Drake
+Flame Elemental
+Flamespeaker's Will
+Flanking Troops
+Flaring Pain
+Forest
+Fortuitous Find
+Frost Titan
+Fungus Sliver
+Glint-Sleeve Artisan
+Gnarlid Pack
+Goblin Motivator
+Golden Bear
+Grapeshot
+Griffin Dreamfinder
+Grixis Panorama
+Grotesque Hybrid
+Growth Spurt
+Gruesome Realization
+Havenwood Wurm
+Hedgewitch's Mask
+Hero of Bladehold
+Heroic Teamwork
+Hivestone
+Ice Cage
+Ignoble Hierarch
+Imperial Subduer
+Indrik Stomphowler
+Infectious Horror
+Invisibility
+Island
+Jace's Ingenuity
+Jade Avenger
+Jedit Ojanen
+Kederekt Leviathan
+Key to the City
+Khalni Garden
+Konda, Lord of Eiganjo
+Lampad of Death's Vigil
+Lash of the Balrog
+Last Word
+Lethargy Trap
+Life from the Loam
+Linvala, Keeper of Silence
+Llanowar Scout
+Luke Cage, Hero for Hire
+Luminarch Aspirant
+Magefire Wings
+Make Mischief
+Mardu Strike Leader
+Maritime Guard
+Masked Admirers
+Minamo Sightbender
+Mind Peel
+Mnemonic Wall
+Mogg Raider
+Monster Mashup
+Mountain
+Mycologist
+Necromantic Summons
+Nessian Asp
+Nessian Wanderer
+Neutralizing Blast
+Nim Shambler
+Nirkana Assassin
+Oath of the Grey Host
+Octoprophet
+Orc Sureshot
+Overburden
+Overencumbered
+Paralyzing Grasp
+Perennial Behemoth
+Pharika's Chosen
+Pitiless Vizier
+Plains
+Pouncing Lynx
+Psionic Entity
+Puppeteer Clique
+Pyrohemia
+Pyromancer's Assault
+Qal Sisma Behemoth
+Read the Bones
+Reckless Reveler
+Referee Squad
+Rhox Maulers
+Rockslide Elemental
+Rooftop Nuisance
+Rotlung Reanimator
+Sage of Lat-Nam
+Sage of Shaila's Claim
+Sage of the Unknowable
+Sanctuary Raptor
+Sanctum Gargoyle
+Sandblast
+Sanguine Sacrament
+Scryb Ranger
+Seasoned Pyromancer
+Segovian Sword
+Sejiri Steppe
+Serra Ascendant
+Shaggy Camel
+Shattered Crypt
+Shortcut Seeker
+Shroofus Sproutsire
+Silver Scrutiny
+Sinister Possession
+Skaab Wrangler
+Sky Tether
+Skyblade of the Legion
+Skyline Predator
+Sneaky Homunculus
+Solve the Equation
+Sorcerer's Strongbox
+Soul Transfer
+Soulshriek
+Sphere Grid
+Spinal Graft
+Spinal Parasite
+Springjaw Trap
+Steadfast Paladin
+Stonehoof Chieftain
+Sunblade Elf
+Sunlance
+Suntouched Myr
+Surge of Thoughtweft
+Survival Cache
+Suspension Field
+Swamp
+Sword of the Chosen
+Séance Board
+Talrand, Sky Summoner
+Taunting Kobold
+Telepathic Spies
+Telling Time
+The Keeper of the Yellow Hat
+The Wanderer
+Thopter Spy Network
+Thraben Sentry
+Thunderherd Migration
+Tidewater Minion
+Time Wipe
+Touch of Vitae
+Traitorous Instinct
+Turn into a Pumpkin
+Underworld Rage-Hound
+Vedalken Heretic
+Vengeant Earth
+Verduran Enchantress
+View from Above
+Vile Deacon
+Vito, Thorn of the Dusk Rose
+Vivid Crag
+Vodalian Serpent
+Volley of Boulders
+Waning Wurm
+Whirler Rogue
+Workhorse
+Wu Spy
+Yoked Ox

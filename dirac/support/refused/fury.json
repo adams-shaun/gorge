@@ -1,0 +1,14 @@
+{
+  "card": "Fury",
+  "class": "options",
+  "why": "the engines offer different options; recorded from ev-cmdr-fury pair 305",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 1579712644377239441,
+    "pair": 305,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "fury_hosted_cmdr_focus"
+  }
+}
