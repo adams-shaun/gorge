@@ -355,7 +355,7 @@ func setSeatPlayers(list []TCode) (q seatSeq, players bool) {
 // Sacrifice and Discard walk is the exception gorge itself draws: over
 // Defined$ Player those two effects ask every player before anything moves
 // (CR 101.4), so the members still to come ride the each-player repNext
-// chain and the ask's answer runs the walk on (setSeatPlayers below).
+// chain and the ask's answer runs the walk on (setSeatPlayers).
 //
 //go:noinline
 func (s *State) execSet(k *prep, in *kop.Instr) bool {
