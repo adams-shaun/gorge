@@ -1052,6 +1052,7 @@ PayForage	untyped int	7
 PayHybMax	untyped int	2
 PayLife	untyped int	4
 PayMana	untyped int	1
+PayManaCPip	untyped int	26
 PayManaX	untyped int	15
 PayReturn	untyped int	6
 PaySac	untyped int	3

@@ -20,6 +20,15 @@ import (
 //     the stolen creature then attacks and the defending player sacrifices two
 //     permanents, and at end of turn the creature returns.
 //
+//   - Ulalek, Fused Atrocity's shapes: a colourless-or-white hybrid pip in a
+//     printed cost (CR 702.105: the caster announces {C} or {W} before
+//     targets, gorge pay.AnnouncePip offers the printed first face), driven
+//     by "Hybrid Probe"; and an AB$ CopySpellAbility trigger cost of
+//     "you may pay {C}{C}" — a constant colourless resolution payment the
+//     kernel pays from the pool's colourless units (kop.PayManaCPip on the
+//     PayMana F), driven by "Copy Probe", an Eldrazi carrier whose SpellCast
+//     trigger's copy resolves only once the {C}{C} was paid.
+//
 //   - Tesak, Judith's Hellhound: its Continuous static's AddKeyword$ Unleash
 //     (the granted form, CR 702.86) lowered to kop.Static.Unleash. The
 //     kernel reads each live static's grant beside CardDef.Unleash at the
@@ -74,6 +83,8 @@ func hostedCmdrCases() []hostedCmdrCase {
 	tesakDeck := append(append(deckOf(8, "Tesak, Judith's Hellhound"), deckOf(8, "Abzan Devotee")...),
 		append(deckOf(16, "Mountain"), deckOf(8, "Forest")...)...)
 	dogBearsDeck := append(deckOf(8, "Grizzly Bears"), deckOf(32, "Forest")...)
+	hybridProbeDeck := append(append(deckOf(12, "Hybrid Probe"), deckOf(14, "Plains")...), deckOf(14, "Wastes")...)
+	copyProbeDeck := append(deckOf(12, "Copy Probe"), deckOf(28, "Wastes")...)
 	cullerDeck := append(deckOf(12, "Timeline Culler"), deckOf(28, "Swamp")...)
 	// Ancient Ziggurat's mana may only be spent on a creature spell: the
 	// graveyard warp's {B} has no other source (restricted-source pricing)
@@ -112,6 +123,22 @@ func hostedCmdrCases() []hostedCmdrCase {
 			carrier: "Tesak, Judith's Hellhound",
 			seats:   [2]string{"hck-tesak-a", "hck-tesak-b"},
 			decks:   [2][]string{tesakDeck, dogBearsDeck},
+		},
+		{
+			name:     "ulalek_hybrid_pip",
+			carrier:  "Hybrid Probe",
+			seats:    [2]string{"hck-hyb-a", "hck-hyb-b"},
+			decks:    [2][]string{hybridProbeDeck, creatureDeck},
+			fixtures: map[string]string{"Hybrid Probe": hybridProbeScript},
+			reached:  hybridPipCastReached,
+		},
+		{
+			name:     "ulalek_copyspell_resolution_cost",
+			carrier:  "Copy Probe",
+			seats:    [2]string{"hck-copy-a", "hck-copy-b"},
+			decks:    [2][]string{copyProbeDeck, creatureDeck},
+			fixtures: map[string]string{"Copy Probe": copyProbeScript},
+			reached:  copyspellResolutionCostReached,
 		},
 		{
 			name:       "timeline_culler_warp_paylife",
@@ -155,6 +182,42 @@ func hostedCmdrCases() []hostedCmdrCase {
 	}
 }
 
+// hybridProbeScript carries Ulalek's first pip ({C/W}, CR 702.105): a
+// colourless-or-white hybrid in a printed cast cost. The caster announces the
+// face (gorge pay.AnnouncePip offers the printed first face, {C}) before
+// targets; the deck's Plains ({W}) and Wastes ({C}) let either face be paid,
+// so the kernel must offer the same feasible faces as gorge and price the
+// announced one.
+const hybridProbeScript = "Name:Hybrid Probe\nManaCost:CW\nTypes:Creature Eldrazi\nPT:2/2\n" +
+	"Oracle:A colourless-or-white hybrid pip.\n"
+
+// copyProbeScript is Ulalek's SpellCast copy trigger on a {C}{C} Eldrazi
+// body: "whenever you cast an Eldrazi spell, you may pay {C}{C}. If you do,
+// copy that spell" (gorge effCopySpellAbility, Defined$ TriggeredSpellAbility).
+// The AB$ CopySpellAbility's Cost$ C C is the trigger's own colourless
+// resolution payment (kop.PayManaCPip on the PayMana F, resColourlessOK); the
+// copy is only created once that {C}{C} is paid, so the case's reached gate
+// proves the constant-colourless payment was made and the copy resolved.
+const copyProbeScript = "Name:Copy Probe\nManaCost:C C\nTypes:Creature Eldrazi\nPT:2/2\n" +
+	"T:Mode$ SpellCast | ValidCard$ Card.Eldrazi | ValidActivatingPlayer$ You | Execute$ TrigCopy | TriggerZones$ Battlefield | TriggerDescription$ Whenever you cast an Eldrazi spell, if you pay {C}{C}, copy that spell.\n" +
+	"SVar:TrigCopy:AB$ CopySpellAbility | Cost$ C C | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n" +
+	"Oracle:Whenever you cast an Eldrazi spell, you may pay {C}{C}. If you do, copy that spell.\n"
+
+// hybridPipCastReached: a Hybrid Probe was cast (entered the battlefield), so
+// the {C/W} pip was announced and paid — the case is vacuous otherwise.
+func hybridPipCastReached(g *GorgeSide) bool {
+	for i := range g.E.L.Events {
+		e := &g.E.L.Events[i]
+		if e.Kind != events.MoveZone || e.To != state.ZBattlefield {
+			continue
+		}
+		if o := g.E.G.Obj(e.Obj); o != nil && !o.IsToken && o.Face() != nil && o.Face().Name == "Hybrid Probe" {
+			return true
+		}
+	}
+	return false
+}
+
 // cullerWarpCast: a Timeline Culler was put on the stack from zone from and
 // its cast's CastInfo carried FlagWarped (the warp cost was paid).
 func cullerWarpCast(g *GorgeSide, from state.Zone) bool {
@@ -171,6 +234,24 @@ func cullerWarpCast(g *GorgeSide, from state.Zone) bool {
 		case e.Kind == events.PutOnStack:
 			origin[e.Obj] = e.From
 		case origin[e.Obj] == from && events.FlagsFrom(e.Counter)&state.FlagWarped != 0:
+			return true
+		}
+	}
+	return false
+}
+
+// copyspellResolutionCostReached: a Copy Probe token entered the battlefield.
+// The token only exists if the battlefield Copy Probe's SpellCast trigger was
+// paid its {C}{C} (gorge's trigger-cost window declined copy leaves nothing)
+// and the copy of the triggered spell resolved, so this proves the constant
+// colourless resolution payment (two {C} pips) was made.
+func copyspellResolutionCostReached(g *GorgeSide) bool {
+	for i := range g.E.L.Events {
+		e := &g.E.L.Events[i]
+		if e.Kind != events.MoveZone || e.To != state.ZBattlefield {
+			continue
+		}
+		if o := g.E.G.Obj(e.Obj); o != nil && o.IsToken && o.Face() != nil && o.Face().Name == "Copy Probe" {
 			return true
 		}
 	}
@@ -379,7 +460,7 @@ func TestHostedCmdrKeywordsCostsLockstep(t *testing.T) {
 			dir := corpusDirOrSkip(t)
 			if len(c.fixtures) > 0 {
 				dir = filters11Corpus(t, c.fixtures, "Swamp", "Forest", "Grizzly Bears", "Mountain",
-					"Cascading Cataracts", "Wastes")
+					"Plains", "Wastes", "Cascading Cataracts")
 			}
 			reg, err := cards.SharedCorpus(dir)
 			if err != nil {
