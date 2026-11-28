@@ -503,27 +503,3 @@ func TestCRDeviation721_2c(t *testing.T) {
 		t.Fatalf("graveyard station card P/T = %d/%d, want 5/3 (engine keeps printed P/T today)", p, tt)
 	}
 }
-
-// TestCRDeviation730_2d pins CR 730.2d-730.2e.
-// Rule: a merged permanent is a token only if its topmost component is a token.
-// Engine: foldMutate keeps the target's token status, so a nontoken mutated on top of a token stays a token.
-func TestCRDeviation730_2d(t *testing.T) {
-	t.Parallel()
-	reg := testutil.CorpusRegistry(t)
-	phoenix := mustCorpusCard(t, reg, "Everquill Phoenix")
-	e, _ := tokenReplGame(t, 301, phoenix)
-	phoenixID := moveSeededCard(t, e, 0, phoenix, state.ZHand)
-	bear := putToken(t, e, 0, mutateBearSrc, state.ZBattlefield)
-	if !e.G.Obj(bear).IsToken || e.G.Obj(phoenixID).IsToken {
-		t.Fatal("precondition: the bear is a token and the Phoenix is not")
-	}
-	addMana(t, e, 0, "RRRR")
-	mutateCastOnto(t, e, mutatedCastOption(t, e, phoenixID), bear, true)
-	pile := e.G.Obj(bear)
-	if pile.Face() == nil || pile.Face().Name != "Everquill Phoenix" {
-		t.Fatalf("precondition: top card = %v, want Everquill Phoenix", pile.Face())
-	}
-	if !pile.IsToken {
-		t.Fatal("pile is not a token; the engine keeps the target's token status today")
-	}
-}

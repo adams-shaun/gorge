@@ -434,7 +434,8 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 728.1a | not-impl | `engine/effects/counters.go#effRadiationDrain` | - | LOUD: stat:GainLifeRadiation unregistered |
 | 729.1-729.6 | not-impl | - | - |  |
 | 730.1-730.2c | follows | `engine/events/apply_copy.go#foldMutate` `engine/rules/mutate.go#Engine.resolveMutate` | `TestEverquillPhoenixMutatesOntoTopAndCreatesFeather` `TestEverquillPhoenixMutatesUnderKeepsTargetOnTop` `TestMutatesCountAccumulatesAcrossTwoMutations` | same object keeps ID |
-| 730.2d-730.2e | deviates | `engine/events/apply_copy.go#foldMutate` | `TestCRDeviation730_2d` | SILENT: token and face-down status stay the target's, not the topmost component's (token half pinned) |
+| 730.2d | follows | `engine/events/apply_copy.go#foldMutate` | `TestMutateTokenTopMerge` | a top merge gives the pile the topmost component's token status |
+| 730.2e | unknown | `engine/events/apply_copy.go#foldMutate` | - | face-down half unaudited since the 730.2d token fix; the old row said it stays the target's (never pinned) |
 | 730.2f-730.2j | not-impl | - | - | SILENT: face-down/flip/transform code never reads merged components |
 | 730.3 | follows | `engine/events/apply_zone.go#move` | `TestMutateMergedCardsLeaveWithThePile` | under-cards follow the pile to its destination |
 | 730.3a-730.3b | partial | `engine/events/apply_zone.go#move` | - | no arrangement or exile-timestamp choice; fixed pile order |
