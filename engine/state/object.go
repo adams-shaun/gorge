@@ -60,12 +60,14 @@ type TargetStamp struct {
 // values locked when it was applied, before the effect's CopyExcept/CloneStatic
 // edits (those are re-emitted on a re-base), GainThisAbility its rider, and
 // Prototype whether the copied source was prototyped (CR 718.3c: part of what
-// the copy locks).
+// the copy locks). BeforeMerge marks a layer older than the permanent's
+// latest merge (Object.CopiedSinceMerge).
 type CloneLayer struct {
 	Seq             int32
 	Face            *cards.Face
 	GainThisAbility bool
 	Prototype       bool
+	BeforeMerge     bool
 }
 
 // GoadEffect is one independently-lived CR 701.38 goad relationship.
