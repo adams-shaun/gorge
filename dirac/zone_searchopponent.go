@@ -3,7 +3,9 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Which opponent answers a library search an opponent answers (OpSearchEx
-// under kop.SrChooserOpp: Realms Uncharted, Guided Passage). With two or more
+// under kop.SrChooserOpp: Realms Uncharted, Guided Passage), or a hidden pick
+// outside the hand (OpChooseMove under SrChooserOpp: Tasigur, the Golden
+// Fang's graveyard return; gorge bindHiddenPickOpponent). With two or more
 // live opponents gorge asks the resolving controller which one before anything
 // of the search is posed (beginSearchOwner; CR 608.2d), and the kernel asks it
 // too: raGenSearchOpp (manifest_gen.go, dirac/manifest/ask), pileOppOptions'
@@ -26,7 +28,7 @@ func tableAnyOppSearch(t *kop.Table) bool {
 		for j := range t.Cards[i].Abilities {
 			prog := t.Cards[i].Abilities[j].Prog
 			for n := range prog {
-				if oppSearch(&prog[n]) {
+				if oppSearch(t, &prog[n]) {
 					return true
 				}
 			}
@@ -35,19 +37,32 @@ func tableAnyOppSearch(t *kop.Table) bool {
 	return false
 }
 
-func oppSearch(in *kop.Instr) bool {
-	return in.Op == kop.OpSearchEx && in.B.N&kop.SrChooserOpp != 0
+// oppSearch reports an opponent-answered search or hidden pick. Over a hand
+// pool a ChooseMove's B bit 0 is the UntilLeaves hand-exile link instead
+// (chooserOf), so a hand pick is never one.
+func oppSearch(t *kop.Table, in *kop.Instr) bool {
+	if in.B.N&kop.SrChooserOpp == 0 {
+		return false
+	}
+	switch in.Op {
+	case kop.OpSearchEx:
+		return true
+	case kop.OpChooseMove:
+		return int(in.F) < len(t.Filters) && t.Filters[in.F].Zone != kop.ZoneHand
+	}
+	return false
 }
 
 // DebugSearchOppNext is the lockstep mutation of the opponent pick: the next
 // live seat answers the search whatever the controller picked, so
-// TestFourSeatChooserOpponentLockstep must diverge. Never set in production.
+// TestFourSeatChooserOpponentLockstep and
+// TestFourSeatHiddenPickChooserOpponentLockstep must diverge. Never set in production.
 var DebugSearchOppNext bool
 
 // searchOppAsk forgets the last search's opponent and, for an opponent-answered
 // search with two or more live opponents, poses raGenSearchOpp. true: asked.
-func (s *State) searchOppAsk(in *kop.Instr) bool {
-	if !oppSearch(in) {
+func (s *State) searchOppAsk(k *prep, in *kop.Instr) bool {
+	if !oppSearch(k.t, in) || in.Op == kop.OpChooseMove && s.searchZone(k) == kop.ZoneHand {
 		return false
 	}
 	c := coldSearchOpp.of(s)
@@ -77,7 +92,7 @@ func (s *State) searchOppAnswer(k *prep, a Action) {
 // controller picked for an opponent-answered library search, else the
 // controller's first live opponent. 255: none.
 func (s *State) searchOpponent(k *prep, in *kop.Instr) uint8 {
-	if oppSearch(in) && !DebugSearchOppNext {
+	if oppSearch(k.t, in) && !DebugSearchOppNext {
 		if c := coldSearchOpp.of(s); c != nil && c[0] != 0 {
 			return c[0] - 1
 		}
