@@ -178,6 +178,14 @@ type Options struct {
 	// OnTableRemoved is told. A live game is never removed: with none
 	// finished, the new game is refused.
 	MaxOnDemandTables int
+	// KeepMatches bounds how many finished all-bot matches each table keeps
+	// on disk and in its match list. 0 — the default — keeps every match
+	// (today's behaviour). A positive value prunes the oldest prunable
+	// matches after each archive and once at startup. A match with a human
+	// seat, a crashed match, the live match, an event table and anything
+	// outside the table directories are never touched. Match numbers keep
+	// counting, so a pruned number is never reused.
+	KeepMatches int
 	// OnTableRemoved, when non-nil, is called with the id of each table the
 	// registry drops (a finished on-demand table reaped at MaxOnDemandTables),
 	// after the removal is saved and with no Registry lock held. nil is none.
@@ -333,6 +341,9 @@ func New(o Options) (*Registry, error) {
 	}
 	if o.MaxOnDemandTables < 0 {
 		return nil, fmt.Errorf("host: MaxOnDemandTables %d, want >= 0", o.MaxOnDemandTables)
+	}
+	if o.KeepMatches < 0 {
+		return nil, fmt.Errorf("host: KeepMatches %d, want >= 0", o.KeepMatches)
 	}
 	if o.SearchSlots < 0 {
 		return nil, fmt.Errorf("host: SearchSlots %d, want >= 0", o.SearchSlots)
