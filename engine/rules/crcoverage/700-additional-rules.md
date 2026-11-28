@@ -19,7 +19,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 700.3a-c | follows | `engine/effects/twopiles.go#effTwoPiles` | - | piles are choices; cards stay until pick |
 | 700.3d | partial | `engine/effects/twopiles.go#effTwoPiles` | - | one-card set forced into pile A |
 | 700.4 | follows | `engine/rules/trigmatch/zone.go#ZoneChangeMatchesWithCapture` | - |  |
-| 700.5 | deviates | `engine/effects/count_body_heads.go#evalCountBodyDotted` | `TestDevotionDualSumsBothColours` | two-colour devotion counts hybrid twice; test pins wrong 5 |
+| 700.5 | follows | `engine/effects/count_body_heads.go#evalCountBodyDotted` | `TestDevotionDualSumsBothColours` `TestDevotionDualCountsEverySpellingOnce` | re-audit 2026-11-27: a two-colour hybrid symbol counts once |
 | 700.5a | partial | `engine/state/object.go#Object.faceSlow` | - | devotion modifier absent; layer timing otherwise ok |
 | 700.6 | follows | `engine/effects/filter_word.go#historicMatches` | - | no historic card in pools |
 | 700.7 | follows | `engine/effects/filter.go#predicates` | `TestDelayedDestroyAndSacrificeFindOnlyTheRememberedObject` | identity by ObjID / obj+version |
@@ -66,8 +66,8 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.14b | follows | `engine/effects/damage.go#fightPairs` `engine/effects/damage.go#fightMemberOK` | `TestCR701_14bNoncreatureFighterDealsNothing` |  |
 | 701.14c | follows | `engine/effects/damage.go#effFight` | `TestCR701_14cSelfFightDealsTwicePower` |  |
 | 701.14d | follows | `engine/effects/damage.go#emitObjectDamage` | - |  |
-| 701.15a | follows | `engine/effects/misc.go#effGoad` `engine/events/apply_state_helpers.go#expireTurnGoads` | - | no goad in pools |
-| 701.15b | deviates | `engine/rules/combat/goad.go#GoadMayAttack` `engine/rules/attack_cost.go#Engine.attackOffersCompute` | - | goader banned outright, not a requirement (multiplayer) |
+| 701.15a | follows | `engine/effects/misc.go#effGoad` `engine/events/apply_state_helpers.go#expireTurnGoads` | `TestGoadKarazikarEnforcesEveryGoaderAtDeclaration` `TestGoadDurationsUseRealJonAndVislorScripts` | each goader's goad expires at that goader's next turn |
+| 701.15b | follows | `engine/rules/combat/goad.go#GoadMayAttack` `engine/rules/combat/attack.go#AttackRequirements` | `TestGoadKarazikarEnforcesEveryGoaderAtDeclaration` | re-audit 2026-11-27: goad is an attack requirement; a non-goader is preferred, not the goader banned |
 | 701.15c-d | follows | `engine/rules/combat/goad.go#GoadedBy` `engine/events/apply_combat.go#foldGoad` | - |  |
 | 701.16a | follows | `engine/effects/investigate.go#effInvestigate` | - |  |
 | 701.17a | follows | `engine/effects/cardflow.go#effMill` | - |  |
