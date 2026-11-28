@@ -238,7 +238,7 @@ func plainCastZone(z kop.Zone) bool { return z == kop.ZoneHand || z == kop.ZoneC
 // (a Gold token) the credit also taps still pays its pip (CR 605.3a mana
 // abilities first, CR 702.126a improvise after).
 func (s *State) improviseWithheld(k *prep, res slotMask) slotMask {
-	if !k.sacOnlyMana || DebugImproviseWithholdAll {
+	if !s.sacOnlyLive(k) || DebugImproviseWithholdAll {
 		return res
 	}
 	for m := res; m.any(); m = m.rest() {

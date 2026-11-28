@@ -108,6 +108,7 @@ default	field	genState.nchosen	1
 default	field	genState.remCnt	2
 default	field	genState.availX	2
 default	field	genState.noGrant	1
+default	field	genState.sacOut	1
 default	field	genState.roleOut	1
 default	field	genState.digLo	1
 default	field	genState.raiseO	1

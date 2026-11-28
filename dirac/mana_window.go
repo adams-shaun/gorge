@@ -171,7 +171,7 @@ func (s *State) windowUnpricedOpenIf(k *prep, e *stackEntry, open bool) bool {
 	ctr := s.scriptCtrIdle(k, e.ctrl, true)
 	for m := s.ctrlM[e.ctrl]; m.any(); m = m.rest() {
 		if sl := m.first(); s.canTapForMana(k, sl) || s.windowGap(k, e.ctrl, sl) || tapX.has(sl) || s.restrManaUntapped(k, sl) ||
-			ctr.has(sl) || k.sacOnlyMana && s.canSacOnlyNowAt(k, sl) || k.painMana && s.canLifeOnlyMana(k, sl, SeatIx(e.ctrl)) {
+			ctr.has(sl) || s.sacOnlyLive(k) && s.canSacOnlyNowAt(k, sl) || k.painMana && s.canLifeOnlyMana(k, sl, SeatIx(e.ctrl)) {
 			return true
 		}
 	}
@@ -373,7 +373,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		}
 		col := s.windowWalkCol(k, p, cost, useful, sl, pc, clamp, anyColor, s.walkColNoOwed(noOwed, payAsk, pc), potential)
 		pc = s.windowGrantAnswer(k, sl, col, pc) // the answer is a colour only a granted ability makes: the tap is the grant's (mana_grantcost.go)
-		sacOnly := windowSacOnly(k, pc)          // printed or granted (mana_grantcost.go)
+		sacOnly := s.windowSacOnly(k, pc)        // printed or granted (mana_grantcost.go)
 		noTap := windowNoTapPain(k, pc)          // a life-only pain unit: the pain arm below pays its life (mana_pain.go)
 		if k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDyn(k, p, cost, sl) {
 			continue
@@ -1137,9 +1137,9 @@ func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor boo
 		pc := s.windowGrantPC(k, sl)
 		dyn := k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDynMask(k, p, sl) != 0
 		if gap && !s.dryDeferPriced(k, sl, pc) ||
-			windowSacOnly(k, pc) || windowNoTapPain(k, pc) || s.perms[sl].flags&pfTapped != 0 || dyn {
+			s.windowSacOnly(k, pc) || windowNoTapPain(k, pc) || s.perms[sl].flags&pfTapped != 0 || dyn {
 			ok, known = false, false
-			sacStop = !gap && !dyn && (windowSacOnly(k, pc) || windowNoTapPain(k, pc)) && s.perms[sl].flags&pfTapped == 0
+			sacStop = !gap && !dyn && (s.windowSacOnly(k, pc) || windowNoTapPain(k, pc)) && s.perms[sl].flags&pfTapped == 0
 			break
 		}
 		col := s.windowCol(k, p, cost, sl, pc, anyColor, false)
