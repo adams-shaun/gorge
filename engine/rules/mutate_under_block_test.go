@@ -37,7 +37,7 @@ func mergedQueuedSince(e *Engine, id state.ObjID, from int) (merged, all int) {
 	return merged, all
 }
 
-const underGainLifeSVar = "SVar:TrigGain:DB$ GainLife | Defined$ You | LifeAmount$ 1\n"
+const underGainLifeSVar = "SVar:UnderGain:DB$ GainLife | LifeAmount$ 1 | Defined$ You\n"
 
 // TestMutatedPileUnderCardBlockTriggersFireOnce: an under card's
 // AttackerBlocked, Blocks and AttackerUnblocked lines each queue exactly one
@@ -48,19 +48,19 @@ func TestMutatedPileUnderCardBlockTriggersFireOnce(t *testing.T) {
 		name, line string
 		fire       func(t *testing.T, e *Engine, pile state.ObjID)
 	}{
-		{"AttackerBlocked", "T:Mode$ AttackerBlocked | ValidCard$ Card.Self | Execute$ TrigGain | TriggerDescription$ Whenever CARDNAME becomes blocked, you gain 1 life.\n",
+		{"AttackerBlocked", "T:Mode$ AttackerBlocked | ValidCard$ Card.Self | Execute$ UnderGain | TriggerDescription$ Whenever CARDNAME becomes blocked, you gain 1 life.\n",
 			func(t *testing.T, e *Engine, pile state.ObjID) {
 				blocker := onBoard(t, e, 1, mutateBearSrc)
 				declareAttackersOnly(t, e, 0, 1, pile)
 				e.pendingTriggers = nil
 				e.emit(events.Event{Kind: events.DeclareBlockers, Player: 1, Pairs: [][2]state.ObjID{{pile, blocker}}})
 			}},
-		{"Blocks", "T:Mode$ Blocks | ValidCard$ Card.Self | Execute$ TrigGain | TriggerDescription$ Whenever CARDNAME blocks, you gain 1 life.\n",
+		{"Blocks", "T:Mode$ Blocks | ValidCard$ Card.Self | Execute$ UnderGain | TriggerDescription$ Whenever CARDNAME blocks, you gain 1 life.\n",
 			func(t *testing.T, e *Engine, pile state.ObjID) {
 				attacker := onBoard(t, e, 1, mutateBearSrc)
 				e.emit(events.Event{Kind: events.DeclareBlockers, Player: 0, Pairs: [][2]state.ObjID{{attacker, pile}}})
 			}},
-		{"AttackerUnblocked", "T:Mode$ AttackerUnblocked | ValidCard$ Card.Self | Execute$ TrigGain | TriggerDescription$ Whenever CARDNAME attacks and isn't blocked, you gain 1 life.\n",
+		{"AttackerUnblocked", "T:Mode$ AttackerUnblocked | ValidCard$ Card.Self | Execute$ UnderGain | TriggerDescription$ Whenever CARDNAME attacks and isn't blocked, you gain 1 life.\n",
 			func(t *testing.T, e *Engine, pile state.ObjID) {
 				declareAttackersOnly(t, e, 0, 1, pile)
 				e.pendingTriggers = nil
