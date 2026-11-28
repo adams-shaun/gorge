@@ -1,0 +1,16 @@
+mechanic	cr	pattern	tests
+apnap-triggers	101.4,603.3b	APNAP|TriggerOrder	TestAssistAsksEachSeatInAPNAPRound TestCR802BlockDeclarationsFollowAPNAP
+commander-damage	903.10a	CommanderDamage	TestCR903FourSeatCommanderDamageIsPerCommander TestCR903FourSeatCommanderDamageLossLeavesThree
+commander-tax	903.8	CommanderTax|CommanderCast	TestCR903FourSeatTaxIsPerPlayer
+defending-player	506.2,802.2a	DefendingPlayer	gap
+departed-player	800.4a	Departed|LeavesTheGame|Eliminated	TestCR800DepartedControllersStackObjectsCease TestCR800DepartedOwnersCardsLeaveEveryZone TestCR800NoCombatDamageToDepartedDefender TestCR800_4fDepartedPlayerPaysNoCost TestCR800_4mDurationEndsAtTheDepartedPlayersNextTurn
+dethrone	702.105	Dethrone	gap
+each-opponent	102.2,102.3	EachOpponent	gap
+encore	702.141	Encore	TestEncoreCreatesOneDelayedTriggerForAllOpponentTokens TestEncoreTokenOnceLatchWithAkimMakesOneBird
+extra-turns	500.7	ExtraTurn	gap
+goad	701.15	Goad	TestGoadKarazikarEnforcesEveryGoaderAtDeclaration
+initiative	726	Initiative	gap
+melee	702.121	Melee	gap
+monarch	725	Monarch	gap
+myriad	702.116	Myriad	gap
+vote	701.38	Vot(e|ing)	TestCirdanVoteTallySurvivesChangeZoneSuspension TestMobVerdictPlayerBallotDamageAndDrawPerVote
