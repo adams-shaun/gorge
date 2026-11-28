@@ -102,54 +102,97 @@ func isHelperWalkCall(e ast.Expr) bool {
 
 // playerLoopSites returns the positions of the walks in one function body,
 // in source order: a range over a .Players selector, a range over a helper
-// call, and a loop that ranges over or indexes a local assigned from one.
+// result (the call, or a local holding it), a loop that indexes one, and a
+// loop bounded by, or ranging over, the player count.
 func playerLoopSites(body *ast.BlockStmt) []token.Pos {
-	// Locals assigned from a helper call anywhere in the function.
-	helperVars := map[string]bool{}
-	ast.Inspect(body, func(n ast.Node) bool {
-		switch s := n.(type) {
-		case *ast.AssignStmt:
-			if len(s.Lhs) == len(s.Rhs) {
-				for i, r := range s.Rhs {
-					if id, ok := s.Lhs[i].(*ast.Ident); ok && isHelperWalkCall(r) {
-						helperVars[id.Name] = true
-					}
-				}
-			}
-		case *ast.ValueSpec:
-			if len(s.Names) == len(s.Values) {
-				for i, v := range s.Values {
-					if isHelperWalkCall(v) {
-						helperVars[s.Names[i].Name] = true
-					}
-				}
-			}
-		}
-		return true
-	})
-	isHelperVar := func(e ast.Expr) bool {
-		id, ok := ast.Unparen(e).(*ast.Ident)
-		return ok && helperVars[id.Name]
+	helperVars := playerHelperVars(body)
+	isWalk := func(e ast.Expr) bool {
+		e = unsliced(e)
+		return isHelperWalkCall(e) || isNamedLocal(helperVars, e)
 	}
 	countVars := playerCountVars(body)
 	var sites []token.Pos
 	ast.Inspect(body, func(n ast.Node) bool {
 		switch s := n.(type) {
 		case *ast.RangeStmt:
-			x := ast.Unparen(s.X)
-			if sel, ok := x.(*ast.SelectorExpr); ok && sel.Sel.Name == "Players" {
-				sites = append(sites, s.Pos())
-			} else if isHelperWalkCall(x) || isHelperVar(x) {
+			sel, ok := ast.Unparen(s.X).(*ast.SelectorExpr)
+			n := unconverted(s.X)
+			counted := isPlayersLen(n) || isNamedLocal(countVars, n)
+			if (ok && sel.Sel.Name == "Players") || counted || isWalk(s.X) || loopIndexesWalk(s, isWalk, s.Body) {
 				sites = append(sites, s.Pos())
 			}
 		case *ast.ForStmt:
-			if s.Body != nil && (forBoundedByPlayerCount(s, countVars) || forIndexesHelperVar(s, isHelperVar)) {
+			if forBoundedByPlayerCount(s, countVars) || forUsesWalk(s, isWalk) {
 				sites = append(sites, s.Pos())
 			}
 		}
 		return true
 	})
 	return sites
+}
+
+func isNamedLocal(names map[string]bool, e ast.Expr) bool {
+	id, ok := ast.Unparen(e).(*ast.Ident)
+	return ok && names[id.Name]
+}
+
+// unsliced strips slice expressions: opps[1:] walks what opps walks.
+func unsliced(e ast.Expr) ast.Expr {
+	for {
+		s, ok := ast.Unparen(e).(*ast.SliceExpr)
+		if !ok {
+			return ast.Unparen(e)
+		}
+		e = s.X
+	}
+}
+
+// localsMatching are the locals assigned, anywhere in the function, from an
+// expression seed accepts or from another such local (to a fixpoint), each
+// right-hand side first reduced by strip. Of a multi-value assignment
+// (ps, ok := f()) the first local takes the match.
+func localsMatching(body *ast.BlockStmt, strip func(ast.Expr) ast.Expr, seed func(ast.Expr) bool) map[string]bool {
+	vars := map[string]bool{}
+	for changed := true; changed; {
+		changed = false
+		mark := func(lhs ast.Expr, rhs ast.Expr) {
+			id, ok := lhs.(*ast.Ident)
+			if !ok || id.Name == "_" || vars[id.Name] {
+				return
+			}
+			if rhs = strip(rhs); seed(rhs) || isNamedLocal(vars, rhs) {
+				vars[id.Name] = true
+				changed = true
+			}
+		}
+		ast.Inspect(body, func(n ast.Node) bool {
+			switch s := n.(type) {
+			case *ast.AssignStmt:
+				if len(s.Lhs) == len(s.Rhs) {
+					for i := range s.Rhs {
+						mark(s.Lhs[i], s.Rhs[i])
+					}
+				} else if len(s.Rhs) == 1 {
+					mark(s.Lhs[0], s.Rhs[0])
+				}
+			case *ast.ValueSpec:
+				if len(s.Names) == len(s.Values) {
+					for i := range s.Values {
+						mark(s.Names[i], s.Values[i])
+					}
+				} else if len(s.Values) == 1 {
+					mark(s.Names[0], s.Values[0])
+				}
+			}
+			return true
+		})
+	}
+	return vars
+}
+
+// playerHelperVars are the locals holding a player-walk helper's result.
+func playerHelperVars(body *ast.BlockStmt) map[string]bool {
+	return localsMatching(body, unsliced, isHelperWalkCall)
 }
 
 // isPlayersLen reports whether e is len(<x>.Players).
@@ -165,43 +208,29 @@ func isPlayersLen(e ast.Expr) bool {
 	return ok && sel.Sel.Name == "Players"
 }
 
-// playerCountVars are the locals holding the player count: assigned from
-// len(<x>.Players), or from another such local (pn := len(g.Players);
-// zonePlayers := pn).
-func playerCountVars(body *ast.BlockStmt) map[string]bool {
-	vars := map[string]bool{}
-	for changed := true; changed; {
-		changed = false
-		mark := func(lhs ast.Expr, rhs ast.Expr) {
-			id, ok := lhs.(*ast.Ident)
-			if !ok || vars[id.Name] {
-				return
-			}
-			r, isIdent := ast.Unparen(rhs).(*ast.Ident)
-			if isPlayersLen(rhs) || (isIdent && vars[r.Name]) {
-				vars[id.Name] = true
-				changed = true
-			}
+// playerCountConversions are the type names a player count is converted to.
+var playerCountConversions = map[string]bool{
+	"int": true, "int8": true, "int16": true, "int32": true, "int64": true,
+	"uint": true, "uint8": true, "uint16": true, "uint32": true, "uint64": true,
+	"PlayerID": true,
+}
+
+// unconverted strips one-argument integer conversions: state.PlayerID(x) is x.
+func unconverted(e ast.Expr) ast.Expr {
+	for {
+		c, ok := ast.Unparen(e).(*ast.CallExpr)
+		if !ok || len(c.Args) != 1 || !playerCountConversions[playerLoopCallName(c)] {
+			return ast.Unparen(e)
 		}
-		ast.Inspect(body, func(n ast.Node) bool {
-			switch s := n.(type) {
-			case *ast.AssignStmt:
-				if len(s.Lhs) == len(s.Rhs) {
-					for i := range s.Rhs {
-						mark(s.Lhs[i], s.Rhs[i])
-					}
-				}
-			case *ast.ValueSpec:
-				if len(s.Names) == len(s.Values) {
-					for i := range s.Values {
-						mark(s.Names[i], s.Values[i])
-					}
-				}
-			}
-			return true
-		})
+		e = c.Args[0]
 	}
-	return vars
+}
+
+// playerCountVars are the locals holding the player count: assigned from
+// len(<x>.Players), converted or not, or from another such local
+// (pn := len(g.Players); zonePlayers := pn).
+func playerCountVars(body *ast.BlockStmt) map[string]bool {
+	return localsMatching(body, unconverted, isPlayersLen)
 }
 
 // forBoundedByPlayerCount reports whether a three-clause loop's condition
@@ -223,35 +252,51 @@ func forBoundedByPlayerCount(s *ast.ForStmt, countVars map[string]bool) bool {
 	return found
 }
 
-// forIndexesHelperVar reports whether a three-clause loop's condition or
-// body indexes a helper-assigned local (for i := 0; i < len(opps); i++).
-func forIndexesHelperVar(s *ast.ForStmt, isHelperVar func(ast.Expr) bool) bool {
+// forUsesWalk reports whether a three-clause loop's condition or body
+// indexes a helper result or takes its length (i < len(opps)).
+func forUsesWalk(s *ast.ForStmt, isWalk func(ast.Expr) bool) bool {
+	nodes := []ast.Node{s.Body}
+	if s.Cond != nil {
+		nodes = append(nodes, s.Cond)
+	}
+	if loopIndexesWalk(s, isWalk, nodes...) {
+		return true
+	}
+	return loopHas(s, func(n ast.Node) bool {
+		c, ok := n.(*ast.CallExpr)
+		if !ok || len(c.Args) != 1 {
+			return false
+		}
+		id, ok := c.Fun.(*ast.Ident)
+		return ok && id.Name == "len" && isWalk(c.Args[0])
+	}, nodes...)
+}
+
+// loopIndexesWalk reports whether loop itself indexes a helper result.
+func loopIndexesWalk(loop ast.Stmt, isWalk func(ast.Expr) bool, nodes ...ast.Node) bool {
+	return loopHas(loop, func(n ast.Node) bool {
+		ix, ok := n.(*ast.IndexExpr)
+		return ok && isWalk(ix.X)
+	}, nodes...)
+}
+
+// loopHas reports whether match holds somewhere in nodes, outside any loop
+// nested in loop: the innermost loop is the walk's site.
+func loopHas(loop ast.Stmt, match func(ast.Node) bool, nodes ...ast.Node) bool {
 	found := false
-	check := func(n ast.Node) bool {
-		if found {
-			return false
-		}
-		if _, nested := n.(*ast.ForStmt); nested && n != ast.Node(s) {
-			return false
-		}
-		if _, nested := n.(*ast.RangeStmt); nested {
-			return false
-		}
-		if ix, ok := n.(*ast.IndexExpr); ok && isHelperVar(ix.X) {
-			found = true
-		}
-		if c, ok := n.(*ast.CallExpr); ok {
-			if id, ok := c.Fun.(*ast.Ident); ok && id.Name == "len" && len(c.Args) == 1 && isHelperVar(c.Args[0]) {
+	for _, root := range nodes {
+		ast.Inspect(root, func(n ast.Node) bool {
+			switch n.(type) {
+			case *ast.ForStmt, *ast.RangeStmt:
+				if n != ast.Node(loop) {
+					return false
+				}
+			}
+			if n != nil && match(n) {
 				found = true
 			}
-		}
-		return !found
-	}
-	if s.Cond != nil {
-		ast.Inspect(s.Cond, check)
-	}
-	if !found {
-		ast.Inspect(s.Body, check)
+			return !found
+		})
 	}
 	return found
 }
@@ -357,8 +402,10 @@ func TestPlayerLoopsAreClassed(t *testing.T) {
 	sites := scanPlayerLoops(t)
 	rows := readPlayerLoopRows(t, "testdata/player-loops.tsv")
 	known := readPlayerLoopKnown(t, "testdata/player-loops-known.txt")
-	if !sort.StringsAreSorted(known) {
-		t.Errorf("testdata/player-loops-known.txt is not sorted")
+	for i := 1; i < len(known); i++ {
+		if known[i-1] >= known[i] {
+			t.Errorf("testdata/player-loops-known.txt is not sorted without duplicates: %s follows %s", known[i], known[i-1])
+		}
 	}
 	knownSet := map[string]bool{}
 	for _, k := range known {
@@ -438,6 +485,73 @@ func cards(g *Game) {
 		_ = c
 	}
 }`, nil},
+		// A multi-value helper result, aliased twice, then ranged.
+		{"effects/d.go", `package effects
+func flip(h Host, c *Ctx) {
+	var players, again []int
+	ps, ok := forEachPlayerFlippers(h, c)
+	if ok {
+		players = ps
+		again = players
+	}
+	for _, p := range again {
+		_ = p
+	}
+}`, []string{"effects/d.go:flip#0"}},
+		// The player count held through a type conversion.
+		{"rules/e.go", `package rules
+func seats(e *Engine) {
+	n := state.PlayerID(len(e.G.Players))
+	for i := state.PlayerID(0); i < n; i++ {
+		_ = i
+	}
+}`, []string{"rules/e.go:seats#0"}},
+		// Indexing: in a range loop, in a range nested in a three-clause
+		// loop (the innermost loop is the site), and of the call itself.
+		// An index outside any loop is no walk.
+		{"rules/f.go", `package rules
+func idx(e *Engine, other []int) {
+	opps := e.livingOpponents(0)
+	_ = opps[0]
+	for i := range other {
+		_ = opps[i]
+	}
+	for j := 0; j < 3; j++ {
+		for range other {
+			_ = opps[j]
+		}
+	}
+	for k := range other {
+		_ = e.livingOpponents(0)[k]
+	}
+}`, []string{"rules/f.go:idx#0", "rules/f.go:idx#1", "rules/f.go:idx#2"}},
+		// A range over the player count, direct or held in a local.
+		{"rules/g.go", `package rules
+func counted(g *Game) {
+	for p := range len(g.Players) {
+		_ = p
+	}
+	n := int(len(g.Players))
+	for p := range state.PlayerID(n) {
+		_ = p
+	}
+	m := uint8(n)
+	for p := range m {
+		_ = p
+	}
+}`, []string{"rules/g.go:counted#0", "rules/g.go:counted#1", "rules/g.go:counted#2"}},
+		// A slice of a helper result, ranged directly or through an alias.
+		{"rules/h.go", `package rules
+func tail(g *Game) {
+	alive := g.AliveFrom(0)
+	for _, p := range alive[1:] {
+		_ = p
+	}
+	rest := alive[1:]
+	for _, p := range rest {
+		_ = p
+	}
+}`, []string{"rules/h.go:tail#0", "rules/h.go:tail#1"}},
 	}
 	var got, want []string
 	for _, c := range cases {
