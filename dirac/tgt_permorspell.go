@@ -54,19 +54,13 @@ func (s *State) targetOKPermOrSpell(k *prep, t *kop.TargetSpec, p uint8, src Slo
 	return false
 }
 
-// permOrSpellCands lists TgtPermOrSpell's choices: the battlefield in slot
-// order, then the stack top-down (targetCands' order; MaxPerm+MaxStack fits
-// MaxOptions).
+// permOrSpellCands lists TgtPermOrSpell's choices: the battlefield in gorge's
+// offer order, then the stack top-down (targetCands' order; MaxPerm+MaxStack
+// fits MaxOptions).
 //
 //go:noinline
 func (s *State) permOrSpellCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]TCode, n int) int {
-	for m := s.occ; m.any(); m = m.rest() {
-		o := s.perms[m.first()].obj
-		if s.targetOK(k, t, p, src, self, TCode(o)) {
-			out[n] = TCode(o)
-			n++
-		}
-	}
+	n = s.permTgtCands(k, t, p, src, self, out, n) // tgt_permorder.go
 	for i := int(s.sp) - 1; i >= 0; i-- {
 		e := &s.stack[i]
 		if e.kind == seSpell && s.targetOK(k, t, p, src, self, TCode(e.obj)) {
