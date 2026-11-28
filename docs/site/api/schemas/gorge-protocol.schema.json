@@ -1360,12 +1360,35 @@
         "min_games": {
           "format": "int64",
           "type": "integer"
+        },
+        "pilots": {
+          "description": "Pilots is the sorted distinct bot_policy of the counted matches: the tally measures these bots' self-play, not the decks alone.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "seats": {
+          "description": "Seats is the ascending distinct seat counts of the counted matches.",
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         }
       },
       "required": [
         "decks",
         "matches_counted",
-        "min_games"
+        "min_games",
+        "pilots",
+        "seats"
       ],
       "type": "object",
       "x-go-type": "github.com/adams-shaun/gorge/server/protocol.DeckTally"
