@@ -496,7 +496,7 @@ func (s *State) featPoolPaysSel(p uint8, o Obj, mode uint8, extra *[6]int32, any
 	if a.affords(&cost, pipMaskOf(&cost), 0) {
 		return true
 	}
-	if mode == 0 && defilerOn(k) {
+	if mode == 0 && defilerOn(k) && defilerOfferZone(s.objs[o].zone) {
 		own := 0
 		if ac := spellAddCost(k, c); ac.Flags&kop.CostPayLife != 0 {
 			own = lifeCostOwed(ac)
