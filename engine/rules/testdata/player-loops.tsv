@@ -325,7 +325,7 @@ effects/staticeffect_lock.go:lockEffectGrant#0	seat-visible	skips	matching ids s
 effects/taporuntapall_election.go:tapOrUntapAllSweep#0	seat-visible	skips	AliveFrom(0) battlefield sweep emits tap/untap events in seat order
 effects/token.go:tokenOwnerPlayers#0	seat-visible	skips	returned owner list orders TokenCreate events
 effects/token.go:tokenOwnersControllingAny#0	seat-visible	skips	returned owner list; doc says it is the TokenCreate event ordering contract
-effects/token.go:effToken#0	seat-visible	skips	first opponent from controller taken without a choice: walk order decides the token owner
+effects/token.go:tokenOpponentOwners#0	apnap	skips	each opponent creates tokens in turn order from the active player (CR 101.4)
 effects/trigger_referents.go:controlReferentPlayers#0	seat-visible	includes	returned player referents in seat order; MatchesPlayerSpecCtx does not check .Lost here
 effects/trigger_referents.go:controlReferentPlayers#1	seat-visible	includes	returned player targets in seat order; MatchesPlayerSpecCtx does not check .Lost here
 effects/trigger_referents.go:playerSpecControlTargets#0	seat-visible	includes	returned player targets in seat order; MatchesPlayerSpecCtx does not check .Lost here
