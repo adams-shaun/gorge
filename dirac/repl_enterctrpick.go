@@ -51,7 +51,11 @@ func (s *State) ctrPickAnswer(k *prep, ask askRec, a Action) bool {
 	}
 	if ask.kind == akCtrPick {
 		p.chosen = objWord(a.Mode())
-		s.queueAskAt(ask.sl, akCtrPick2, ask.card, uint8(ask.ab), ask.pc)
+		// The second pick goes back to the queue's head: gorge settles this
+		// entry's two picks before the next entry's queued ask, as the Devour
+		// and reveal picks do.
+		ask.kind = akCtrPick2
+		s.requeueAskHead(ask)
 		return false
 	}
 	first, second := uint8(p.chosen), a.Mode()
