@@ -3648,20 +3648,36 @@ func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 	return 0
 }
 
+// tokenScanStart is the first object id whose ofToken/ofCopy bits
+// ceaseTokensGen and freeTokenObj must examine. newToken mints every token
+// and copy with those bits and nothing else sets them, so on an ordinary
+// table the bit-carrying objects are the object table's suffix (the deck
+// cards from Init come first) and the walk starts where the suffix starts.
+// A merging table is the one exception: mergeFold's top arm moves the bits
+// between objects (a token or spell copy on either side, kw_mutate.go,
+// reached by a Mutate card or an ExtMergePermanent program), so the suffix
+// invariant no longer holds there and the walk runs over the whole table.
+func (s *State) tokenScanStart() int {
+	if k := s.k(); k == nil || k.gen == nil || !(k.gen.anyMerge || k.gen.anyMutate) {
+		i0 := int(s.nobj)
+		for i0 > 0 && s.objs[i0-1].of&(ofToken|ofCopy) != 0 {
+			i0--
+		}
+		return i0
+	}
+	return 0
+}
+
 // ceaseTokensGen is CR 704.5d on a generated table: a token that left the
 // battlefield sits in its new zone until the state-based actions (gorge
 // shows Uncharted Voyage's token in the library during the surveil), then
 // ceases to exist; so does a spell copy that left the stack (CR 704.5e).
 func (s *State) ceaseTokensGen() {
-	// tokens and copies are the object table's suffix: the deck cards come
-	// first (Init) and every later object is minted by newToken with
-	// ofToken or ofCopy, which nothing clears; walk only that suffix
-	i0 := int(s.nobj)
-	for i0 > 0 && s.objs[i0-1].of&(ofToken|ofCopy) != 0 {
-		i0--
-	}
+	// tokens and copies are the table's suffix unless the table can merge,
+	// where the bits can move between objects: the walk starts at
+	// tokenScanStart.
 	k := s.k()
-	for i := i0; i < int(s.nobj); i++ {
+	for i := s.tokenScanStart(); i < int(s.nobj); i++ {
 		ob := &s.objs[i]
 		if ob.of&(ofToken|ofCopy) == 0 {
 			continue
