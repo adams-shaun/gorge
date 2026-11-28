@@ -455,10 +455,9 @@ const PayBSubLifeX = 20
 // PayBSubSacXTrig: a PaySac whose B.N carries this sentinel is a trigger's own
 // announced Sac<X/Spec> cost (Sephiroth, One-Winged Angel's "you may sacrifice
 // any number of other creatures. If you do, draw that many cards"). gorge's
-// triggered-cost window has no settle for an announced sacrifice
-// (engine/rules cumulative.go costCarriesUnfoldedX,
-// triggeredCostComponentsPayable), so the election is posed decline only and
-// the body never runs; the kernel's payAnswerGate does the same.
+// triggered-cost window announces X over the permanents F names, then poses
+// the election on the literal Sac<X> (engine/rules cumulative.go
+// triggeredCostXAsk, costCarriesSacX); the kernel's is cost_sacxtrig.go.
 const PayBSubSacXTrig = 21
 
 // PayBSubXColor marks a PayManaX whose announced {X} is a coloured X (Forge's
