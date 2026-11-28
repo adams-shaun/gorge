@@ -27,7 +27,6 @@ TestAtkamountMutation
 TestAttachedToLockstepMutation
 TestAttackEmblemMutation
 TestAttackTriggerPumpMissesAnAttackerThatReturnedLockstep
-TestAttackersDeclaredCountsEachCreatureOnceLockstep
 TestAttacksPerAttackerMutation
 TestAttremMutation
 TestBLBLockstepRuns
@@ -270,7 +269,6 @@ TestFreePlaySpellingsMutation
 TestFrillbackLockstepMutation
 TestFuseMutation
 TestGatedManaAbilityMutation
-TestGemstoneCavernsDeferredManaLockstep
 TestGeneratedHorizonsRecord
 TestGeneratedHorizonsReprosReach
 TestGiadaEatenAliveLockstep
@@ -330,7 +328,6 @@ TestInstanceCard
 TestIvorytuskFortressMutation
 TestKaitoFifthEmblemNoStall
 TestKernelGameFormat1MapsTargetBytes
-TestKeywordRemovalAfterAGrantLockstep
 TestKhanMutation
 TestKiraMutation
 TestKorCastigatorRecord
@@ -578,7 +575,6 @@ TestSiskoMutation
 TestSkipphaseMutation
 TestSkrelvLockstepMutation
 TestSneakmarkMutation
-TestSorceryActivationWaitsForPrefixTriggerLockstep
 TestSourceCounterCostsMutation
 TestSpectatorSeesNoHand
 TestSpectralLockstepMutation
@@ -654,7 +650,6 @@ TestThorinAttachMutation
 TestTokenCopyOfBackFaceMVLockstep
 TestTokownerMutation
 TestTrainLockstepMutation
-TestTransformedTokenCopyKeepsCopyExceptionsLockstep
 TestTreeDigest
 TestTreeDigestFollowsRootSymlink
 TestTreeDigestIgnoresReadme
