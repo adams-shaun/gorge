@@ -282,7 +282,7 @@ func (s *State) offerKickedSel(k *prep, d *Decision, p uint8, c CardID, o Obj, b
 	gorgeOK := cd.RepeatedKind == kop.RepeatSquad || cd.RepeatedKind == kop.RepeatReplicate || s.gorgeOffersKicked(p, o)
 	if aff && s.kickedChainFeasible(k, c, p) && gorgeOK && (!k.sacMana || s.kickWitness(k, p, c, o, &kf)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) &&
 		!s.dhWithholdsCast(k, p, o, &kf) && // a hand cast the Diamonds alone fund: gorge's planner prices no plan (census_incomplete, mana_discardhand.go)
-		s.witnessKeepsTargets(k, p, c, o, &kf) { // a kicked total only a target-consuming sacrifice funds (Hurloon Battle Hymn's {W} from a Prism that is its only target): gorge's prefix search finds no script (cast_tgtkeep.go)
+		s.witnessKeepsTargets(k, p, c, o, &kf, false) { // a kicked total only a target-consuming sacrifice funds (Hurloon Battle Hymn's {W} from a Prism that is its only target): gorge's prefix search finds no script (cast_tgtkeep.go)
 		d.add(MakeAction(AkCast, TCode(o), kickAltTgtOf(sel), 1))
 	}
 }

@@ -1610,7 +1610,7 @@ func (s *State) plainHandPlayLowers(k *prep, p uint8, c CardID, o Obj, anyColor 
 	// consuming the play's own targets is no way to pay it
 	// (potential_plan.go potentialWitnessReaches, cast_tgtkeep.go,
 	// mana_sacplaintarget.go)
-	return s.plainSacKeepsTarget(k, p, c, o, &cost) && s.witnessKeepsTargets(k, p, c, o, &cost)
+	return s.plainSacKeepsTarget(k, p, c, o, &cost) && s.witnessKeepsTargets(k, p, c, o, &cost, false)
 }
 
 // twobridLowers is gorgeLowersRider's twobrid arm (CR 107.4e): the cast
