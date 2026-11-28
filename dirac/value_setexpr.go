@@ -375,6 +375,10 @@ func (s *State) execSet(k *prep, in *kop.Instr) bool {
 	var list [MaxObj + MaxSeats]TCode
 	var vers [MaxObj + MaxSeats]uint8
 	n := s.setMembers(&v, e.ctrl, &list, &vers)
+	if st := DebugSetStats; st != nil {
+		st.Runs++
+		st.Members += uint64(n)
+	}
 	if n == 0 {
 		return true
 	}

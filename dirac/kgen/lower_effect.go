@@ -127,6 +127,7 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	if h == nil {
 		return refuseAPI(sa.API) // lower_refuseapi.go
 	}
+	defer lc.setAPI(sa.API)() // lower_definedset.go
 	return h(lc, sa, ps)
 }
 

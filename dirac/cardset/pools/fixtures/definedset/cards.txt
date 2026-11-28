@@ -1,0 +1,14 @@
+# The Defined$ set-expression pool (dirac/oracle/definedset_lockstep_test.go):
+# Bounty Board (a dying creature with a bounty counter: each opponent of its
+# controller gains 2 life and draws, Player.OpponentOf TriggeredCardController,
+# SetTriggerPlayer SetPlayersComplement), plus the creatures and basics the
+# decks need.
+Bounty Board
+Grizzly Bears
+Glory Seeker
+Llanowar Elves
+Savannah Lions
+Ornithopter
+Swamp
+Forest
+Plains

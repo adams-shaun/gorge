@@ -998,7 +998,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		ka.Gate = kop.Gate{Ctr: k, N: uint8(a.Trigger.CrossAt)}
 		ka.AFlags |= kop.AfCheckOnTrigger
 	}
-	if ka.Prog, err = cb.prog(a.Prog); err != nil {
+	if err = cb.abilityProg(a.Prog, &ka); err != nil { // build_setexpr.go
 		return ka, err
 	}
 	return ka, nil
@@ -2479,6 +2479,9 @@ func (cb *cardBuilder) prog(p []lInstr) ([]kop.Instr, error) {
 	out := make([]kop.Instr, 0, len(p))
 	for i, in := range p {
 		ki, err := cb.instr(in)
+		if err == nil && in.Obj.Kind == rSet {
+			err = cb.setRef(i, in, &ki) // build_setexpr.go
+		}
 		if err != nil {
 			return nil, fmt.Errorf("instr %d %s: %v", i, in.Op, err)
 		}
@@ -2537,7 +2540,10 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	ic := &instrCtx{cb: cb, in: in, fl: flagsOf(in.CS)}
 	ki := &ic.ki
 	var err error
-	if ki.Obj, err = cb.ref(in.Obj); err != nil {
+	cb.setSubj = true
+	ki.Obj, err = cb.ref(in.Obj)
+	cb.setSubj = false
+	if err != nil {
 		return *ki, err
 	}
 	if in.W.Kind != rNone {
