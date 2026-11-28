@@ -260,11 +260,10 @@ func (e *Engine) castProvenanceAdmits(spec string, objID state.ObjID, you state.
 
 // castProvenanceAdmitsWindow is castProvenanceAdmits with the pre-push OFFER
 // window fallback threaded through all three hand families (see
-// castFromHandAdmitsWindow): the layer walk's AffectedZone$ Stack read sets
+// castFromHandAdmitsWindow) and the origin-zone family (see
+// castOriginAdmitsWindow): the layer walk's AffectedZone$ Stack read sets
 // pendingCast, every other match site passes false and keeps the log-only
-// semantics. The origin-zone family (castOriginAdmits) is appended after
-// them log-only — its own pre-push shape is castOriginAdmitsAtZone, which
-// castProvenanceAdmitsPending takes first. The chain order is unchanged: ByYou before bare.
+// semantics. The chain order is unchanged: ByYou before bare.
 func (e *Engine) castProvenanceAdmitsWindow(spec string, objID state.ObjID, you state.PlayerID, pendingCast bool) (string, bool) {
 	gate := specProvenanceGate(spec)
 	if provenanceGateVerify {
@@ -297,7 +296,7 @@ func (e *Engine) castProvenanceAdmitsChain(spec string, objID state.ObjID, you s
 	if s, ok = e.castFromHandAnyAdmitsWindow(s, objID, you, pendingCast); !ok {
 		return "", false
 	}
-	if s, ok = e.castOriginAdmits(s, objID, you); !ok {
+	if s, ok = e.castOriginAdmitsWindow(s, objID, you, pendingCast); !ok {
 		return "", false
 	}
 	if s, ok = e.webSlingedAdmits(s, objID); !ok {
@@ -347,7 +346,7 @@ func (e *Engine) castProvenanceAdmitsMasked(spec string, gate provGate, objID st
 		changed = true
 	}
 	if gate.origin {
-		s, ok = e.castOriginAdmits(s, objID, you)
+		s, ok = e.castOriginAdmitsWindow(s, objID, you, pendingCast)
 		if !ok {
 			return "", false
 		}
@@ -690,6 +689,25 @@ func (e *Engine) castOriginAdmitsAtZone(spec string, objID state.ObjID, from sta
 		}
 	}
 	return spec, true
+}
+
+// castOriginAdmitsWindow is castOriginAdmits with the pre-push OFFER window
+// the layer walk's AffectedZone$ Stack read needs (see
+// castFromHandAdmitsWindow): Party Thrasher's printed "Noncreature spells you
+// cast from exile have convoke" is evaluated on a card still in exile while
+// the offer is priced, so the log has no PutOnStack for it and the origin is
+// the object's CURRENT zone -- exactly the read castProvenanceAdmitsPending
+// takes for the cost paths. An object actually on the stack (or any other
+// match site, pendingCast false) keeps the log-only answer, so a resolved
+// spell's recorded origin and a prior cast of a bounced card are unaffected.
+func (e *Engine) castOriginAdmitsWindow(spec string, objID state.ObjID, you state.PlayerID, pendingCast bool) (string, bool) {
+	if !specCarriesCastOrigin(spec) {
+		return spec, true
+	}
+	if o := e.G.Obj(objID); pendingCast && o != nil && o.Zone != state.ZStack {
+		return e.castOriginAdmitsAtZone(spec, objID, o.Zone)
+	}
+	return e.castOriginAdmits(spec, objID, you)
 }
 
 // webSlingedAdmits evaluates the Web-slinging cast-provenance predicate
