@@ -98,16 +98,18 @@ Open your PR **against `main`**. Nothing is pushed to `main` directly.
    shards (`scripts/ci_shard.sh`, with `TestHeads` as its own step),
    `examples` (`scripts/examples-smoke.sh`), `wire-matrix`
    ([Wires](../architecture/wires.md)), `dirac-slices` (dirac against gorge on
-   the committed FDN and BLB slices) and `browser` (`make smoke`, not part of
+   the committed FDN and BLB slices), `oracle-sentinels` (the tests named in
+   `dirac/oracle/testdata/sentinels.txt`) and `browser` (`make smoke`, not part of
    `ci-ok`).
 3. The batch merges with a merge commit when `ci-ok` is green; a red batch is
    split.
 4. A fix for a red `main` goes on a `hotfix/*` branch (or carries the `hotfix`
-   label): it is batched first and may interrupt a running batch.
+   label): it is batched first. Only the `hotfix` label also interrupts a
+   running batch.
 
 The whole of `dirac/oracle` never runs on a PR or a batch. It runs on `main`
-from `.github/workflows/oracle.yml` (hourly cron that starts a run only if none
-began in the last 5h30m, so about every 6 hours) and on demand. A PR that
+from `.github/workflows/oracle.yml` (on a push to `main` or an hourly cron, starting a run only if none
+began in the last 1h45m, so about every 2 hours) and on demand. A PR that
 touches `docs/site/`, `dirac/docs/support.md` or `mkdocs.yml` also gets a
 strict docs build. [Branch flow](../repos/index.md#branch-flow) has the diagram.
 

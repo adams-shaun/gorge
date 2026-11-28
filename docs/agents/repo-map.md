@@ -15,7 +15,7 @@ per-domain files below; `dirac/` is here.
 
 | Group | What it holds | Detail |
 |---|---|---|
-| `engine/` | The rules core: `cards`, `deck`, `state`, `decision`, `events`, `effects`, `rules` (+ sub-packages), `replay`, `eventdiff`, `view`, `game` (+`gorgegame`), and `seat` (the `Seat` contract only). Imports nothing outside `engine/`. | [repo-map-engine.md](repo-map-engine.md#engine) |
+| `engine/` | The rules core: `cards`, `deck`, `state`, `decision`, `events`, `effects`, `rules` (+ sub-packages), `replay`, `eventdiff`, `view`, `game` (+`gorgegame`), `seat` (the `Seat` contract only), and `cardc` (the typed card interface; nothing that plays a game imports it yet). Imports nothing outside `engine/`. | [repo-map-engine.md](repo-map-engine.md#engine) |
 | `dirac/` | The second engine, in lockstep with `engine/` and built for machine learning: the `kop`-table engine (two to four seats), its oracle seam to gorge, its table generator, adapter and commands. The core imports nothing outside `dirac/`; nothing in `engine/` imports it. | [below](#dirac) |
 | `bots/` | `botpolicy`, the default `heuristic` bot, the bots registry and the hosted bots with their inference runtime. Imports `engine/` only. | [repo-map-engine.md](repo-map-engine.md#bots) |
 | `server/` | `gorged` (the importable server: `Main`, `Extensions`, `RegisterNetBot`; `cmd/gorged` is its thin main), `host` (+`httpapi`, `manabrewhttp`, `sbv2http`), `protocol`, `manabrew`, `divergence`, `matchrecord`, `spellbench`. | [repo-map-engine.md](repo-map-engine.md#server) |
@@ -64,6 +64,7 @@ that touches `State`, and the import boundary. Generated support lists:
 | `dirac/cmd/dplay` | Plays games on dirac alone; reads gorge deck files, and its bots read gorge's compiled cards through `dirac/oracle`. | Its flags are pinned by `TestDplayFlagsDocumented` (`dirac/docs/running.md`); bot play goes through `dirac/oracle`. |
 | `dirac/cmd/dpod` | Plays four-seat Commander pods of the Foundations Commander precons on dirac alone, refused cards replaced by basics, for `scripts/xengine-bench.sh`. | Its decks feed `cmd/enginebench -pair fdc-sub`, so gorge plays the same pods. |
 | `dirac/cmd/kmanifest` | Keeps the namespace manifest and the Go generated from it (`gen [--check]`, `assign`, `check`, `show`, `seed`). | `dirac/manifest`; keep this main thin. |
+| `dirac/cmd/shadowbench` | Plays the shadow seat (`dirac/shadowseat`) against the heuristic bot in gorge games and reports stage rate, fallback reasons and win rate. | `dirac/shadowseat`; keep this main thin. |
 | `dirac/cmd/sbv2dirac` | Serves dirac as a SpellBench v2 engine, running gorge as the lockstep shadow. | The protocol and main here; parity in `dirac/oracle`. |
 | `dirac/oracle/cmd/kfuzz` | The lockstep fuzzer over gorge and dirac. | `dirac/oracle`; `scripts/dirac-gate.sh` holds what the change must keep true. |
 | `dirac/oracle/cmd/khbot` | dirac's heuristic-bot parity run. | `dirac/search/hbot` and the `dirac/oracle` policies. |
