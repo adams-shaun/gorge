@@ -1,6 +1,8 @@
 package gorged
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -37,16 +39,18 @@ type deckImports struct {
 
 	mu    sync.Mutex
 	decks map[string]host.Deck
-	// restartable marks the stored ids a later request may name as a
-	// human_deck/bot_deck pick (heldForRestart): the decks of a two-seat
-	// table with one human, the only table the web client offers Restart
-	// on. A pod's or a several-human table's submitted lists stay private
-	// to that table.
-	restartable map[string]bool
+	// restartable maps each stored id a later request may name as a
+	// human_deck/bot_deck pick (heldForRestart) to the format its table
+	// checked the deck for: the decks of a two-seat table with one human,
+	// the only table the web client offers Restart on. Such an id ends in a
+	// random suffix (sealImportIDs), and its table is private, so only the
+	// holder of that table's seat claim reads it (SeatInfo.deck_id). A pod's
+	// or a several-human table's ids are never in this map.
+	restartable map[string]host.Format
 }
 
 func newDeckImports(reg *cards.Registry) *deckImports {
-	return &deckImports{reg: reg, supported: effects.Supported(), engine: gorgegame.Name, decks: map[string]host.Deck{}, restartable: map[string]bool{}}
+	return &deckImports{reg: reg, supported: effects.Supported(), engine: gorgegame.Name, decks: map[string]host.Deck{}, restartable: map[string]host.Format{}}
 }
 
 // loader answers an imported deck's id and hands every other name to next.
@@ -101,40 +105,76 @@ func (d *deckImports) drop(ids ...string) {
 	d.mu.Unlock()
 }
 
-// markRestartable lets a later rematch name the stored ids (heldForRestart).
-func (d *deckImports) markRestartable(ids []string) {
+// markRestartable lets a later rematch at format name the stored ids
+// (heldForRestart).
+func (d *deckImports) markRestartable(ids []string, format host.Format) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	for _, id := range ids {
 		if _, ok := d.decks[id]; ok {
-			d.restartable[id] = true
+			d.restartable[id] = format
 		}
 	}
 }
 
-// heldForRestart returns the stored deck id names when a restartable table
-// stored it (markRestartable), so a Restart can seat the same submitted deck again.
-func (d *deckImports) heldForRestart(id string) (host.Deck, bool) {
+// heldForRestart returns the stored deck id names, and the format it was
+// checked for, when a restartable table stored it (markRestartable), so a
+// Restart can seat the same submitted deck again.
+func (d *deckImports) heldForRestart(id string) (host.Deck, host.Format, bool) {
 	if d == nil || id == "" {
-		return host.Deck{}, false
+		return host.Deck{}, 0, false
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if !d.restartable[id] {
-		return host.Deck{}, false
-	}
+	format, marked := d.restartable[id]
 	got, ok := d.decks[id]
-	return got, ok
+	return got, format, marked && ok
 }
 
-// dropTable releases every deck submitted for table, seats 0 through 3.
+// dropTable releases every deck submitted for table, seats 0 through 3,
+// stored under its importDeckID or a sealed form of it (sealImportIDs).
 func (d *deckImports) dropTable(table host.TableID) {
-	d.drop(importDeckID(table, 0), importDeckID(table, 1), importDeckID(table, 2), importDeckID(table, 3))
+	if d == nil {
+		return
+	}
+	var ids []string
+	d.mu.Lock()
+	for seat := range 4 {
+		plain := importDeckID(table, seat)
+		for id := range d.decks {
+			if id == plain || strings.HasPrefix(id, plain+"-") {
+				ids = append(ids, id)
+			}
+		}
+	}
+	d.mu.Unlock()
+	d.drop(ids...)
 }
 
-// importDeckID is the id a deck submitted for table's seat is stored under.
+// importDeckID is the id a deck submitted for table's seat is stored under;
+// a restartable table's ids carry a suffix too (sealImportIDs).
 func importDeckID(table host.TableID, seat int) string {
 	return fmt.Sprintf("import-%s-s%d", table, seat)
+}
+
+// sealImportIDs makes a restartable table's import ids unguessable: it
+// appends a random suffix to each id in ids and gives the same seat of want
+// the result. Such an id is what lets a request seat that submitted list
+// again (heldForRestart), and importDeckID alone follows from a sequential
+// table id.
+func sealImportIDs(want, ids []string) error {
+	for seat, id := range ids {
+		if id == "" {
+			continue
+		}
+		var b [16]byte
+		if _, err := rand.Read(b[:]); err != nil {
+			return err
+		}
+		ids[seat] = id + "-" + hex.EncodeToString(b[:])
+		want[seat] = ids[seat]
+	}
+	return nil
 }
 
 // maxImportedDeckCards bounds a submitted deck's main board: a Commander deck
@@ -384,28 +424,35 @@ func checkReservedPool(req httpapi.CreateGameOptions, policy string, hasPool boo
 // seat's id is the first table's import id, in no pool. A human_deck (seat 0)
 // or bot_deck (seat 1) pick naming a deck heldForRestart is taken out of req
 // and returned by seat, to be seated as a submitted deck under the new
-// table's own import id, so the copy outlives the first table. A pod has no
-// Restart (checkPodShape refuses its picks, and Table.svelte offers the
-// control only at two seats with one human); a policy with a reserved pool,
-// and -engine dirac, take no submitted deck, so their picks stay and are
-// refused as before.
-func (c config) carryRestartPicks(req httpapi.CreateGameOptions, hasPool bool) (httpapi.CreateGameOptions, map[int]host.Deck) {
+// table's own import id, so the copy outlives the first table. The deck was
+// checked for its table's format only, so a request for another format is
+// refused. A pod has no Restart (checkPodShape refuses its picks, and
+// Table.svelte offers the control only at two seats with one human); a policy
+// with a reserved pool, and -engine dirac, take no submitted deck, so their
+// picks stay and are refused as before.
+func (c config) carryRestartPicks(req httpapi.CreateGameOptions, hasPool bool) (httpapi.CreateGameOptions, map[int]host.Deck, error) {
 	if hasPool || c.diracOn() {
-		return req, nil
+		return req, nil, nil
 	}
 	var carried map[int]host.Deck
-	for seat, pick := range []*string{&req.HumanDeck, &req.BotDeck} {
-		d, ok := c.imports.heldForRestart(*pick)
+	for seat, pick := range []struct {
+		role string
+		id   *string
+	}{{"human", &req.HumanDeck}, {"bot", &req.BotDeck}} {
+		d, format, ok := c.imports.heldForRestart(*pick.id)
 		if !ok {
 			continue
+		}
+		if format != req.Format {
+			return req, nil, fmt.Errorf("%s deck %q belongs to %s, not requested format %s", pick.role, *pick.id, format, req.Format)
 		}
 		if carried == nil {
 			carried = map[int]host.Deck{}
 		}
 		carried[seat] = d
-		*pick = ""
+		*pick.id = ""
 	}
-	return req, carried
+	return req, carried, nil
 }
 
 // withCarried adds the decks carryRestartPicks carried to the checked

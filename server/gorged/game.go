@@ -117,7 +117,10 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		if err := checkReservedPool(req, policy, hasPool); err != nil {
 			return httpapi.CreateGameResponse{}, err
 		}
-		req, carried := c.carryRestartPicks(req, hasPool)
+		req, carried, err := c.carryRestartPicks(req, hasPool)
+		if err != nil {
+			return httpapi.CreateGameResponse{}, err
+		}
 		// A pod in which every seat submits a deck deals nothing from the pool.
 		if len(pool) == 0 && len(req.Decks)+len(carried) < seats {
 			return httpapi.CreateGameResponse{}, fmt.Errorf("no %s deck is available to deal (decks dir supplies none)", req.Format)
@@ -164,6 +167,9 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		decks := shuffled
 		var imported []string
 		var route podRoute
+		// The web client offers Restart only here, so only here may a later
+		// request name this table's submitted decks.
+		restartable := seats == 2 && humans == 1
 		if seats == 2 && len(submitted) == 0 {
 			if req.HumanDeck != "" || req.BotDeck != "" {
 				human, bot := req.HumanDeck, req.BotDeck
@@ -182,6 +188,11 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 			if err != nil {
 				return httpapi.CreateGameResponse{}, err
 			}
+			if restartable {
+				if err := sealImportIDs(want, ids); err != nil {
+					return httpapi.CreateGameResponse{}, err
+				}
+			}
 			decks, imported = rotateForMatchOne(want), ids
 			route = c.routePod(c.diracCheck, req.Format, seats, policy, req.PairedBot, humans > 1 && c.pairedBotShared,
 				seatRouteDecks(want, ids, submitted))
@@ -197,8 +208,8 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 			if err := c.imports.putAll(imported, submitted); err != nil {
 				return httpapi.CreateGameResponse{}, err
 			}
-			if seats == 2 && humans == 1 {
-				c.imports.markRestartable(imported)
+			if restartable {
+				c.imports.markRestartable(imported, req.Format)
 			}
 		}
 		cfg := host.TableConfig{
