@@ -11,6 +11,8 @@
   // stay the original random-assignment path. A pasted decklist replaces the
   // player's pool pick; the server alone judges it. The opponent picker lists
   // the server's offered policies for the chosen format; empty keeps its default.
+  // A constant: eslint refuses a string literal inside the attribute's mustache.
+  const DECK_TEXT_PLACEHOLDER = 'Commander\n1 Your Commander\n\n1 Sol Ring\n...';
   let format: VsBotFormat = $state('constructed');
   let humanDeck = $state('');
   let botDeck = $state('');
@@ -151,7 +153,7 @@
       <textarea
         aria-label="Paste your deck"
         rows="12"
-        placeholder={'Commander\n1 Your Commander\n\n1 Sol Ring\n...'}
+        placeholder={DECK_TEXT_PLACEHOLDER}
         bind:value={deckText}
         data-testid="deck-text"
       ></textarea>
