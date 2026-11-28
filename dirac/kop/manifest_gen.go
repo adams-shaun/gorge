@@ -2353,12 +2353,26 @@ const OpMarkNoRegen Op = 160
 
 func init() { opNames[OpMarkNoRegen] = "MarkNoRegen" }
 
+// other:MoveCounter CounterType "_" (dirac/manifest/Op/OpMoveCounterAll)
+//
+// every counter kind the battlefield permanent in Ref C holds moves with its whole count onto the destination Obj, kinds in ascending kernel kind order, each kind through the counter replacements and firing the destination's counter-added triggers (gorge effMoveCounter's CounterType$ All CounterNum$ All walk, CR 122.5; The Ozolith's begin-combat "move all counters from CARDNAME onto target creature"). dirac/ctr_movekind.go.
+const OpMoveCounterAll Op = 161
+
+func init() { opNames[OpMoveCounterAll] = "MoveCounterAll" }
+
 // other:MoveCounter ValidDefined$ (dirac/manifest/Op/OpMoveCounterAny)
 //
 // the resolving source moves a chosen 0..N counters of kind B.N onto each battlefield permanent matching F, the source excluded, distributed round-robin in battlefield order (gorge effMoveCounter/moveCounterMove, CR 122.5; Forgotten Ancient's "move any number of +1/+1 counters ... onto other creatures"). dirac/ctr_moveany.go.
-const OpMoveCounterAny Op = 161
+const OpMoveCounterAny Op = 162
 
 func init() { opNames[OpMoveCounterAny] = "MoveCounterAny" }
+
+// other:MoveCounter CounterType "_" (dirac/manifest/Op/OpMoveCounterKind)
+//
+// the origin's controller chooses one counter kind among the kinds the battlefield permanent in Ref C holds (gorge's "move_counter_kind" KChoose, posed only with more than one kind; a lone kind is taken unasked, nothing moves with none) and A counters of that kind leave it for the destination Obj (gorge effMoveCounter's CounterType$ Any, CR 122.5; Nesting Grounds' "move a counter from target permanent you control onto another target permanent"). dirac/ctr_movekind.go.
+const OpMoveCounterKind Op = 163
+
+func init() { opNames[OpMoveCounterKind] = "MoveCounterKind" }
 
 // Pred (dirac/manifest/Pred/PredNamedCard)
 //

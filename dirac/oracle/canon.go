@@ -486,9 +486,12 @@ func chooseKindAlias(d *decision.Decision, o *decision.Option) string {
 
 // isCounterKindAsk reports whether a KChoose's ResumeKind is one of the
 // counter-kind elections: removeCounterAny's per-counter pick, putCounter's
-// ChooseDifferent$ pick, or AddOrRemoveCounter's aor_elect.
+// ChooseDifferent$ pick, AddOrRemoveCounter's aor_elect, or effMoveCounter's
+// CounterType$ Any kind pick ("move_counter_kind", the kernel's
+// ChMoveCounterKind, dirac/ctr_movekind.go).
 func isCounterKindAsk(resume string) bool {
-	return resume == "counter_kind" || resume == "counter_kinds" || resume == "aor_elect"
+	return resume == "counter_kind" || resume == "counter_kinds" || resume == "aor_elect" ||
+		resume == "move_counter_kind"
 }
 
 // counterKindAction is a counter-kind pick, by its kernel counter kind (the
@@ -506,7 +509,7 @@ func (g *GorgeSide) counterKindAction(d *decision.Decision, o *decision.Option) 
 	}
 	c, ok := kernelCounterKind(o.Label)
 	want := "counter"
-	if d.ResumeKind == "counter_kinds" {
+	if d.ResumeKind == "counter_kinds" || d.ResumeKind == "move_counter_kind" {
 		want = d.ResumeKind
 	}
 	if o.Kind != want || !ok {

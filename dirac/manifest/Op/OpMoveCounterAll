@@ -1,0 +1,9 @@
+family: Op
+name: OpMoveCounterAll
+value: next
+approval: agent dk-burn-04-movecounter-any brief, design (All): every counter kind of its whole count from one origin onto one destination asks no amount and names no kind: OpMoveCounter names one kind, OpMoveCounterAny asks an amount over a sweep
+census: other:MoveCounter CounterType "_"
+state: code 0
+status: active
+ticket: dk-burn-04-movecounter-any
+doc: every counter kind the battlefield permanent in Ref C holds moves with its whole count onto the destination Obj, kinds in ascending kernel kind order, each kind through the counter replacements and firing the destination's counter-added triggers (gorge effMoveCounter's CounterType$ All CounterNum$ All walk, CR 122.5; The Ozolith's begin-combat "move all counters from CARDNAME onto target creature"). dirac/ctr_movekind.go.

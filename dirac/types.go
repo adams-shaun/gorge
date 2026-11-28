@@ -129,35 +129,36 @@ const MaxOptions = 512
 type ChoiceKind uint8
 
 const (
-	ChNone           ChoiceKind = iota
-	ChX                         // mode = the value of X
-	ChCostDiscard               // source = a hand card discarded to pay a cost
-	ChCostSacrifice             // source = a permanent sacrificed to pay a cost
-	ChCostTap                   // source = an untapped creature tapped to pay a cost (tapXType)
-	ChBottom                    // source = a hand card put on the bottom (London mulligan)
-	ChDiscard                   // source = a hand card discarded by an effect
-	ChSacrifice                 // source = a permanent sacrificed by an effect
-	ChScry                      // source = the looked-at card; mode 1 = keep on top, 0 = bottom
-	ChSurveil                   // source = the looked-at card; mode 1 = graveyard, 0 = keep on top
-	ChArrange                   // source = the kept card to put next from the top (scry/surveil order)
-	ChOptional                  // mode 1 = yes / 0 = no: an optional ("you may") triggered ability at resolution
-	ChWardPay                   // mode 1 = pay / 0 = don't: a ward cost
-	ChLegend                    // source = the legendary permanent to keep (legend rule)
-	ChDivide                    // source = a blocker, mode = combat damage assigned to it
-	ChCleanupDiscard            // source = a hand card discarded to hand size in cleanup
-	ChAltAdd                    // target = the either-or additional cost part (0 the spell's own, 1 the alternative, 2 its third part), mode = option position (payable parts first)
-	ChCostSubCtr                // source = a creature to remove one counter from to pay a cost, mode = its counter kind (Quilled Greatwurm)
-	ChCostBlight                // source = a creature to blight to pay a cost (CR 701.68)
-	ChOptDiscMay                // mode 1 = yes / 0 = no: a discard election ("you may discard") (act_optionalask.go)
-	ChCommanderZone             // source = the commander, mode 0 = command zone / 1 = leave it (CR 903.9a/b; zone_cmdzone.go)
-	ChVoteCard                  // source = the permanent voted for (gorge effCardVote's KChoose option kind "vote_card", CR 701.38a; act_vote.go)
-	ChDrawUpto                  // source = a top library card counted toward the cards drawn; AkDone ends the count (gorge's "draw_upto" KChoose, act_drawupto.go)
-	ChBand                      // mode 0 = decline (no source); mode 1+i, source = the i-th candidate to band with the asked leader (gorge's CR 702.22c "band" KChoose; combat_band.go)
-	ChAsUnblocked               // source = the attacking creature; mode 1 = assign its combat damage as though not blocked / 0 = assign normally (gorge askNextCombatAsk's "asunblocked" KChoose; combat_asgngrant.go)
-	ChEnlist                    // mode 0 = decline (no source); mode 1+i, source = the i-th creature the asked attacker may enlist (gorge's CR 702.154a "enlist" KChoose; kw_enlist.go)
-	ChTurnUpAttach              // the face-down turn-up's attach election: Done declines, AkChoose's source is the destination (gorge's DB$ Attach destination ask, Min 0: an empty answer declines too; face_turnupattach.go)
-	ChExert                     // mode 0 = decline (no source); mode 1, source = the asked attacker (gorge's CR 702.100a "exert" KChoose; combat_exert.go)
-	ChMoveCounterAny            // mode = the counters to move; AkDone declines (gorge's "move_counter" KChoose, OpMoveCounterAny; ctr_moveany.go)
+	ChNone            ChoiceKind = iota
+	ChX                          // mode = the value of X
+	ChCostDiscard                // source = a hand card discarded to pay a cost
+	ChCostSacrifice              // source = a permanent sacrificed to pay a cost
+	ChCostTap                    // source = an untapped creature tapped to pay a cost (tapXType)
+	ChBottom                     // source = a hand card put on the bottom (London mulligan)
+	ChDiscard                    // source = a hand card discarded by an effect
+	ChSacrifice                  // source = a permanent sacrificed by an effect
+	ChScry                       // source = the looked-at card; mode 1 = keep on top, 0 = bottom
+	ChSurveil                    // source = the looked-at card; mode 1 = graveyard, 0 = keep on top
+	ChArrange                    // source = the kept card to put next from the top (scry/surveil order)
+	ChOptional                   // mode 1 = yes / 0 = no: an optional ("you may") triggered ability at resolution
+	ChWardPay                    // mode 1 = pay / 0 = don't: a ward cost
+	ChLegend                     // source = the legendary permanent to keep (legend rule)
+	ChDivide                     // source = a blocker, mode = combat damage assigned to it
+	ChCleanupDiscard             // source = a hand card discarded to hand size in cleanup
+	ChAltAdd                     // target = the either-or additional cost part (0 the spell's own, 1 the alternative, 2 its third part), mode = option position (payable parts first)
+	ChCostSubCtr                 // source = a creature to remove one counter from to pay a cost, mode = its counter kind (Quilled Greatwurm)
+	ChCostBlight                 // source = a creature to blight to pay a cost (CR 701.68)
+	ChOptDiscMay                 // mode 1 = yes / 0 = no: a discard election ("you may discard") (act_optionalask.go)
+	ChCommanderZone              // source = the commander, mode 0 = command zone / 1 = leave it (CR 903.9a/b; zone_cmdzone.go)
+	ChVoteCard                   // source = the permanent voted for (gorge effCardVote's KChoose option kind "vote_card", CR 701.38a; act_vote.go)
+	ChDrawUpto                   // source = a top library card counted toward the cards drawn; AkDone ends the count (gorge's "draw_upto" KChoose, act_drawupto.go)
+	ChBand                       // mode 0 = decline (no source); mode 1+i, source = the i-th candidate to band with the asked leader (gorge's CR 702.22c "band" KChoose; combat_band.go)
+	ChAsUnblocked                // source = the attacking creature; mode 1 = assign its combat damage as though not blocked / 0 = assign normally (gorge askNextCombatAsk's "asunblocked" KChoose; combat_asgngrant.go)
+	ChEnlist                     // mode 0 = decline (no source); mode 1+i, source = the i-th creature the asked attacker may enlist (gorge's CR 702.154a "enlist" KChoose; kw_enlist.go)
+	ChTurnUpAttach               // the face-down turn-up's attach election: Done declines, AkChoose's source is the destination (gorge's DB$ Attach destination ask, Min 0: an empty answer declines too; face_turnupattach.go)
+	ChExert                      // mode 0 = decline (no source); mode 1, source = the asked attacker (gorge's CR 702.100a "exert" KChoose; combat_exert.go)
+	ChMoveCounterAny             // mode = the counters to move; AkDone declines (gorge's "move_counter" KChoose, OpMoveCounterAny; ctr_moveany.go)
+	ChMoveCounterKind            // mode = the counter kind picked (gorge's "move_counter_kind" KChoose, OpMoveCounterKind; ctr_movekind.go)
 )
 
 // ChMultikick is CR 702.43's multikicker count ask (gorge KChoose "multikick",

@@ -1189,6 +1189,10 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// gorge's counter_kind pick (removeCounterAny), compared by the
 		// counter kind (mode), not gorge's carrier-order position
 		return Pack(kind("counter"), RefNone, RefNone, mode), true
+	case dirac.ChMoveCounterKind:
+		// gorge's "move_counter_kind" pick (OpMoveCounterKind, Nesting
+		// Grounds), likewise compared by the counter kind (mode)
+		return Pack(kind("counter"), RefNone, RefNone, mode), true
 	case dirac.ChGenPlayer:
 		// gorge effChoosePlayer's "player" option names the seat
 		return Pack(kind("player"), RefNone, RefPlayer+Ref(mode), 0), true
