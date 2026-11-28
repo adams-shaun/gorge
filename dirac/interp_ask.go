@@ -15,7 +15,7 @@ const (
 	pfWard     = 0x4000 // a ward payment (counter the warded entry unless paid)
 	pfNoPay    = 0x2000 // the cost can't be paid: the ask offers decline only
 	pfModes    = 0x1000 // a cost inside the effect (not a trigger's own cost): ChGenPayMode
-	pfEachNext = 0x0800 // an any-player ask: player 1 is still to be asked after a decline
+	pfEachNext = 0x0800 // an any-player ask: a later seat is still to be asked after a decline
 )
 
 // payPickBlight is pickZ while a Blight cost (CR 701.68) chooses its
