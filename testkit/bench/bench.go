@@ -179,7 +179,7 @@ type Hooks struct {
 	// does (server/host/botenv.go envData): the seat gets its own observation feed,
 	// and at a decision where WantsEnv(d) is true it answers DecideEnv with a
 	// bots.Env whose Search.Engine is the honest root searchseat.HonestRoot
-	// builds from that feed at bots.RootSeed(cfg.Seed^uint64(seat+1), d.Seq)
+	// builds from that feed at bots.RootSeed(cfg.Seed^uint64(seat+1), d.Ordinal)
 	// — never the live engine. false (the zero value) changes nothing: such a
 	// seat is driven as before.
 	EnvSeats bool
@@ -424,7 +424,7 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 					fd = feeds[d.Player]
 				}
 				root, reason := searchseat.HonestRoot(seatSetup, fd, e,
-					bots.RootSeed(cfg.Seed^(uint64(d.Player)+1), d.Seq))
+					bots.RootSeed(cfg.Seed^(uint64(d.Player)+1), d.Ordinal))
 				if reason != "" && fd != nil && FallbackTrace != nil {
 					FallbackTrace(cfg.Seed, int(d.Player), d, "honest root refused: "+reason)
 				}
@@ -482,7 +482,7 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 				seatSetup := searchseat.SeatSetup(setup, seats[d.Player], d.Player)
 				if hooks.HonestRoot && fdLive {
 					hroot, reason := searchseat.HonestRoot(seatSetup, fd, e,
-						bots.RootSeed(cfg.Seed^(uint64(d.Player)+1), d.Seq))
+						bots.RootSeed(cfg.Seed^(uint64(d.Player)+1), d.Ordinal))
 					if hroot != nil {
 						rootEngine = hroot
 					} else {

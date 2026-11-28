@@ -185,7 +185,7 @@ const noSearchRootsRefusal = "this engine deals no search roots"
 // DecideEnv outside the lock and nothing reads it again afterwards.
 func (m *match) envData(p state.PlayerID, dc *decision.Decision, brd *botpolicy.Board, es bots.EnvSeat) *parkedData {
 	slot := int(p)
-	seed := bots.RootSeed(m.seed^uint64(slot+1), dc.Seq)
+	seed := bots.RootSeed(m.seed^uint64(slot+1), dc.Ordinal)
 	// A closed-list seat (searchseat.ClosedListSeat)
 	// sees the game without its opponents' lists: its honest root and the
 	// Setup its search reads are both closed.

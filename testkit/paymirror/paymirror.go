@@ -2368,15 +2368,16 @@ func manaString(m decision.ManaAmount) string {
 	return sb.String()
 }
 
-// comparePending compares the two pending decisions with Seq and the
-// Seq-bound payment identities masked.
+// comparePending compares the two pending decisions with Seq, Ordinal and
+// the Seq-bound payment identities masked (a float route answers more
+// decisions than the planned cast it is compared with).
 func comparePending(df *differ, a, b *decision.Decision) {
 	mask := func(d *decision.Decision) *decision.Decision {
 		if d == nil {
 			return nil
 		}
 		c := d.Clone()
-		c.Seq = 0
+		c.Seq, c.Ordinal = 0, 0
 		for i := range c.PaymentActions {
 			c.PaymentActions[i].ID = ""
 			for j := range c.PaymentActions[i].Plans {

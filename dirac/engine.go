@@ -431,7 +431,9 @@ func (s *State) Apply(a Action) {
 	k := s.k()
 	s.filtMemoReset()
 	s.clearPlanSacWitness() // the witness is this answer's payment alone (mana_othersac.go)
-	s.Decisions++
+	if !s.pickKeepsOpen(k, a) {
+		s.Decisions++ // gorge's answered decisions (searchapi.go pickKeepsOpen)
+	}
 	switch s.ctl {
 	case ctlMullDeclare:
 		s.applyMulligan(a)

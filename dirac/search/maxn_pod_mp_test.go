@@ -62,7 +62,9 @@ func podOpts() Options {
 }
 
 // TestMaxNOffIsBitIdentical pins four-seat pod searches with MaxN off to the
-// digests they hashed to on the commit before MaxN existed, under the
+// digests they hashed to on the commit before MaxN existed (re-pinned once
+// when the per-decision search seed came to fold decisions answered: a
+// declaration's picks count as one, Decision.Ordinal), under the
 // heuristic leaf (a VecEvaluator) and the fake network (split vectors); the
 // option off allocates no vector.
 func TestMaxNOffIsBitIdentical(t *testing.T) {
@@ -71,8 +73,8 @@ func TestMaxNOffIsBitIdentical(t *testing.T) {
 		ev   Evaluator
 		want uint64
 	}{
-		{"heur", HeuristicLeaf{}, 0x8dc30a36801cbc50},
-		{"net", &fakeNet{val: -1}, 0x6866394ca354eec0},
+		{"heur", HeuristicLeaf{}, 0x20de637fb0cee79f},
+		{"net", &fakeNet{val: -1}, 0xcba3adf18f84182a},
 	} {
 		sr := NewSearcher(podOpts(), tc.ev, Heuristic{})
 		if sr.t.nwv != nil || sr.t.ewv != nil {
