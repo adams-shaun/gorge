@@ -1,0 +1,18 @@
+# Pin of the oracle-grammar typed-face release cardc ogram reads: a second,
+# independent reading of every card (engine/cardc/ogram). The sha256 lines are
+# release assets; the schema line is the schema-193 type description at the
+# release's grammar commit (manifest.json grammar.commit), which the operand
+# walk needs to type the records. License lines name the licence files at that
+# commit: the project is MIT OR Apache-2.0; crates/oracle-ir (the schema) is MIT.
+repo https://github.com/vishvananda/oracle-grammar
+tag faces-oracle-20261112220158-s193-g0.5.0-r1
+commit ccfcb8487a84df790f0177fcdf939f0721fefbdd
+license LICENSE-APACHE
+license LICENSE-MIT
+license crates/oracle-ir/LICENSE
+sha256 ffeb2350f2702b8ba2415f4b328a83eb1ac2a24684eb578fbdf896d5546ac596 faces.jsonl.gz
+sha256 40a51eb77d12bd6aef1b8c45153a4b70a26ab886a46a34c942c742c9f04f7f20 outcomes.jsonl.gz
+sha256 a44b7e9a00570d2c627188fcdf740921caa60c14b16d90fc4bc2302cf99a8ee7 oracle-source.jsonl.gz
+sha256 f3ca50274eb94a531ae7c39173fd4cfa6b7c324cab64e6ec554cb0035631f1c7 coverage.json
+sha256 dd88f06aca8d7d462b71577249cd09a08ba756a49171ac9ba4c95ca4371c0f63 manifest.json
+schema 00c5c73bd12c1831626b3cc2c4dd1ab4e3bf9c78a936493a1331890128d0d5f8 crates/oracle-ir/schema/193.json

@@ -209,6 +209,19 @@ var boundaryRules = []boundaryRule{
 		}
 		return ""
 	}},
+	{"ogram-data", func(p string, _ []byte) string {
+		switch strings.TrimSuffix(path.Base(p), ".gz") {
+		case "faces.jsonl", "outcomes.jsonl", "oracle-source.jsonl":
+		default:
+			return ""
+		}
+		for _, dir := range strings.Split(path.Dir(p), "/") {
+			if dir == "ogram" {
+				return "oracle-grammar release asset " + path.Base(p)
+			}
+		}
+		return ""
+	}},
 	{"unresolvable-reference", func(p string, blob []byte) string {
 		if !inLabelFreeTree(p) || isBinary(blob) || isSetData(p) {
 			return ""
@@ -724,6 +737,11 @@ func TestPublicBoundaryDetection(t *testing.T) {
 		{"testdata/x.jsonl", `{"_OracleCard":{}}`, "mtgish-data"},
 		{"engine/cardc/mtgish/x.go", "package mtgish\n", ""},
 		{"engine/cardc/x.json", `{"OracleCard":{}}`, ""},
+		{".cards/ogram/t/faces.jsonl.gz", "x", "ogram-data"},
+		{"engine/cardc/ogram/testdata/oracle-source.jsonl", "{}\n", "ogram-data"},
+		{"data/ogram/outcomes.jsonl.gz", "x", "ogram-data"},
+		{"engine/cardc/ogram/read.go", "package ogram\n", ""},
+		{"data/faces.jsonl", "{}\n", ""},
 	}
 	covered := map[string]bool{}
 	for _, c := range cases {
@@ -738,7 +756,7 @@ func TestPublicBoundaryDetection(t *testing.T) {
 	}
 	for _, id := range []string{
 		"generated-table-dir", "kgen-output", "generated-table-file", "kgen-report", "dirac-binary", "forge-script",
-		"private-fragment", "private-detail", "private-name", "mtgish-data", "unresolvable-reference",
+		"private-fragment", "private-detail", "private-name", "mtgish-data", "ogram-data", "unresolvable-reference",
 	} {
 		if !covered[id] {
 			t.Errorf("rule %s has no positive case", id)
