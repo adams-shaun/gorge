@@ -56,6 +56,11 @@ type StartSeat struct {
 	// after the seat's unattached Battlefield cards and before any attached
 	// Aura. A token is not a deck card: Script names a Config.Tokens script.
 	Tokens []StartToken
+	// FaceDown enters Battlefield cards face down (CR 708), each by its
+	// first entry. An entry with an unknown Kind, a card not in Battlefield,
+	// or a card also in BackFace or attached by Attach is skipped (Validate
+	// refuses the kind and the overlaps).
+	FaceDown []StartFaceDown
 	// Life, when non-nil, is the seat's life total.
 	Life *int32
 }
@@ -96,6 +101,53 @@ type StartAttach struct {
 	Card   int
 	ToSeat int
 	To     int
+}
+
+// StartFaceDown enters the battlefield card Card (also listed in
+// Battlefield) face down, as Kind says.
+type StartFaceDown struct {
+	Card int    // index into Config.Decks[seat], as Battlefield
+	Kind string // StartFaceDownPlain, StartFaceDownManifest or StartFaceDownCloak
+}
+
+// The StartFaceDown kinds: the generic face-down 2/2 (CR 708), a manifested
+// one (CR 701.40) and a cloaked one (CR 701.58, ward {2}).
+const (
+	StartFaceDownPlain    = "face_down"
+	StartFaceDownManifest = "manifest"
+	StartFaceDownCloak    = "cloak"
+)
+
+// startFaceDownCounter is the battlefield-entry MoveZone Counter a
+// StartFaceDown kind enters with, or false for an unknown kind.
+func startFaceDownCounter(kind string) (string, bool) {
+	switch kind {
+	case StartFaceDownPlain:
+		return events.FaceDownEntryCounter, true
+	case StartFaceDownManifest:
+		return events.ManifestEntryCounter, true
+	case StartFaceDownCloak:
+		return events.CloakEntryCounter, true
+	}
+	return "", false
+}
+
+// faceDownEntry is the entry Counter the seat's first FaceDown entry naming
+// battlefield card idx places it with, or false when no entry names it or
+// that entry is skipped (an unknown kind, a BackFace or Attach overlap).
+func (s *StartSeat) faceDownEntry(idx int) (string, bool) {
+	for _, fd := range s.FaceDown {
+		if fd.Card != idx {
+			continue
+		}
+		counter, ok := startFaceDownCounter(fd.Kind)
+		if !ok || slices.Contains(s.BackFace, idx) ||
+			slices.ContainsFunc(s.Attach, func(a StartAttach) bool { return a.Card == idx }) {
+			return "", false
+		}
+		return counter, true
+	}
+	return "", false
 }
 
 // SeedForStarter returns the first seed >= seed whose CR 103.1 toss names
@@ -205,8 +257,9 @@ func (b startBuilder) planStartSeat(p state.PlayerID, s *StartSeat, ids []state.
 	var permanents []int
 	for _, idx := range s.Battlefield {
 		if id := startObj(ids, idx); id != 0 {
-			if o := h.G.Obj(id); o != nil && !startEntersAsPermanent(o.Card, slices.Contains(s.BackFace, idx)) {
-				continue // CR 304.4, 307.4: never a permanent (Validate refuses it)
+			_, faceDown := s.faceDownEntry(idx)
+			if o := h.G.Obj(id); o != nil && !faceDown && !startEntersAsPermanent(o.Card, slices.Contains(s.BackFace, idx)) {
+				continue // CR 304.4, 307.4: never a permanent (Validate refuses it); face down it is (CR 708.2a)
 			}
 		}
 		permanents = append(permanents, idx)
@@ -320,18 +373,22 @@ func (b startBuilder) placeStartAttached(pl *startSeatPlan, ids [][]state.ObjID)
 // placeStartBattlefield enters one permanent: the back-face flip ahead of
 // the move (as a transformed ChangeZone does, so the entry fold reads the
 // back face), then tapped, counters and SetupSettled. A nonzero bearer
-// enters an Aura attached to it.
+// enters an Aura attached to it. A FaceDown card enters by the face-down
+// entry move instead (its Counter marker, Secret), never flipped.
 func (b startBuilder) placeStartBattlefield(pl *startSeatPlan, id, bearer state.ObjID) {
 	h := b.h
 	idx := slices.Index(pl.ids, id)
-	if slices.Contains(pl.spec.BackFace, idx) {
+	fdCounter, faceDown := pl.spec.faceDownEntry(idx)
+	if !faceDown && slices.Contains(pl.spec.BackFace, idx) {
 		// Placement is not a transform (CR 701.28).
 		prior := h.Replacing(true)
 		h.Emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: 1, Text: "Transformed"})
 		h.Replacing(prior)
 	}
 	move := events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield}
-	if bearer != 0 {
+	if faceDown {
+		move.Counter, move.Secret = fdCounter, true
+	} else if bearer != 0 {
 		events.MarkNamedAttachEntry(&move, []state.ObjID{bearer})
 	}
 	h.Emit(move)
@@ -396,24 +453,60 @@ func (b startBuilder) finishStartSeat(pl *startSeatPlan) {
 // entering face is an instant or sorcery (CR 304.4, 307.4).
 var ErrStartNotPermanent = errors.New("not a permanent")
 
+// ErrStartFaceDown is Validate's refusal of a FaceDown entry applyStart
+// skips: an unknown kind, or a card also in BackFace or attached by Attach.
+var ErrStartFaceDown = errors.New("face-down placement is invalid")
+
 // Validate refuses a start no legal game state can hold: a Battlefield card
 // whose entering face (the back face when BackFace names it) is not a
-// permanent. decks is Config.Decks. applyStart degrades the same spec by
-// leaving such a card unplaced (in the library), as it skips a bad index.
+// permanent, unless it enters face down (CR 708.2a); and a FaceDown entry
+// applyStart skips for its kind or an overlap (ErrStartFaceDown). decks is
+// Config.Decks. applyStart degrades the same spec by leaving such a card
+// unplaced (in the library) or face up, as it skips a bad index.
 func (s *StartSpec) Validate(decks [][]*cards.Card) error {
 	for p := range s.Seats {
 		if p >= len(decks) {
 			break
 		}
 		seat := &s.Seats[p]
+		if err := seat.validateFaceDown(p, decks[p]); err != nil {
+			return err
+		}
 		for _, idx := range seat.Battlefield {
 			if idx < 0 || idx >= len(decks[p]) {
+				continue
+			}
+			if _, faceDown := seat.faceDownEntry(idx); faceDown {
 				continue
 			}
 			if c := decks[p][idx]; !startEntersAsPermanent(c, slices.Contains(seat.BackFace, idx)) {
 				return fmt.Errorf("start: seat %d battlefield card %d (%s): %w", p, idx, c.Faces[0].Name, ErrStartNotPermanent)
 			}
 		}
+	}
+	return nil
+}
+
+// validateFaceDown refuses seat p's FaceDown entry with an unknown kind, or
+// naming a card also in BackFace or attached by Attach.
+func (s *StartSeat) validateFaceDown(p int, deck []*cards.Card) error {
+	for _, fd := range s.FaceDown {
+		why := ""
+		switch _, ok := startFaceDownCounter(fd.Kind); {
+		case !ok:
+			why = fmt.Sprintf("unknown kind %q", fd.Kind)
+		case slices.Contains(s.BackFace, fd.Card):
+			why = "also on its back face"
+		case slices.ContainsFunc(s.Attach, func(a StartAttach) bool { return a.Card == fd.Card }):
+			why = "also attached"
+		default:
+			continue
+		}
+		name := ""
+		if fd.Card >= 0 && fd.Card < len(deck) && deck[fd.Card] != nil && len(deck[fd.Card].Faces) > 0 {
+			name = deck[fd.Card].Faces[0].Name
+		}
+		return fmt.Errorf("start: seat %d face-down card %d (%s): %s: %w", p, fd.Card, name, why, ErrStartFaceDown)
 	}
 	return nil
 }
