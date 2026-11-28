@@ -16,19 +16,19 @@ import (
 // LandPlayed trigger loses its in-flight land play and never fires.
 const (
 	entryOrderTappedLandSrc = "Name:Tapland\nTypes:Land\n" +
-		"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ LandTapped | ReplacementResult$ Updated | Description$ x\n" +
-		"SVar:LandTapped:DB$ Tap | Defined$ Self | ETB$ True\nOracle:x\n"
+		"R:Event$ Moved | Destination$ Battlefield | ValidCard$ Card.Self | ReplacementResult$ Updated | ReplaceWith$ TapOnEntry | Description$ x\n" +
+		"SVar:TapOnEntry:DB$ Tap | ETB$ True | Defined$ Self\nOracle:x\n"
 	entryOrderUntapperSrc = "Name:Untapper\nManaCost:2 G\nTypes:Creature Insect\nPT:2/4\n" +
-		"R:Event$ Moved | ValidCard$ Land.YouCtrl | Destination$ Battlefield | ReplaceWith$ ETBUntapped | ReplacementResult$ Updated | ActiveZones$ Battlefield | Description$ x\n" +
-		"SVar:ETBUntapped:DB$ Untap | ETB$ True | Defined$ ReplacedCard\nOracle:x\n"
+		"R:Event$ Moved | Destination$ Battlefield | ValidCard$ Land.YouCtrl | ActiveZones$ Battlefield | ReplacementResult$ Updated | ReplaceWith$ UntapOnEntry | Description$ x\n" +
+		"SVar:UntapOnEntry:DB$ Untap | Defined$ ReplacedCard | ETB$ True\nOracle:x\n"
 	entryOrderLandPlaySrc = "Name:Playwatch\nManaCost:3\nTypes:Artifact\n" +
-		"T:Mode$ LandPlayed | ValidCard$ Land | TriggerZones$ Battlefield | Execute$ TrigDraw | TriggerDescription$ x\n" +
-		"SVar:TrigDraw:DB$ Draw | Defined$ TriggeredCardController | NumCards$ 1\nOracle:x\n"
+		"T:Mode$ LandPlayed | TriggerZones$ Battlefield | ValidCard$ Land | Execute$ PlayDraw | TriggerDescription$ x\n" +
+		"SVar:PlayDraw:DB$ Draw | NumCards$ 1 | Defined$ TriggeredCardController\nOracle:x\n"
 	entryOrderLandfallSrc = "Name:Fallwatch\nManaCost:2 R\nTypes:Enchantment\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Land.YouCtrl | TriggerZones$ Battlefield | Execute$ TrigDraw | TriggerDescription$ x\n" +
-		"SVar:TrigDraw:DB$ Draw | Defined$ You | NumCards$ 1\nOracle:x\n"
+		"T:Mode$ ChangesZone | Destination$ Battlefield | Origin$ Any | TriggerZones$ Battlefield | ValidCard$ Land.YouCtrl | Execute$ FallDraw | TriggerDescription$ x\n" +
+		"SVar:FallDraw:DB$ Draw | NumCards$ 1 | Defined$ You\nOracle:x\n"
 	entryOrderGraveGrantSrc = "Name:Gravegrant\nManaCost:3\nTypes:Artifact\n" +
-		"S:Mode$ Continuous | Affected$ Land.YouOwn | MayPlay$ True | AffectedZone$ Graveyard | Description$ x\nOracle:x\n"
+		"S:Mode$ Continuous | AffectedZone$ Graveyard | MayPlay$ True | Affected$ Land.YouOwn | Description$ x\nOracle:x\n"
 )
 
 func TestLandPlayEntryOrderKeepsBothTriggers(t *testing.T) {
