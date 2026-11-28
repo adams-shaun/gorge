@@ -25,15 +25,22 @@ const stormGrantedPayload = "__kwStorm:"
 // only covers printed lines. It is the Demonstrate shape exactly
 // (checkGrantedDemonstrateTriggers): the synthesized trigger reuses the
 // printed expansion's trigger (Mode$ SpellCast, ValidCard$ Card.Self,
-// TriggerZones$ Stack), the body rides the push's __kwStorm: payload, and a
-// face that PRINTS Storm is skipped (its expansion owns the line). A copy
+// TriggerZones$ Stack), and the body rides the push's __kwStorm: payload.
+// Each instance triggers (CR 702.40b): one trigger per derived Storm entry
+// beyond the printed lines (grantedPileInstances), each printed line's own
+// expansion queuing its instance, so two grants or a printed line plus a
+// grant copy twice over. A copy
 // emits StackCopy, not PutOnStack, so the synthesis cannot fire on its own
 // output.
 func (e *Engine) checkGrantedStormTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
 	if ev.Kind != events.PutOnStack || id != ev.Obj {
 		return
 	}
-	if !e.hasKeywordH(id, kwhStorm) || f.HasKeywordRef(kwRefStorm) {
+	if !e.hasKeywordH(id, kwhStorm) {
+		return
+	}
+	n := grantedPileInstances(observer, id, o, f, "Storm")
+	if n <= 0 {
 		return
 	}
 	// The Keyword$ Storm param is what triggerReferents' fire-time capture
@@ -51,20 +58,19 @@ func (e *Engine) checkGrantedStormTriggers(observer *Engine, id state.ObjID, o *
 	if e.triggerFireCount == nil {
 		e.triggerFireCount = map[triggerKey]int32{}
 	}
-	if e.triggerFireCount[key] >= maxTriggerFires {
-		return
+	for ; n > 0 && e.triggerFireCount[key] < maxTriggerFires; n-- {
+		e.triggerFireCount[key]++
+		e.queueTrigger(observer, pendingTrigger{
+			Source:     id,
+			Controller: o.Controller,
+			Storm:      true,
+			Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{
+				Remembered:     triggerRemembered(ev, id),
+				LKI:            objLKI,
+				TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+			}),
+		}, ev, nil)
 	}
-	e.triggerFireCount[key]++
-	e.queueTrigger(observer, pendingTrigger{
-		Source:     id,
-		Controller: o.Controller,
-		Storm:      true,
-		Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{
-			Remembered:     triggerRemembered(ev, id),
-			LKI:            objLKI,
-			TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
-		}),
-	}, ev, nil)
 }
 
 // stormGrantedBody is the printed K:Storm expansion's body

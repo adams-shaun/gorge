@@ -359,11 +359,11 @@ func (e *Engine) checkCipherTriggers(ev events.Event) {
 // (the Ward/Afflict/Conspire shape; a granted creature has no __kwExploitGranted
 // SVar for a TriggerPush face-index to resolve).
 //
-// A face that PRINTS Exploit is skipped while that ability exists
-// (topPrintsKeyword): the printed expansion already owns the line for that
-// creature, and firing both would sacrifice twice. A printed line lost to
-// "loses all abilities" (CR 613.1f) owns nothing, so a grant that survives the
-// loss triggers here. The walk
+// Each instance triggers (CR 113.2c): one trigger per derived Exploit entry
+// beyond the printed lines that exist (grantedPileInstances), each printed
+// line's own expansion queuing its instance. A printed line lost to "loses
+// all abilities" (CR 613.1f) owns nothing, so a grant that survives the loss
+// triggers here. The walk
 // is reached from both the faceMayTrigger early-return path and the full
 // path, the Dethrone/Afflict precedent, so a granted creature whose own
 // printed triggers are live for this event still gets its exploit.
@@ -374,7 +374,11 @@ func (e *Engine) checkGrantedExploitTriggers(observer *Engine, id state.ObjID, o
 	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || id != ev.Obj || o.Zone != state.ZBattlefield {
 		return
 	}
-	if topPrintsKeyword(observer, o, f, kwRefExploit) || !e.hasKeywordH(id, kwhExploit) {
+	if !e.hasKeywordH(id, kwhExploit) {
+		return
+	}
+	n := grantedPileInstances(observer, id, o, f, "Exploit")
+	if n <= 0 {
 		return
 	}
 	t := cards.Trigger{Mode: "ChangesZone", Params: map[string]string{
@@ -388,18 +392,17 @@ func (e *Engine) checkGrantedExploitTriggers(observer *Engine, id state.ObjID, o
 	if e.triggerFireCount == nil {
 		e.triggerFireCount = map[triggerKey]int32{}
 	}
-	if e.triggerFireCount[key] >= maxTriggerFires {
-		return // cascade bound: see maxTriggerFires.
+	for ; n > 0 && e.triggerFireCount[key] < maxTriggerFires; n-- {
+		e.triggerFireCount[key]++
+		e.queueTrigger(observer, pendingTrigger{
+			Source:     id,
+			Controller: o.Controller,
+			Exploit:    true,
+			Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{
+				TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+			}),
+		}, ev, nil)
 	}
-	e.triggerFireCount[key]++
-	e.queueTrigger(observer, pendingTrigger{
-		Source:     id,
-		Controller: o.Controller,
-		Exploit:    true,
-		Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{
-			TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
-		}),
-	}, ev, nil)
 }
 
 // checkGrantedOffspringTriggers synthesizes Offspring's ETB trigger
@@ -707,15 +710,14 @@ func (e *Engine) checkGrantedAttackKeywordTriggers(observer *Engine, id state.Ob
 // TriggerContext.DefendingPlayer for the body's
 // Defined$ TriggeredDefendingPlayer. The granted amount is the FIRST
 // keyword granted in a layer never matches. The walk does NOT skip a card
-// that also prints Afflict: the granted amounts are every Afflict entry in
-// the derived list whose exact text no printed line already carries, so a
-// card printing K:Afflict:1 that is granted "Afflict 3" fires BOTH (printed
-// expansion for 1, this walk for 3), while a grant identical to a printed
-// line is skipped -- the printed expansion already owns it and the two are
-// indistinguishable as strings (a Monarch carrying another Monarch's
-// identical grant keeps its one printed instance; the conservative choice).
-// Every distinct grant queues its own instance, so two Monarchs on the
-// battlefield stack two afflict-3 instances on the same Zombie. Like
+// that also prints Afflict: each printed line owns one equal derived entry
+// (printedKeywordLines), and every other Afflict entry is a granted instance,
+// so a card printing K:Afflict:1 that is granted "Afflict 3" fires BOTH
+// (printed expansion for 1, this walk for 3), and a grant identical to a
+// printed line fires too (CR 113.2c: a Monarch carrying another Monarch's
+// afflict 3 has two instances). Every grant queues its own instance, so two
+// Monarchs on the battlefield stack two afflict-3 instances on the same
+// Zombie. Like
 // Dethrone's synthesis this is a read-only derived-characteristics check;
 // granting stays in the continuous-effect system.
 func (e *Engine) checkGrantedAfflictTriggers(id state.ObjID, o *state.Object, f *cards.Face, ev events.Event) {
@@ -738,15 +740,14 @@ func (e *Engine) checkGrantedAfflictTriggers(id state.ObjID, o *state.Object, f 
 	if !e.hasKeywordH(id, kwhAfflict) {
 		return
 	}
-	printed := map[string]bool{}
-	// A pile's under cards' afflict lines are printed too: their own
-	// expansions fire through the block walk (CR 702.140e).
-	for _, k := range append(slices.Clip(topPrintedKeywords(e, o, f)), underPrintedKeywords(e, o)...) {
-		printed[strings.ToLower(k)] = true
-	}
+	// Each printed line (a pile's under cards' included, CR 702.140e) owns
+	// exactly one equal derived entry, the instance its own expansion queues;
+	// every other entry is a granted instance (CR 113.2c).
+	left := printedKeywordLines(e, o, f)
 	var granted []string
 	for _, k := range e.Derived(id).Keywords {
-		if !printed[strings.ToLower(k)] {
+		var owned bool
+		if left, owned = chars.TakeKeywordLine(left, k); !owned {
 			granted = append(granted, k)
 		}
 	}

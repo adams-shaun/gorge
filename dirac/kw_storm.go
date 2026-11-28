@@ -49,25 +49,22 @@ func (s *State) queueStormPrinted(k *prep, e *stackEntry) {
 	s.enqueue(e.obj, s.objs[e.obj].ver, e.card, abStorm, e.ctrl, e.obj, e.ctrl, int16(max(n, 0)))
 }
 
-// queueStorm queues the storm trigger of the spell e just cast when a live
-// StatStackKw Storm grant of its caster reaches it. A spell has the keyword or
-// not (gorge hasKeywordH): two granting statics give one trigger. The count is
-// every player's spells cast this turn, the spell itself excluded; histCast
-// has already folded this cast in. A face that prints Storm is skipped: gorge's
-// granted walk skips it, its printed expansion owning the line
-// (rules/storm_granted.go checkGrantedStormTriggers).
+// queueStorm queues one storm trigger per live StatStackKw Storm grant of its
+// caster that reaches the spell e just cast: each instance triggers
+// (CR 702.40b), so two granting statics give two triggers, and a face that
+// prints Storm gets its printed trigger (queueStormPrinted) plus one per grant
+// (gorge rules/storm_granted.go checkGrantedStormTriggers, which counts the
+// derived entries beyond the printed lines). The count is every player's
+// spells cast this turn, the spell itself excluded; histCast has already
+// folded this cast in.
 func (s *State) queueStorm(k *prep, e *stackEntry) {
-	if k.t.Cards[e.card].Storm {
-		return
-	}
 	saved := s.hideInflightCast(e)
 	g, _ := s.stackKwN(k, kop.StackKwStorm, e.card, e.obj, e.ctrl, s.castFromHandBy(e, e.ctrl))
 	s.restoreInflightCast(e.ctrl, saved)
-	if g == 0 {
-		return
-	}
 	n := s.spellsCastThisTurnAll() - 1
-	s.enqueue(e.obj, s.objs[e.obj].ver, e.card, abStorm, e.ctrl, e.obj, e.ctrl, int16(max(n, 0)))
+	for ; g > 0; g-- {
+		s.enqueue(e.obj, s.objs[e.obj].ver, e.card, abStorm, e.ctrl, e.obj, e.ctrl, int16(max(n, 0)))
+	}
 }
 
 // DebugStormTwoSeats is the mutation test's switch: the storm count reads seats
