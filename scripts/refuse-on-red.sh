@@ -31,9 +31,12 @@ bash -c "$corpus_check" >/dev/null 2>&1 || na "no corpus"
 # 3. The gate's step 4 slices, shortened. The cap is pr-precheck.sh's.
 pairs=${REFUSE_ON_RED_PAIRS:-300}
 cap=(systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB)
-# A systemd-run binary can exist without a usable user manager (CI runners): probe it,
-# as precheck.sh and bench-tests.sh do, or the run fails before kfuzz ever starts.
-systemd-run --user --scope -q true >/dev/null 2>&1 || cap=()
+# Where no scope can start (no systemd-run, or no user bus: "Failed to connect to bus"),
+# keep the Go limits and say that the memory and CPU cap is gone.
+if ! "${cap[@]}" true >/dev/null 2>&1; then
+	cap=(env GOMAXPROCS=4 GOMEMLIMIT=3GiB)
+	echo "refuse-on-red: cannot start a systemd scope; kfuzz runs without the memory and CPU cap" >&2
+fi
 kfuzz=(go run ./dirac/oracle/cmd/kfuzz)
 [ -z "${REFUSE_ON_RED_KFUZZ:-}" ] || read -r -a kfuzz <<<"${REFUSE_ON_RED_KFUZZ}"
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/refuse-on-red.XXXXXX") || person "cannot make a temporary directory"
@@ -97,15 +100,21 @@ report)
 	if [ "$cards" -gt 0 ]; then printf '%s\n' "${commands[@]}"; fi
 	;;
 apply)
-	for i in "${!fsets[@]}"; do
-		bash "$here/refuse-list.sh" --apply --why "$why" "${fsets[$i]}" "${fsurfs[$i]}" "${flogs[$i]}" ||
-			person "refuse-list --apply failed for ${fsets[$i]} ${fsurfs[$i]}"
-	done
+	# One command per card, not per failing slice: kgen -refuse fails on an entry
+	# that exists, so a card chosen on two surfaces is refused once. The report pass
+	# above already de-duplicated and rejected unnamed games and the card cap.
+	read -r -a runner <<<"${REFUSE_LIST_RUN:-bash -c}"
+	if [ "$cards" -gt 0 ]; then
+		for line in "${commands[@]}"; do
+			"${runner[@]}" "$line" || person "refuse-list --apply failed: $line"
+		done
+	fi
 	# -A stages an add, a modification and a deletion alike, and needs no porcelain
 	# parsing (git C-quotes a path with a space, which ${line:3} would not unquote).
 	git add -A -- dirac || person "cannot stage the refusals"
-	git diff --cached --quiet && person "apply produced no staged refusals"
-	git commit -m "dirac: refuse $cards cards the rules fix diverges on" -m "$ground" >/dev/null ||
+	git diff --cached --quiet -- dirac && person "apply produced no staged refusals"
+	# The pathspec keeps anything else already staged out of the refusal commit.
+	git commit -m "dirac: refuse $cards cards the rules fix diverges on" -m "$ground" -- dirac >/dev/null ||
 		person "cannot commit the refusals"
 	echo "refuse-on-red: refused $cards cards"
 	;;
