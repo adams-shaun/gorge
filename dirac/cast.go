@@ -2304,13 +2304,17 @@ func (s *State) targetedOne(k *prep, e *stackEntry, t TCode) {
 		s.wardGranted(k, sl, ob, e, disguise, nb) // the printed ward and each granted one (kw_ward.go)
 		return
 	}
-	amt := wardAmt(&k.t.Cards[s.cardAt(sl)])
-	if disguise {
-		amt = 2 // CR 702.168b: a face-down Disguise permanent has ward {2}
-	}
 	np := s.npend
-	s.enqueueWard(e, p.obj, ob.ver, s.cardAt(sl), p.ctrl, e.ctrl, amt)
-	s.panharmKeyword(k, sl, kop.TrigBecomesTarget, e.obj, np)
+	if !disguise && s.pileAt(k, sl) != nil {
+		s.printedWards(k, sl, ob.ver, e) // each card of the pile (kw_ward.go)
+	} else {
+		amt := wardAmt(&k.t.Cards[s.cardAt(sl)])
+		if disguise {
+			amt = 2 // CR 702.168b: a face-down Disguise permanent has ward {2}
+		}
+		s.enqueueWard(e, p.obj, ob.ver, s.cardAt(sl), p.ctrl, e.ctrl, amt)
+		s.panharmKeyword(k, sl, kop.TrigBecomesTarget, e.obj, np)
+	}
 	s.wardBeforeGranted(k, p.obj, nb, np)
 }
 
