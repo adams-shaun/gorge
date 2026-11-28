@@ -17,7 +17,7 @@ import (
 func init() { mask[kop.StaticFlags]("kop.StMayRaise", kop.StMayRaise) }
 
 // mayRaiseStatic lowers rc, the only shapes read: PayLife<N>, Discard<1/Card>,
-// PayLife<N> + Sac<1/filter>; no mana and no other part.
+// PayLife<N> + Sac<1/filter>, Sac<1/filter>; no mana and no other part.
 func (lc *lowerCtx) mayRaiseStatic(rc string, st *lStatic) error {
 	c, err := lc.cost(rc)
 	if err != nil {
@@ -37,6 +37,7 @@ func (lc *lowerCtx) mayRaiseStatic(rc string, st *lStatic) error {
 	case c.PayLife >= 1 && c.PayLife <= 255 && c.DiscardN == 0 && c.Sac == nil && c.SacN == 0: // PayLife<N>
 	case c.DiscardN == 1 && c.PayLife == 0 && c.Sac == nil && c.SacN == 0: // Discard<1/Card>
 	case c.PayLife >= 1 && c.PayLife <= 255 && c.Sac != nil && c.SacN == 1 && c.DiscardN == 0: // PayLife<N> Sac<1/filter>
+	case c.PayLife == 0 && c.Sac != nil && c.SacN == 1 && c.DiscardN == 0: // Sac<1/filter> (Exploration Broodship's Sac<1/Land>)
 	default:
 		return refuse("RaiseCost %q", rc)
 	}

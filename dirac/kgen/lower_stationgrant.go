@@ -212,7 +212,7 @@ func (lc *lowerCtx) gatedGrantStatic(sp *params, name string, have lCond, what s
 	}
 	in := inners[0]
 	for _, k := range []string{"Condition", "CheckSVar", "IsPresent", "ClassBand"} {
-		if _, ok := in.Params[k]; ok {
+		if _, ok := in.Params[k]; ok && !grantedMayPlayTurn(in, k) {
 			return refuse("%s granted static beside its own %s$", what, k)
 		}
 	}
@@ -236,4 +236,14 @@ func (lc *lowerCtx) gatedGrantStatic(sp *params, name string, have lCond, what s
 	lc.grantInner = out
 	sp.consume("AddStaticAbility")
 	return nil
+}
+
+// grantedMayPlayTurn: a granted MayPlay$ True body's own Condition$
+// PlayerTurn (Exploration Broodship's STATION 8+ "once during each of your
+// turns" graveyard cast) is the one inner gate read. gorge evaluates it in
+// mayPlayStatic's continuousConditionHolds for the host's controller
+// (rules/mayplay_granted_raise.go mayPlayBoardStatics), and staticBody's
+// staticCond lowers it to cYourTurn, which the outer gate ANDs onto.
+func grantedMayPlayTurn(in cards.Static, k string) bool {
+	return k == "Condition" && in.Params["Condition"] == "PlayerTurn" && in.Params["MayPlay"] == "True"
 }

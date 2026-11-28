@@ -131,6 +131,10 @@ func (e *Engine) quietStaticSourcePeek(p state.PlayerID, z state.Zone) ([]state.
 // (the Room door-lock gate applies to those only, as scanActiveStatics').
 func (e *Engine) quietStaticHit(p state.PlayerID, o *state.Object, sf *cards.Face, z state.Zone, st *cards.Static, topFace bool) quietBoardHit {
 	var h quietBoardHit
+	// granted: the MayPlay$ hit is a granted raise static (mayPlayBoardStatics),
+	// whose HOST the outer Affected$ names, so the per-seat narrowing below
+	// (the printed static's controller) does not apply to it.
+	granted := false
 	switch st.ModeKind() {
 	case cards.StaticContinuous:
 		if v, _ := cards.ParamSetParam(st.ParamSetOf(), st.Params, cards.PKAddAbility); strings.TrimSpace(v) != "" {
@@ -139,6 +143,10 @@ func (e *Engine) quietStaticHit(p state.PlayerID, o *state.Object, sf *cards.Fac
 		if z == state.ZBattlefield {
 			if v, _ := cards.ParamSetParam(st.ParamSetOf(), st.Params, cards.PKMayPlay); strings.EqualFold(strings.TrimSpace(v), "True") {
 				h |= qbhMayPlay
+			}
+			if grantsRaiseMayPlay(sf, st) {
+				h |= qbhMayPlay
+				granted = true
 			}
 		}
 	case cards.StaticCastWithFlash:
@@ -191,7 +199,7 @@ func (e *Engine) quietStaticHit(p state.PlayerID, o *state.Object, sf *cards.Fac
 	// which can grant any seat (the per-card ExiledBy / owner gate is the real
 	// filter) -- and an AddAbility$ static whose Affected$ cannot reach
 	// an object p controls (and grants no Activator$ ability) gives p nothing.
-	if h&qbhMayPlay != 0 && o.Controller != p && e.controllerOf(o.ID) != p &&
+	if h&qbhMayPlay != 0 && !granted && o.Controller != p && e.controllerOf(o.ID) != p &&
 		!mayPlaySeatBeneficiary(st.ParamStr(cards.PKMayPlayPlayer)) {
 		h &^= qbhMayPlay
 	}
@@ -235,7 +243,7 @@ func (e *Engine) quietBoardStaticGuard(p state.PlayerID) {
 	check(len(e.activeStatics("CastWithFlash")) > 0, qbhFlash, "a CastWithFlash static")
 	check(len(e.activeStatics("PlotZone")) > 0, qbhPlotZone, "a PlotZone static")
 	mayPlay := false
-	for _, sv := range e.activeStatics("Continuous") {
+	for _, sv := range e.mayPlayBoardStatics() {
 		if mayPlayStaticBenefits(p, &sv) && strings.EqualFold(strings.TrimSpace(sv.ParamStr(cards.PKMayPlay)), "True") {
 			mayPlay = true
 			break
