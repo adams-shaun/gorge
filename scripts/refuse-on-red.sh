@@ -1,13 +1,24 @@
 #!/usr/bin/env bash
-# refuse-on-red.sh BASE: a rule-cited engine change that breaks lockstep refuses the cards
+# refuse-on-red.sh BASE | --culprit SHA: a rule-cited engine change that breaks lockstep refuses the cards
 # it diverges on instead of being reverted (invariant 13). It plays the dirac gate's
 # committed FDN and BLB slices, both surfaces, shortened; a bad game becomes the
 # `kgen -refuse` commands scripts/refuse-list.sh prints. Report-only unless
-# REFUSE_ON_RED=apply.
+# REFUSE_ON_RED=apply. With --culprit SHA (oracle-refuse-instead.sh) the step 1 checks read
+# that one commit's diff against its first parent and its messages instead of BASE...HEAD;
+# the slices are still played on HEAD.
 set -uo pipefail
 
-base=${1:-}
-[ -n "$base" ] || { echo "usage: refuse-on-red.sh BASE" >&2; exit 2; }
+usage() { echo "usage: refuse-on-red.sh BASE | --culprit SHA" >&2; exit 2; }
+if [ "${1:-}" = "--culprit" ]; then
+	[ -n "${2:-}" ] || usage
+	diff_range=("$2^1" "$2")
+	log_range="$2^1..$2"
+else
+	base=${1:-}
+	[ -n "$base" ] || usage
+	diff_range=("$base...HEAD")
+	log_range="$base..HEAD"
+fi
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
@@ -16,11 +27,11 @@ person() { echo "refuse-on-red: needs a person: $*"; exit 1; }
 
 # 1. Only a rules change with a stated ground is a refusal case: a non-test Go file
 # under engine/, no dirac/ file, and a commit message that names the rule or oracle.
-changed=$(git diff --name-only "$base"...HEAD) || person "cannot diff $base...HEAD"
+changed=$(git diff --name-only "${diff_range[@]}") || person "cannot diff ${diff_range[*]}"
 engine_go=$(grep -E '^engine/.*\.go$' <<<"$changed" | grep -v '_test\.go$' || true)
 [ -n "$engine_go" ] || na "no non-test Go change under engine/"
 grep -q '^dirac/' <<<"$changed" && na "the change touches dirac/"
-msgs=$(git log --format=%B "$base"..HEAD) || person "cannot read the commit messages of $base..HEAD"
+msgs=$(git log --format=%B "$log_range") || person "cannot read the commit messages of $log_range"
 ground=$(grep -m1 -E '^(Rule: CR [0-9]|Oracle: (forge|xmage|ruling) )' <<<"$msgs" || true)
 [ -n "$ground" ] || na "no Rule: CR N or Oracle: ... line in a commit message"
 

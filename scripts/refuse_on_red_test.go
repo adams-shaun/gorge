@@ -601,6 +601,44 @@ func TestRefuseOnRed(t *testing.T) {
 			t.Fatalf("stdout = %q, want needs-a-person for the unnamed game", out)
 		}
 	})
+
+	t.Run("culprit-mode-reads-the-culprit-diff", func(t *testing.T) {
+		// main: base, a merged rule-cited engine fix (the culprit), then a later docs
+		// commit with no Rule line at HEAD.
+		r := newRefuseOnRedRepo(t, refuseOnRedChange{
+			files:   [][2]string{{"README.md", "docs\n"}},
+			message: "docs: a later change\n",
+		})
+		r.git(t, "checkout", "-q", "-b", "fix", r.base)
+		refuseOnRedWrite(t, r.dir, refuseOnRedEngineGo, "package rules\n")
+		r.git(t, "add", ".")
+		r.git(t, "commit", "-q", "-m", "fix(rules): keep the card\n\n"+refuseOnRedRule+"\n")
+		r.git(t, "checkout", "-q", "-")
+		r.git(t, "merge", "-q", "--no-ff", "-m", "Merge pull request #1 from x/fix", "fix")
+		culprit := r.git(t, "rev-parse", "HEAD")
+		refuseOnRedWrite(t, r.dir, "later.md", "later\n")
+		r.git(t, "add", ".")
+		r.git(t, "commit", "-q", "-m", refuseOnRedNoRuleMsg)
+		if msg := r.git(t, "log", "-1", "--format=%B"); strings.Contains(msg, "Rule:") {
+			t.Fatalf("precondition: HEAD's message must have no Rule line: %q", msg)
+		}
+		env := refuseOnRedEnv(refuseOnRedStub(t, refuseOnRedCleanLogs()))
+		out, errs, code := refuseOnRedRun(t, r, env, culprit)
+		if code != 0 || !strings.HasPrefix(out, "refuse-on-red: n/a (") {
+			t.Fatalf("<base> mode from the culprit: exit %d, stdout %q, stderr:\n%s; want n/a", code, out, errs)
+		}
+		out, errs, code = refuseOnRedRun(t, r, env, "--culprit", culprit)
+		if code != 0 {
+			t.Fatalf("--culprit: exit %d, stderr:\n%s", code, errs)
+		}
+		if got, want := refuseOnRedLast(out), "refuse-on-red: lockstep holds (2 pairs a slice)"; got != want {
+			t.Fatalf("--culprit last stdout line = %q, want %q (stdout %q)", got, want, out)
+		}
+		out, _, code = refuseOnRedRun(t, r, env, "--culprit")
+		if code != 2 || out != "" {
+			t.Fatalf("--culprit with no sha: exit %d, stdout %q; want the usage exit 2", code, out)
+		}
+	})
 }
 
 func TestPrecheckCallsRefuseOnRed(t *testing.T) {

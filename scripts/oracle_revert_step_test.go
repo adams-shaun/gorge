@@ -114,10 +114,17 @@ func revertStepRepoWith(t *testing.T, extra map[string]string) (repo, culprit, h
 	return repo, culprit, head
 }
 
-// runRevertStep runs the extracted step text as Actions would (bash -e -o pipefail) with gh stubbed to log its
+// runRevertStep runs the extracted step text as Actions would (bash -e, no pipefail) with gh stubbed to log its
 // commands and bodies, and, when STUB_OPEN_PR is set, to answer pr list with that open PR number. culprit and head
 // are the real shas of the temp repo: the step really reverts and switches on them.
 func runRevertStep(t *testing.T, repo, script, culprit, head, openPR string) (log string, code int) {
+	t.Helper()
+	return runRevertStepHead(t, repo, script, culprit, head, openPR, "")
+}
+
+// runRevertStepHead is runRevertStep whose gh stub reports the open PR only for pr list --head openHead (any head
+// when openHead is empty).
+func runRevertStepHead(t *testing.T, repo, script, culprit, head, openPR, openHead string) (log string, code int) {
 	t.Helper()
 	root := filepath.Dir(repo)
 	bin := filepath.Join(root, "bin")
@@ -130,12 +137,13 @@ for a in "$@"; do
 done
 case "$1 $2" in
   "pr list")
-    if [ -n "${STUB_OPEN_PR:-}" ]; then printf '[{"number": %s}]\n' "$STUB_OPEN_PR"; else echo "[]"; fi ;;
+    h=""; p=""; for a in "$@"; do [ "$p" = "--head" ] && h=$a; p=$a; done
+    if [ -n "${STUB_OPEN_PR:-}" ] && { [ -z "${STUB_OPEN_HEAD:-}" ] || [ "$h" = "$STUB_OPEN_HEAD" ]; }; then printf '[{"number": %s}]\n' "$STUB_OPEN_PR"; else echo "[]"; fi ;;
 esac
 `, 0o755)
 	ghLog := filepath.Join(root, "gh.log")
 	write(t, filepath.Join(repo, "step.sh"), script, 0o755)
-	c := exec.Command("bash", "--noprofile", "--norc", "-e", "-o", "pipefail", "step.sh")
+	c := exec.Command("bash", "--noprofile", "--norc", "-e", "step.sh")
 	c.Dir = repo
 	path, _ := os.LookupEnv("PATH")
 	env := map[string]string{
@@ -149,6 +157,7 @@ esac
 		"GH_TOKEN":          "t",
 		"GH_LOG":            ghLog,
 		"STUB_OPEN_PR":      openPR,
+		"STUB_OPEN_HEAD":    openHead,
 	}
 	for k, v := range env {
 		c.Env = append(c.Env, k+"="+v)
@@ -305,6 +314,112 @@ func TestOracleBisectRevertStep(t *testing.T) {
 			t.Errorf("the PR body has no `---` footer:\n%s", body)
 		} else if i > footer {
 			t.Errorf("the sentinel-append report must come before the body's `---` footer:\n%s", body)
+		}
+	})
+
+	// The refusal path (st-lockgate-03): a stub oracle-refuse-instead.sh that refuses (exit 0, one commit on the
+	// branch) or finds no refusal (exit 11, tree untouched).
+	const refuseStub = `#!/usr/bin/env bash
+git switch -q -c "$3"
+mkdir -p dirac/support/refused
+echo refused > dirac/support/refused/card.txt
+git add dirac/support/refused/card.txt
+git commit -q -m "dirac: refuse 1 cards the rules fix diverges on"
+echo "oracle-refuse-instead: refused 1 cards; 2 failing tests pass"
+`
+	const noRefusalStub = `#!/usr/bin/env bash
+echo "oracle-refuse-instead: no refusal (refuse-on-red: lockstep holds (300 pairs a slice))"
+exit 11
+`
+	const refuseBr = "hotfix/auto-refuse-4559"
+
+	t.Run("refusal opens a refuse PR and no revert", func(t *testing.T) {
+		t.Parallel()
+		repo, culprit, head := revertStepRepoWith(t, map[string]string{"scripts/oracle-refuse-instead.sh": refuseStub})
+		before := originTip(t, repo, "hotfix/auto-revert-4559")
+		log, code := runRevertStep(t, repo, step, culprit, head, "")
+		if code != 0 {
+			t.Fatalf("want exit 0, got %d\n%s", code, log)
+		}
+		if !strings.Contains(log, "gh pr list --head "+refuseBr+" --state open --json number") {
+			t.Errorf("the step must look for an open refusal PR:\n%s", log)
+		}
+		if !strings.Contains(log, "gh pr create --draft --base main --head "+refuseBr+" --title dirac: refuse the cards #4559's rules fix diverges on (auto-bisect)") {
+			t.Errorf("want the draft refusal PR:\n%s", log)
+		}
+		if strings.Contains(log, "revert:") {
+			t.Errorf("a cured refusal must open no revert PR:\n%s", log)
+		}
+		tip := originTip(t, repo, refuseBr)
+		if tip == "" {
+			t.Fatalf("origin has no %s", refuseBr)
+		}
+		tip = strings.Fields(tip)[0]
+		if p := strings.TrimSpace(sh(t, repo, "git", "rev-parse", tip+"^")); p != head {
+			t.Errorf("the refusal commit's parent is %s, want main's head %s", p, head)
+		}
+		if after := originTip(t, repo, "hotfix/auto-revert-4559"); after != before {
+			t.Errorf("the revert branch must not move: %s -> %s", before, after)
+		}
+		body := revertStepBody(t, repo)
+		for _, want := range []string{
+			"blames #4559 (" + culprit + "), a rules fix that cites:",
+			"- TestAlpha", "- TestBeta",
+			"oracle-refuse-instead: refused 1 cards; 2 failing tests pass",
+			"https://github.com/adams-shaun/gorge/actions/runs/45740776172",
+			"A draft: a human reads the refusals, then marks it ready. Each refused card joins its class ticket; the gorge fix stays.",
+			"---\nThis Robot (gorge agentctl swarm) Shan't Be Blamed For Stupid Humans",
+		} {
+			if !strings.Contains(body, want) {
+				t.Errorf("the refusal PR body lacks %q:\n%s", want, body)
+			}
+		}
+	})
+
+	t.Run("no refusal falls back to the revert", func(t *testing.T) {
+		t.Parallel()
+		repo, culprit, head := revertStepRepoWith(t, map[string]string{"scripts/oracle-refuse-instead.sh": noRefusalStub})
+		log, code := runRevertStep(t, repo, step, culprit, head, "")
+		if code != 0 {
+			t.Fatalf("want exit 0, got %d\n%s", code, log)
+		}
+		if !strings.Contains(log, "oracle-refuse-instead: no refusal") {
+			t.Errorf("precondition: the refusal stub must have run:\n%s", log)
+		}
+		if !strings.Contains(log, "gh pr create --draft --base main --head hotfix/auto-revert-4559 --title revert: #4559 reddened the oracle (auto-bisect)") {
+			t.Errorf("want the draft revert PR:\n%s", log)
+		}
+		if originTip(t, repo, refuseBr) != "" {
+			t.Errorf("no refusal branch may be pushed")
+		}
+		body := revertStepBody(t, repo)
+		want := "Not refused instead: oracle-refuse-instead: no refusal (refuse-on-red: lockstep holds (300 pairs a slice))\n"
+		i, footer := strings.Index(body, want), strings.Index(body, "\n---\n")
+		if i < 0 || footer < 0 || i > footer {
+			t.Errorf("the revert body must carry %q before its `---`:\n%s", want, body)
+		}
+	})
+
+	t.Run("open refuse PR gets a comment", func(t *testing.T) {
+		t.Parallel()
+		repo, culprit, head := revertStepRepoWith(t, map[string]string{"scripts/oracle-refuse-instead.sh": refuseStub})
+		log, code := runRevertStepHead(t, repo, step, culprit, head, "6000", refuseBr)
+		if code != 0 {
+			t.Fatalf("want exit 0, got %d\n%s", code, log)
+		}
+		if !strings.Contains(log, "gh pr list --head hotfix/auto-revert-4559 --state open --json number") {
+			t.Errorf("precondition: the revert branch is checked first:\n%s", log)
+		}
+		if !strings.Contains(log, "gh pr comment 6000") {
+			t.Errorf("the open refusal PR must get a comment:\n%s", log)
+		}
+		if strings.Contains(log, "gh pr create") || originTip(t, repo, refuseBr) != "" {
+			t.Errorf("with an open refusal PR nothing is opened or pushed:\n%s", log)
+		}
+		for _, want := range []string{"blames #4559 (" + culprit + ") again", "- TestAlpha", "This Robot (gorge agentctl swarm)"} {
+			if !strings.Contains(log, want) {
+				t.Errorf("the comment lacks %q:\n%s", want, log)
+			}
 		}
 	})
 }
