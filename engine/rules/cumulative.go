@@ -239,9 +239,10 @@ func costCarriesSacX(c Cost) bool {
 
 // foldCostX folds a chosen X into the cost, once per unfolded shape: the
 // printed {X} pips become that much generic mana (Cost.WithX), each announced
-// PayLife<X> part becomes that much fixed life, and a CollectEvidence<X> part
-// becomes a literal threshold, so the folded cost's mana half is Priceable and
-// the evidence stage can resolve it.
+// PayLife<X> part becomes that much fixed life, a CollectEvidence<X> part
+// becomes a literal threshold, and an announced Sac<X/Spec> part becomes a
+// literal sacrifice count, so the folded cost's mana half is Priceable and the
+// evidence / sacrifice stage can resolve it.
 func foldCostX(c Cost, x int32) Cost {
 	out := c.WithX(x)
 	if len(out.LifeX) > 0 {
@@ -279,22 +280,31 @@ func foldCostX(c Cost, x int32) Cost {
 	return out
 }
 
+// sacCandidateSource is the one query triggeredCostSacXBound needs: the
+// engine's per-part candidate walk (triggeredMandatoryCandidatesWith), named
+// through a narrow interface so the bound stays a free function rather than a
+// new Engine method (the repo's home table).
+type sacCandidateSource interface {
+	triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx int, part CostPart, extra map[state.ObjID]bool) []state.ObjID
+}
+
 // triggeredCostSacXBound is the most permanents the window's announced
-// sacrifices can name together: each announced part pays X, so the shared
-// candidate count divided over them (capped at xFoldBoundCap).
-func (e *Engine) triggeredCostSacXBound(tc *triggeredEffectCost) int32 {
-	parts, n := int32(0), int32(0)
+// sacrifices can name together: each announced part pays X, so the smallest
+// per-part candidate count bounds X (capped at xFoldBoundCap). The per-x
+// triggeredCostComponentsPayable probe still reserves candidates across the
+// parts, so the minimum is enough even when their pools overlap.
+func triggeredCostSacXBound(c sacCandidateSource, tc *triggeredEffectCost) int32 {
+	n := int32(-1)
 	for i, part := range tc.amount.Sac {
 		if !part.Announced {
 			continue
 		}
-		parts++
-		if c := int32(len(e.triggeredMandatoryCandidatesWith(tc, i, part, nil))); parts == 1 || c < n {
-			n = c
+		if got := int32(len(c.triggeredMandatoryCandidatesWith(tc, i, part, nil))); n < 0 || got < n {
+			n = got
 		}
 	}
-	if parts > 1 {
-		n /= parts
+	if n < 0 {
+		return 0
 	}
 	return min(n, xFoldBoundCap)
 }
@@ -1025,8 +1035,8 @@ func windowManaAltTotal(a windowManaAlt) int32 {
 }
 
 // triggeredCostXAsk is the X arm of the payment ask: a cost carrying an
-// unfolded {X}, PayLife<X> or CollectEvidence<X> part needs its X announced
-// BEFORE the mana activations that cover it (CR 601.2b's
+// unfolded {X}, PayLife<X>, CollectEvidence<X> or announced Sac<X/Spec> part
+// needs its X announced BEFORE the mana activations that cover it (CR 601.2b's
 // announce-then-activate ordering; the ordinary pay/decline election follows
 // the fold). Two shapes:
 //
@@ -1043,7 +1053,9 @@ func windowManaAltTotal(a windowManaAlt) int32 {
 //     potential pool (the floating pool plus every untapped source's
 //     production -- the window then opens paymentManaAsk, so the activations
 //     that cover X + pips are real): the payer's current life caps a
-//     PayLife<X> part, PotentialMana caps a mana {X}.
+//     PayLife<X> part, the graveyard's mana value a CollectEvidence<X>, an
+//     announced Sac<X/Spec>'s candidate count caps it (CR 118.3), and
+//     PotentialMana caps a mana {X}.
 //
 // A face with NO SVar:X, and a face whose SVar:X body is unresolvable, both
 // fail closed: no announcement ask, the amount stays
@@ -1195,7 +1207,7 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 	sacX := costCarriesSacX(tc.amount)
 	if sacX {
 		// CR 118.3: the permanents an announced sacrifice may name bound X.
-		if n := e.triggeredCostSacXBound(tc); bound < 0 || n < bound {
+		if n := triggeredCostSacXBound(e, tc); bound < 0 || n < bound {
 			bound = n
 		}
 	}
@@ -1206,26 +1218,11 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 	for x := int32(0); x <= bound; x++ {
 		v := foldCostX(tc.amount, x)
 		priced := v
-		if sacX {
-			// Cost.Priceable is false for a Sac part: the folded sacrifice is
-			// gated by the component window's payable check, X = 0 offered
-			// (its follow-up pay ask declines a zero count, keeping option 0
-			// the decline-equivalent), as the evidence arm below does.
-			if x > 0 && !evidenceX {
-				probe := *tc
-				probe.amount = v
-				if !e.triggeredCostComponentsPayable(&probe) {
-					continue
-				}
-			}
-			priced.Sac = nil
-		}
-		if evidenceX {
-			// Cost.Priceable is false for an Evidence part, so the folded
-			// cost's evidence half is gated by the component window's own
-			// payable check. X = 0 stays offered: the follow-up pay ask
-			// declines a zero threshold, keeping option 0 the
-			// decline-equivalent the bots take.
+		if sacX || evidenceX {
+			// Cost.Priceable is false for a Sac or Evidence part, so the folded
+			// half is gated by the component window's own payable check. X = 0
+			// stays offered: the follow-up pay ask declines a zero count or
+			// threshold, keeping option 0 the decline-equivalent the bots take.
 			if x > 0 {
 				probe := *tc
 				probe.amount = v
@@ -1233,8 +1230,7 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 					continue
 				}
 			}
-			priced.Evidence = nil
-			priced.Sac = nil
+			priced.Sac, priced.Evidence = nil, nil
 		}
 		if !pay.EnergyPayable(e.G, tc.player, &priced) || !pay.CostPayablePool(asPayer(e), tc.player, tc.source, pay.SAOther, priced, pot, e.G.Players[tc.player].ManaUnits()) {
 			continue
@@ -1487,8 +1483,10 @@ func (e *Engine) triggeredCostManaHalfPayable(tc *triggeredEffectCost, rest Cost
 
 // triggeredCostComponentsPayable reports whether the window can settle a
 // non-Priceable cost's choice-bearing components for real: every
-// component is a Sac/Exile/Discard/Return part (no Announced Sac -- the announced
-// count has no channel here), no OTHER non-mana component rides the cost,
+// component is a Sac/Exile/Discard/Return part (an announced Sac<X/Spec> is
+// folded into a literal count first, by triggeredCostXAsk; one still
+// announced here has no channel and is rejected), no OTHER non-mana component
+// rides the cost,
 // no {X}/tap demand needs an announcement the window cannot make, every
 // Draw count resolves, every component is payable at ask time, and the
 // mana/life half is chargeable from the pool (pool-only: the window never
