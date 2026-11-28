@@ -348,11 +348,13 @@ if [ "$mode" = targeted ]; then
 		# Each lane's GOMAXPROCS: near its even share of the run's, so a one-thread lane is not starved
 		# (test_targets.py lane_procs).
 		lane_procs=$("${py[@]}" laneprocs --procs "${GOMAXPROCS:-$(nproc)}" --lanes "${#lanes[@]}") || verdict FAIL "lane GOMAXPROCS failed"
+		# and its share of the run's GOMEMLIMIT: the lanes share one scope's MemoryMax (test_targets.py lane_memlimit)
+		lane_mem=$("${py[@]}" lanemem --limit "${GOMEMLIMIT:-}" --lanes "${#lanes[@]}") || verdict FAIL "lane GOMEMLIMIT failed"
 		lane_logs=() lane_pids=() n=0
 		for r in "${lanes[@]}"; do
 			log=$lane_dir/lane$n.json
 			lane_logs+=("$log")
-			GOMAXPROCS=$lane_procs go test -json -v -failfast -timeout "$(timeout_for "${r%%$'\t'*}")" -run "${r#*$'\t'}" "${r%%$'\t'*}" >"$log" 2>&1 &
+			GOMEMLIMIT=$lane_mem GOMAXPROCS=$lane_procs go test -json -v -failfast -timeout "$(timeout_for "${r%%$'\t'*}")" -run "${r#*$'\t'}" "${r%%$'\t'*}" >"$log" 2>&1 &
 			lane_pids+=($!)
 			n=$((n + 1))
 		done
