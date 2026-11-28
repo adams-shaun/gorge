@@ -1,0 +1,13 @@
+{
+  "card": "Darksteel Monolith",
+  "class": "unmodelled-zeroaltshared",
+  "why": "gorge does something the kernel does not model here (stall zeroaltshared); 58 games in the corpus",
+  "repro": {
+    "pool": "ev-cmdr-darksteel-monolith",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 36,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

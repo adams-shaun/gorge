@@ -1,0 +1,13 @@
+{
+  "card": "Not of This World",
+  "class": "options",
+  "why": "the engines offer different options; 464 games in the corpus",
+  "repro": {
+    "pool": "ev-cmdr-not-of-this-world",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 12,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

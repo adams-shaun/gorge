@@ -1,0 +1,3 @@
+# ev-cmdr-promise-of-loyalty: Promise of Loyalty, unverified in hosted-cmdr (cli-20261127T171913Z-f639e8e4)
+# replay: host pool tail-66; kfuzz -synth tail-66 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-promise-of-loyalty.txt -seed 1 -pairs 1 -surface full -mulligans 0
+Promise of Loyalty

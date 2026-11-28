@@ -274,7 +274,6 @@ Brave-Kin Duo
 Brazen Bluff
 Brazen Collector
 Brazen Upstart
-Breaching Dragonstorm
 Breaching Leviathan
 Break Under Pressure
 Bretagard Stronghold
@@ -578,7 +577,6 @@ Dragonlair Spider
 Dragonlord Dromoka
 Dragonologist
 Dragonstorm Forecaster
-Dragonstorm Globe
 Drake Stone
 Drastic Revelation
 Dreaded Bat-Cloud
@@ -1536,7 +1534,6 @@ Nog, Ambitious Cadet
 Noggle Hedge-Mage
 Noggle Robber
 Noggle the Mind
-Nogi, Draco-Zealot
 Nori, Teller of Tales
 Nova Hellkite
 Novablast Wurm
@@ -1579,7 +1576,6 @@ Opulent Palace
 Oracle's Restoration
 Oran-Rief Invoker
 Orazca Raptor
-Orb of Dragonkind
 Orbital Plunge
 Orbweaver Kumo
 Orcrist, Goblin-cleaver
@@ -1911,7 +1907,6 @@ Sarek, Federation Ambassador
 Sarkhan Unbroken
 Sarkhan's Resolve
 Sarkhan's Scorn
-Sarkhan, Dragon Ascendant
 Saruman, the White Hand
 Saurian Explorer
 Savage Knuckleblade
@@ -2440,7 +2435,6 @@ Twisted Experiment
 Twisted Fates
 Twisted Justice
 Two-Headed Hellkite
-Tyrant's Familiar
 Tyrant's Scorn
 U.S.S. Enterprise-A, Free Spirit
 U.S.S. Voyager, Lone Wanderer

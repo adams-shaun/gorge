@@ -1,0 +1,3 @@
+# ev-cmdr-commandeer: Commandeer, unverified in hosted-cmdr (cli-20261127T171913Z-f639e8e4)
+# replay: host pool tail-01; kfuzz -synth tail-01 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-commandeer.txt -seed 1 -pairs 1 -surface full -mulligans 0
+Commandeer

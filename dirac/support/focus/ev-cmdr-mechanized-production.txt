@@ -1,3 +1,3 @@
 # ev-cmdr-mechanized-production: Mechanized Production, unverified in hosted-cmdr (cli-20261127T093705Z-1fed1794)
 # replay: host pool tail-21; kfuzz -synth tail-21 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-mechanized-production.txt -play-refused -seed 1 -first-pair 12 -pairs 1 -surface autopay -mulligans 0
-Mechanized Production
+Mechanized Production	Ornithopter;Memnite
