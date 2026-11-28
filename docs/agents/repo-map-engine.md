@@ -33,6 +33,7 @@ outside itself, `bots/` imports `engine/` only, and `server/` imports both.
 | `engine/eventdiff` | Compares two event streams and names the first difference (`Divergence`, `First`). A leaf over `events`, shared by `replay` and `game`. |
 | `engine/game` | What a host needs from a running game, whichever engine runs it: `game.Game` (board, derived facts, log, pending decision, submit, fork, capabilities), `game.Engine`, the neutral `game.Config`. Never imports `rules` or `replay`. |
 | `engine/game/gorgegame` | The rules engine behind `game.Game` and `game.Engine`; `RulesConfig` maps `game.Config` to `rules.Config`, `Rules` returns the engine for gorge-only paths. |
+| `engine/cardc` (+`ir`, `forge`, `mtgish`, `ogram`, `custom`) | The typed card interface: `ir` holds the types, and each reader of a card source lowers it into them (`forge` from Forge script text, `mtgish` and `ogram` from their pinned data; `custom` is the register of card-specific nodes). Nothing that plays a game may import it yet (`TestNothingImportsCardc`). Tool: `cmd/cardc`. |
 
 The layering design for `engine/rules` is
 [`docs/design/2026-10-03-rules-engine-layering-design.md`](../design/2026-10-03-rules-engine-layering-design.md).
@@ -53,6 +54,7 @@ The layering design for `engine/rules` is
 | `bots/internal/simdk` | The width-generic AVX-512 kernels the network forwards share (GEMM, LayerNorm, GELU), each with a scalar Go twin. |
 | `bots/netsimd` | A SIMD forward pass for the MLP value network: the same arithmetic as `gonet.Net.eval`, whole-layer AVX-512 kernels, scalar Go fallback. |
 | `bots/policynet` | Feature layer of the learned per-option policy: deterministic encoder from a seat's view, MLP, `.gpol` checkpoints. |
+| `bots/encoder` | State-encoder contract: `Schema`, `ViewEncoder`, registry over the policynet feature sets. |
 | `bots/searchprobe` | Hidden-information world sampler (`Collector`, `Sample`, `Redealer`, known-card tracking). |
 | `bots/searchseat` | The PIMC search decision function (`Choose`) shared by the teacher corpus generator and `SearchBot`. |
 | `bots/spellbench` (+`builtins`, `payexec`, `sbsearch`) | The SpellBench benchmark deck catalogs (generator `bots/spellbench/fdn-catalog.py`), the builtin and tactical policies, the payment-plan lowering, and sb-search, the determinized search over sb-tactical. |

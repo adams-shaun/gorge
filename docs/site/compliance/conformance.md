@@ -93,9 +93,9 @@ failing test skeleton. See
 1. **While you work:** `make test-one` and `make test-targeted`, capped, with the corpus linked.
 2. **Before a PR:** `make test-smart`, `make sim`, and `TestHeads`.
 3. **On the PR:** `fast` (the diff's packages and their test importers, `-short`) and `lint`.
-4. **On each merge-queue batch:** the full suite in six shards, `examples`, `wire-matrix` and
-   `dirac-slices` (`.github/workflows/ci.yml`). The whole `dirac/oracle` runs on `main` about
-   every 6 hours (`.github/workflows/oracle.yml`), never on a PR or batch.
+4. **On each merge-queue batch:** the full suite in six shards, `examples`, `wire-matrix`,
+   `dirac-slices` and `oracle-sentinels` (`.github/workflows/ci.yml`). The whole `dirac/oracle` runs on `main` about
+   every 2 hours (`.github/workflows/oracle.yml`), never on a PR or batch.
 5. **Nightly:** `ci.yml`'s scheduled run (`-count=1`, wire tests, byte-for-byte support-page check),
    and gorge-compliance's verdict, ratchet and drift reports.
 
