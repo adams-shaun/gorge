@@ -28,6 +28,10 @@ lowers and that hold at most 20 kernel-refused copies, less Sultai Arisen (TDC),
 exile-counter cold region past the State bar (TestEveryPoolFitsTheStateBar), each deck named "<name> (<SET>)":
 --set EDH --from-decks DIR --deck-size 100 --max-refused 20 --allow-unverified --label mtgjson.
 
+--also-refuse CARD (repeatable) counts a supported card as refused, so its copies become basics too: a card
+that refuses most four-seat pods holding its deck beside another (kfuzz's refused-pair, cardset.InteractionRefusal).
+A name the table does not hold is an error.
+
 --emit-cards PATH writes the sorted card names of the CSV header (the kgen -card-list input for a
 new set) and exits. --from-decks DIR applies the same rule to gorge deck JSONs in DIR instead of a
 CSV (sim pools); pass --label sim, or --label mtggoldfish for the scraped Standard decks. --min-deck-size N
@@ -105,6 +109,14 @@ def supported(pool, unverified=False, four_seat=False):
     if out.returncode != 0:
         sys.exit(f"kgen -supported {pool}: {out.stderr.strip()}")
     return {n: s == "true" for n, s in (line.split("\t") for line in out.stdout.splitlines())}
+
+
+def also_refuse(sup, names):
+    """sup with every card of names refused; a name sup does not hold is an error."""
+    unknown = [c for c in names if c not in sup]
+    if unknown:
+        sys.exit("--also-refuse: not in the pool's table: " + ", ".join(unknown))
+    return {c: ok and c not in names for c, ok in sup.items()}
 
 
 def bucket(v):
@@ -203,6 +215,7 @@ def main():
     ap.add_argument("--min-deck-size", type=int, default=0, help="maindeck cards a deck must hold at least (60 for Standard); replaces the exact --deck-size check")
     ap.add_argument("--allow-unverified", action="store_true", help="count cards without lockstep evidence as playable (kfuzz -allow-unverified); a refused card stays refused")
     ap.add_argument("--four-seat", action="store_true", help="count a card the kernel plays at two seats only as refused (kgen -supported -four-seat): a pool for kfuzz -seats 4")
+    ap.add_argument("--also-refuse", metavar="CARD", action="append", default=[], help="count this card as refused too (repeatable)")
     ap.add_argument("--emit-cards", metavar="PATH", help="write the CSV's card names (kgen -card-list input) and exit")
     ap.add_argument("--from-decks", metavar="DIR", help="gorge deck JSONs instead of a CSV")
     ap.add_argument("--label", choices=["17lands", "sim", "mtggoldfish", "mtgjson"], default="17lands")
@@ -229,7 +242,7 @@ def main():
             ap.error("want <csv> <out>")
         source, outdir = args.paths
 
-    sup = supported(SET.lower(), args.allow_unverified, args.four_seat)
+    sup = also_refuse(supported(SET.lower(), args.allow_unverified, args.four_seat), args.also_refuse)
     decks = from_decks(args.from_decks) if args.from_decks else extract(source, args.min_winrate)
     os.makedirs(os.path.join(outdir, "decks"), exist_ok=True)
     in_decks = collections.Counter()
@@ -310,7 +323,8 @@ def main():
     manifest = [
         ("set", SET), ("label", args.label),
         ("source", source), ("source_sha256", src_sha),
-        ("recipe", f"min_winrate={args.min_winrate:.2f} max_refused={args.max_refused}" + (" four_seat" if args.four_seat else "")),
+        ("recipe", f"min_winrate={args.min_winrate:.2f} max_refused={args.max_refused}" + (" four_seat" if args.four_seat else "")
+         + "".join(f" also_refuse={c!r}" for c in args.also_refuse)),
         ("pool_cards_sha256", file_sha256(os.path.join(REPO, "dirac", "cardset", "pools", SET.lower(), "cards.txt"))),
         ("pool_supported", f"{sum(sup.values())} of {len(sup)}"),
         ("decks", str(len(rows))), ("tree_sha256", tree_digest(outdir)),
