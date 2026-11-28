@@ -332,13 +332,30 @@ func setOp(op kop.Op) bool {
 // which an ability that leaves it free never reads.
 const setBindSlot = kop.MaxTargets - 1
 
+// setSeatPlayers is a walk's member list as a seat sequence (the order the
+// walk takes them), and whether every member is a player: the shape gorge's
+// effSacrifice and effDiscard resolve over Defined$ Player.
+func setSeatPlayers(list []TCode) (q seatSeq, players bool) {
+	for _, c := range list {
+		if !isPlayerTarget(c) {
+			return seatSeq{}, false
+		}
+		q.add(CodeSeat(c))
+	}
+	return q, len(list) > 0
+}
+
 // execSet runs in, whose subject is kop.RefSet, once per member of its set,
 // each member bound in turn to the free target slot setBindSlot (the way
 // execUnion binds a union's objects): an object or a player, so each op's
 // own subject read (objRef, playerRef, refCode) answers it. The set is
 // evaluated once before the first run, as gorge resolves Defined$ once per op.
 // A member whose run suspends (an ask) ends the walk with the binding in
-// place for the answer; the members after it are not run.
+// place for the answer; the members after it are not run. The all-player
+// Sacrifice and Discard walk is the exception gorge itself draws: over
+// Defined$ Player those two effects ask every player before anything moves
+// (CR 101.4), so the members still to come ride the each-player repNext
+// chain and the ask's answer runs the walk on (setSeatPlayers below).
 //
 //go:noinline
 func (s *State) execSet(k *prep, in *kop.Instr) bool {
@@ -360,6 +377,24 @@ func (s *State) execSet(k *prep, in *kop.Instr) bool {
 	n := s.setMembers(&v, e.ctrl, &list, &vers)
 	if n == 0 {
 		return true
+	}
+	// A Sacrifice or Discard whose members are all players is gorge's
+	// effSacrifice and effDiscard over Defined$ Player: each player answers
+	// in turn order from the controller and everything they chose moves at
+	// once (CR 101.4, flushSac, flushDiscards). Running it one member at a
+	// time would sacrifice the earlier picks before the later players chose
+	// and drop every member after a suspension, so the seats still to come
+	// ride the each-player repNext chain: the ask's answer pops the next
+	// seat and asks it (interp_ask.go's raGenSac, act_eachdiscard.go's
+	// raDiscard), and the members already run are skipped with the chain.
+	if q, players := setSeatPlayers(list[:n]); players {
+		switch {
+		case in.Op == kop.OpSacrifice && in.C&kop.OptAsk == 0:
+			s.repRest(q, 1)
+			return s.startSac(k, in, q.at(0))
+		case in.Op == kop.OpDiscard && in.F == 0 && in.C == kop.ChooseSelf:
+			return s.discardSeq(k, in, q)
+		}
 	}
 	saveT, saveV, saveBad, saveLoop := e.tgt[setBindSlot], e.tver[setBindSlot], s.res.bad, s.g.inLoop
 	if k.gen.anyBatch {
