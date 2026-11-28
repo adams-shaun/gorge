@@ -577,8 +577,8 @@ func manaGapModelled(first, a *lAbility) bool {
 	case plainTapMana(a, true):
 		// {N}, {T}: one mana of any colour, unrestricted (Hidden Grotto;
 		// Three Tree City's dynamic amount), or a literal amount above one
-		// in any combination (Baxter Building's {4},{T}: four mana, the
-		// kernel's combination filt)
+		// in any combination (Baxter Building's {4},{T}: four mana,
+		// Cascading Cataracts' {5},{T}: five, the kernel's combination filt)
 		amt := a.Mana.Amount
 		if a.Mana.Restrict != nil || a.Mana.RestrictAb != nil || a.Mana.Colors != "WUBRG" {
 			return false
@@ -936,9 +936,9 @@ func restrictedDistinctPair(first, a *lAbility) bool {
 }
 
 // maxComboMana bounds the literal amount of a combination filter (Baxter
-// Building's four mana in any combination). gorge's scriptAnswers enumerates
+// Building's four mana, Cascading Cataracts' five, in any combination). gorge's scriptAnswers enumerates
 // at most 64 per-unit combinations, so the kernel's search does too.
-const maxComboMana = 4
+const maxComboMana = 5
 
 // storeGapMana reports the storage-battery shape a later mana ability may
 // carry: SubCounter<X/KIND> on the source, Amount$ X, one fixed colour and no
