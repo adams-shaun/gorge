@@ -1,7 +1,7 @@
 package scripts
 
 // TestCorpusKeysDoNotDependOnLocale pins the invariant that the corpus/tree keys (ck, dk, tree) are a pure
-// function of committed content, not of the box's locale. 2026-11-27: metal2 (en_US.UTF-8) and spotci (C) logged
+// function of committed content, not of the box's locale. 2026-11-27: the owned box (en_US.UTF-8) and spotci (C) logged
 // different keys for the same merge-queue commit (ck ...c9935cefe9a1 vs ...3e44c20a36e0) because ci-corpus-keys.sh's
 // `sort -z` and table-key-files.sh's `sort -u` collated the same bytes two ways; kgen's published table key
 // (byte-order over the embeds) was identical, proving the content equal and only the ordering different. Running

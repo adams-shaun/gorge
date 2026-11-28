@@ -1,7 +1,7 @@
 {
   "_about": "Measured results the performance pages report, transcribed from the pages as of land 8302470328 (engines, kernel_workloads and commander_pods re-measured 2026-11-25); scripts/docs_perf_figs.py draws every figure from this file. Ranges are [min, max] over the runs of a row.",
   "engines": {
-    "_source": "index.md, The numbers: FDN pairs A and B pooled, median of six runs, every engine 2026-11-25 at gorge b6db453064 on metal2 (scripts/xengine-bench.sh, cores 26 28 30).",
+    "_source": "index.md, The numbers: FDN pairs A and B pooled, median of six runs, every engine 2026-11-25 at gorge b6db453064 on the owned gate box (Ryzen 9 9950X) (scripts/xengine-bench.sh, cores 26 28 30).",
     "rows": [
       {"engine": "dirac", "policy": "random", "kind": "random", "games": [1120, 953, 1300], "ms_game": 0.908, "us_turn": [37.1, 33.9, 40.5], "us_decision": 7.32, "turns": 24, "rss": 137, "date": "2026-11-25"},
       {"engine": "gorge", "policy": "random (auto-pay)", "kind": "random", "games": [59.1, 55.3, 64.1], "ms_game": 17.0, "us_turn": [689, 685, 700], "us_decision": 29.1, "turns": 25, "rss": 124, "date": "2026-11-25"},
@@ -16,7 +16,7 @@
     ]
   },
   "kernel_workloads": {
-    "_source": "index.md, A second workload: random rows only; median of three runs. 2026-11-25 rows at gorge b6db453064 on metal2; mtg-kernel 2026-10-20.",
+    "_source": "index.md, A second workload: random rows only; median of three runs. 2026-11-25 rows at gorge b6db453064 on the owned gate box (Ryzen 9 9950X); mtg-kernel 2026-10-20.",
     "rows": [
       {"workload": "Pair A", "engine": "dirac", "policy": "random", "games": 1290, "us_turn": 34.0, "turns": 23, "rss": 141, "date": "2026-11-25"},
       {"workload": "Pair A", "engine": "gorge", "policy": "random (auto-pay)", "games": 62.7, "us_turn": 694, "turns": 23, "rss": 124, "date": "2026-11-25"},
@@ -30,7 +30,7 @@
     ]
   },
   "commander_pods": {
-    "_source": "index.md, Four-player Commander pods: scripts/xengine-bench.sh PAIRS='fdc fdc-sub', median of three runs, 2026-11-25 at gorge b6db453064 on metal2; fdc-sub replaces the 26 FDC cards dirac does not play with basics (dirac/cmd/dpod).",
+    "_source": "index.md, Four-player Commander pods: scripts/xengine-bench.sh PAIRS='fdc fdc-sub', median of three runs, 2026-11-25 at gorge b6db453064 on the owned gate box (Ryzen 9 9950X); fdc-sub replaces the 26 FDC cards dirac does not play with basics (dirac/cmd/dpod).",
     "rows": [
       {"workload": "fdc", "engine": "gorge", "policy": "random (auto-pay)", "games": 2.79, "us_turn": 5110, "us_decision": 100, "turns": 70, "rss": 198, "date": "2026-11-25"},
       {"workload": "fdc", "engine": "gorge", "policy": "random (manual)", "games": 3.54, "us_turn": 2150, "us_decision": 43.0, "turns": 131, "rss": 179, "date": "2026-11-25"},

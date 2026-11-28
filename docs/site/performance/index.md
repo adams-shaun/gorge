@@ -30,7 +30,7 @@ and [Bot speed](bots.md) the cost per decision and per simulation.
 ## The numbers
 
 Each row is the median of six runs (`scripts/xengine-bench.sh`: FDN pairs A and B, three reps each); the spread is the slowest and
-fastest run. Every row was measured directly in one run on 2026-11-25, on cores 26, 28 and 30 of metal2 at a 1-minute load of 8-40
+fastest run. Every row was measured directly in one run on 2026-11-25, on cores 26, 28 and 30 of the owned gate box (Ryzen 9 9950X) at a 1-minute load of 8-40
 (see [What the comparison doesn't show](#what-the-comparison-doesnt-show)). Turns count both players' turns. Compare µs per decision only within one engine, because each engine splits a game into decisions differently.
 
 <figure markdown="span">
@@ -200,7 +200,7 @@ and the list), and gorge and Forge play the same substituted pods for a like-for
 
     | | |
     |---|---|
-    | gorge | `b6db453064` (2026-11-25), go1.26.3, `cmd/enginebench`, on metal2 (Ryzen 9 9950X), cores 26, 28 and 30 |
+    | gorge | `b6db453064` (2026-11-25), go1.26.3, `cmd/enginebench`, on the owned gate box (Ryzen 9 9950X), cores 26, 28 and 30 |
     | dirac | `b6db453064` (2026-11-25) for the game rows, 2026-11-11 for the transition rows, `dirac/cmd/dplay` (two seats), `dirac/cmd/dpod` (pods) and `go test -bench`, with `-trimpath` |
     | XMage | gorge's fork `adams-shaun/mage` at `6e1ecefc46` (1.4.63, gorge-compliance's `XMAGE_REF`), Temurin JDK 17.0.20.1, driver `XEngineBench` (gorge-compliance), 2026-11-25 |
     | Forge | gorge's Forge fork at `0fe8c90e54` (two seats) and `2323286a00` (Commander pods), JDK 17.0.20.1, driver `forge.oracle.GameReplay`, 2026-11-25 |
