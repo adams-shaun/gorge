@@ -53,21 +53,32 @@ func (lc *lowerCtx) parseFilterText(expr string) (*lFilter, error) {
 	if lc.p.filterReader != filterReadTyped {
 		return parseFilter(expr, lc.known, lc.p.isTypeWord)
 	}
-	st := &lc.p.filterStats
+	return readFilterTyped(expr, lc.known, lc.p.isTypeWord, &lc.p.filterStats)
+}
+
+// readFilterTyped is the typed branch of parseFilterText: the front end's
+// reading mapped by lFilterFromIR, the string reader where either has none
+// (counted in st). A capacity refusal is the typed reader's decision, but its
+// text is the string reader's (which names the alternative), so a refused
+// card's coverage reason reads the same on both paths.
+func readFilterTyped(expr string, knownSub, isType func(string) bool, st *filterStats) (*lFilter, error) {
 	irf, ref := forge.LowerFilter(expr)
 	if ref != nil {
 		st.fallbackFrontEnd++
 		if int(ref.Kind) < len(st.refusedBy) {
 			st.refusedBy[ref.Kind]++
 		}
-		return parseFilter(expr, lc.known, lc.p.isTypeWord)
+		return parseFilter(expr, knownSub, isType)
 	}
-	lf, err := lFilterFromIR(irf, lc.known)
+	lf, err := lFilterFromIR(irf, knownSub)
 	if errors.Is(err, errNoTypedReading) {
 		st.fallbackReader++
-		return parseFilter(expr, lc.known, lc.p.isTypeWord)
+		return parseFilter(expr, knownSub, isType)
 	}
 	if err != nil {
+		if _, serr := parseFilter(expr, knownSub, isType); serr != nil {
+			return nil, serr
+		}
 		return nil, err
 	}
 	st.typed++
@@ -181,18 +192,22 @@ func isRefKind(r *ir.Ref, k ir.RefKind) bool {
 // typedSpellingDistinctions are the nodes whose Forge spellings the string
 // reader tells apart and the interface reads as one, where mapping the most
 // common spelling changed a table: lFilterFromIR returns errNoTypedReading
-// for each, so the string reader reads them. None so far.
-var typedSpellingDistinctions = []string{}
+// for each, so the string reader reads them.
+var typedSpellingDistinctions = []string{
+	"EnchantedBy / EquippedBy / AttachedBy (positive): the string reader builds fEnchantedBy for one and fEquippedBy for the other two, " +
+		"and later checks tell the flags apart (edh's table and Sigiled Sword of Valeron changed); the negation (fNotAttachedBy) stays typed",
+}
 
 // typedCollapsedSpellings are the nodes the interface reads as one while the
 // string reader tells the spellings apart, each mapped to the corpus's most
 // common spelling; fdn's and blb's tables come out the same
 // (TestTypedFilterTablesByteEqual logs them).
 var typedCollapsedSpellings = []string{
-	"EnchantedBy / EquippedBy / AttachedBy -> EnchantedBy (build lowers all three to kop.FAttachedBySrc)",
 	"untapped / !tapped -> untapped",
 	"withoutFlying / !withFlying -> withoutFlying",
 	"YouDontCtrl / !YouCtrl -> YouDontCtrl",
 	"faceUp / !faceDown -> faceUp",
 	"hasKeywordFlash / withFlash -> hasKeywordFlash",
+	"Spell.<x> / Spell.<x>+inZoneStack -> Spell.<x> (the Spell base carries the stack zone; the string reader's redundant " +
+		"inZoneStack compare is dropped; one corpus text, which no pool lowers)",
 }

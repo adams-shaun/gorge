@@ -7,9 +7,11 @@ import (
 )
 
 // TestKgenFilterSection pins the kgen-filter section on a three-file
-// fixture: one typed-only site, one shared setter, three string-only sites
-// (the fallback call from the typed reader does not make parseFilter's own
-// site shared), and one site no reader reaches.
+// fixture: one typed-only site (errTwoColours; the errNoTypedReading
+// sentinel the typed reader matches with errors.Is is a fallback, not a
+// site), one shared setter, three string-only sites (the fallback call from
+// the typed reader does not make parseFilter's own site shared), and one
+// site no reader reaches.
 func TestKgenFilterSection(t *testing.T) {
 	root := "testdata/kgenfilter"
 	files, err := filepath.Glob(filepath.Join(root, "dirac/kgen/*.go"))

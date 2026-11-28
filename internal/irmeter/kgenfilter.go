@@ -14,7 +14,8 @@ import (
 // The kgen-filter section: dirac/kgen's filter refusal sites split by
 // reader. A refusal site is a call to refuse, fmt.Errorf or errors.New. The
 // typed reader is every function (and package var) declared in
-// filter_ir*.go; the string reader is what parseFilter, parseClause,
+// filter_ir*.go, less its fallback sentinels: a typed-file var the typed
+// files test with errors.Is(err, v) marks a fallback, not a refusal; the string reader is what parseFilter, parseClause,
 // historicClauses and (*lClause).prop reach. Reach follows the
 // package-local call graph by name (a selector resolves to every method of
 // that name, an identifier to the function or package var of that name);
@@ -57,9 +58,11 @@ func (k KgenFilter) DropRow() string {
 // fnode is one function or package var of the package: its refusal sites
 // and the package-local names it references.
 type fnode struct {
-	sites int
-	typed bool // declared in filter_ir*.go
-	refs  []string
+	sites    int
+	typed    bool // declared in filter_ir*.go
+	isVar    bool // a package var, not a function
+	sentinel bool // a typed-file var the typed files match with errors.Is
+	refs     []string
 }
 
 // MeasureKgenFilter measures the kgen-filter section over root's dirac/kgen
@@ -85,6 +88,7 @@ func MeasureKgenFilter(root string) (KgenFilter, error) {
 	var k KgenFilter
 	for key, n := range nodes {
 		switch {
+		case n.typed && n.sentinel:
 		case n.typed:
 			k.TypedOnly += n.sites
 		case str[key] && typed[key]:
@@ -146,6 +150,7 @@ func kgenNodes(dir string) (map[string]*fnode, error) {
 	}
 	sort.Strings(files)
 	nodes := map[string]*fnode{}
+	sentinels := map[string]bool{}
 	for _, path := range files {
 		base := filepath.Base(path)
 		if strings.HasSuffix(base, "_test.go") {
@@ -164,8 +169,37 @@ func kgenNodes(dir string) (map[string]*fnode, error) {
 		for _, d := range f.Decls {
 			addDecl(nodes, d, base, typed, imports)
 		}
+		if typed {
+			isTargets(f, sentinels)
+		}
+	}
+	for name := range sentinels {
+		if n := nodes[name]; n != nil && n.typed && n.isVar {
+			n.sentinel = true
+		}
 	}
 	return nodes, nil
+}
+
+// isTargets adds to out every identifier f passes as errors.Is's target.
+func isTargets(f *ast.File, out map[string]bool) {
+	ast.Inspect(f, func(x ast.Node) bool {
+		c, ok := x.(*ast.CallExpr)
+		if !ok || len(c.Args) != 2 {
+			return true
+		}
+		sel, ok := c.Fun.(*ast.SelectorExpr)
+		if !ok || sel.Sel.Name != "Is" {
+			return true
+		}
+		if pkg, ok := sel.X.(*ast.Ident); !ok || pkg.Name != "errors" {
+			return true
+		}
+		if id, ok := c.Args[1].(*ast.Ident); ok {
+			out[id.Name] = true
+		}
+		return true
+	})
 }
 
 func addDecl(nodes map[string]*fnode, d ast.Decl, file string, typed bool, imports map[string]bool) {
@@ -205,6 +239,7 @@ func addDecl(nodes map[string]*fnode, d ast.Decl, file string, typed bool, impor
 				} else {
 					add(id.Name, nil)
 				}
+				nodes[id.Name].isVar = true
 			}
 		}
 	}

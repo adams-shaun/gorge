@@ -377,9 +377,11 @@ func (c *lClause) isFromIR(n *ir.Filter, neg bool, _ func(string) bool) error {
 	case isRefKind(r, ir.RefSelf):
 		on, off = fSelf, fOther
 	case r.Kind == ir.RefAttachedTo && isRefKind(r.Of, ir.RefSelf) && r.Filter == nil:
-		// EnchantedBy, EquippedBy and AttachedBy read as one node: the
-		// corpus's most common spelling (EnchantedBy) is mapped
-		on, off = fEnchantedBy, fNotAttachedBy
+		// EnchantedBy, EquippedBy and AttachedBy read as one node, and the
+		// string reader builds two flags for them that later checks tell
+		// apart: the positive word has no mapping (a spelling distinction,
+		// typedSpellingDistinctions); the negations all read fNotAttachedBy
+		off = fNotAttachedBy
 	case isMemRef(r, ir.MemRemembered):
 		on, off = fRemembered, fNotRemembered
 	case isMemRef(r, ir.MemChosenCard):

@@ -309,8 +309,11 @@ func TestFilterIRClauses(t *testing.T) {
 			t.Errorf("%q: no typed reading", tc.text)
 		case (gerr != nil) != (werr != nil):
 			t.Errorf("%q: typed error %v, string error %v", tc.text, gerr, werr)
-		case gerr != nil && !strings.Contains(werr.Error(), gerr.Error()):
-			t.Errorf("%q: typed refusal %q is not the string reader's %q", tc.text, gerr, werr)
+		case gerr != nil:
+			var st filterStats
+			if _, rerr := readFilterTyped(tc.text, known, isType, &st); rerr == nil || rerr.Error() != werr.Error() {
+				t.Errorf("%q: typed refusal %v is not the string reader's %q", tc.text, rerr, werr)
+			}
 		case gerr == nil && !reflect.DeepEqual(got, want):
 			t.Errorf("%q:\n typed  %v\n string %v", tc.text, got, want)
 		}
