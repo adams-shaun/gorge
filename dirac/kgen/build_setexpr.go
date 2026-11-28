@@ -19,7 +19,7 @@ func kopTakesSet(op kop.Op) bool {
 	case kop.OpExile, kop.OpBounce, kop.OpReturn, kop.OpToLibrary,
 		kop.OpPumpUntilEOT, kop.OpPutCounter, kop.OpDealDamage, kop.OpDestroy, kop.OpSacrifice,
 		kop.OpTap, kop.OpUntap, kop.OpGainLife, kop.OpLoseLife, kop.OpDraw, kop.OpDiscard,
-		kop.OpGainControl, kop.OpGainControlEOT, kop.OpAnimate:
+		kop.OpGainControl, kop.OpGainControlEOT, kop.OpAnimate, kop.OpSkipNextUntap:
 		return true
 	}
 	return false
@@ -37,7 +37,7 @@ func kopTakesSet(op kop.Op) bool {
 func kopWalksSet(ki *kop.Instr, players bool) bool {
 	switch ki.Op {
 	case kop.OpPumpUntilEOT, kop.OpTap, kop.OpUntap, kop.OpGainLife, kop.OpLoseLife,
-		kop.OpGainControl, kop.OpGainControlEOT, kop.OpAnimate:
+		kop.OpGainControl, kop.OpGainControlEOT, kop.OpAnimate, kop.OpSkipNextUntap:
 		return true
 	case kop.OpSacrifice:
 		return players && ki.C&kop.OptAsk == 0

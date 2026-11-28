@@ -339,13 +339,13 @@ func (s *State) setMembers(v *setVal, ctrl uint8, out *[MaxObj + MaxSeats]TCode,
 // setOps are the ops that take a RefSet subject (the design's 12, the ones
 // with the most Defined$ refusal carriers): ChangeZone's moves, Pump,
 // PutCounter, DealDamage, Destroy, Sacrifice, Tap/Untap, GainLife/LoseLife,
-// Draw, Discard, GainControl and Animate.
+// Draw, Discard, GainControl, Animate and SkipNextUntap.
 func setOp(op kop.Op) bool {
 	switch op {
 	case kop.OpExile, kop.OpBounce, kop.OpReturn, kop.OpToLibrary,
 		kop.OpPumpUntilEOT, kop.OpPutCounter, kop.OpDealDamage, kop.OpDestroy, kop.OpSacrifice,
 		kop.OpTap, kop.OpUntap, kop.OpGainLife, kop.OpLoseLife, kop.OpDraw, kop.OpDiscard,
-		kop.OpGainControl, kop.OpGainControlEOT, kop.OpAnimate:
+		kop.OpGainControl, kop.OpGainControlEOT, kop.OpAnimate, kop.OpSkipNextUntap:
 		return true
 	}
 	return false
