@@ -6,39 +6,37 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 
 `cardset.EnforceEvidence` is true: a game plays supported cards only, and a deck holding an unverified or refused card is turned away.
 
-| list | cards | lowered | refused | unverified | supported | 4-seat | pod-evidenced | 4-seat pod-evidenced | in-scope | in-scope lowered | in-scope supported |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| BIG | 30 | 29 | 0 | 4 | 25 | 25 | 0 | 0 | 30 | 29 | 25 |
-| BLB | 278 | 265 | 1 | 2 | 262 | 262 | 1 | 1 | 278 | 265 | 262 |
-| DFT | 276 | 259 | 0 | 1 | 258 | 258 | 2 | 2 | 276 | 259 | 258 |
-| DSK | 276 | 261 | 2 | 7 | 252 | 252 | 1 | 1 | 276 | 261 | 252 |
-| ECL | 273 | 251 | 0 | 3 | 248 | 248 | 1 | 1 | 273 | 251 | 248 |
-| EOE | 266 | 256 | 0 | 5 | 251 | 251 | 1 | 1 | 266 | 256 | 251 |
-| FDN | 517 | 517 | 0 | 0 | 517 | 517 | 9 | 9 | 517 | 517 | 517 |
-| FIN | 312 | 284 | 0 | 2 | 282 | 282 | 1 | 1 | 312 | 284 | 282 |
-| FRA | 269 | 255 | 0 | 5 | 250 | 250 | 1 | 1 | 269 | 255 | 250 |
-| HOB | 172 | 164 | 0 | 4 | 160 | 160 | 1 | 1 | 172 | 164 | 160 |
-| LCI | 290 | 266 | 1 | 5 | 260 | 260 | 2 | 2 | 290 | 266 | 260 |
-| MKM | 279 | 261 | 1 | 11 | 249 | 249 | 1 | 1 | 279 | 261 | 249 |
-| MSH | 276 | 253 | 0 | 4 | 249 | 249 | 1 | 1 | 276 | 253 | 249 |
-| OTJ | 276 | 258 | 0 | 5 | 253 | 253 | 1 | 1 | 276 | 258 | 253 |
-| SOS | 270 | 261 | 0 | 2 | 259 | 259 | 1 | 1 | 270 | 261 | 259 |
-| SPM | 192 | 179 | 2 | 10 | 167 | 167 | 1 | 1 | 192 | 179 | 167 |
-| TDM | 276 | 261 | 1 | 1 | 259 | 259 | 2 | 2 | 276 | 261 | 259 |
-| TLA | 285 | 265 | 1 | 3 | 261 | 261 | 1 | 1 | 285 | 265 | 261 |
-| TMT | 194 | 188 | 0 | 1 | 187 | 187 | 1 | 1 | 194 | 188 | 187 |
-| TRC | 337 | 308 | 0 | 30 | 278 | 278 | 6 | 6 | 337 | 308 | 278 |
-| TRK | 311 | 311 | 1 | 0 | 310 | 310 | 1 | 1 | 311 | 311 | 310 |
-| WOE | 281 | 269 | 0 | 4 | 265 | 265 | 1 | 1 | 281 | 269 | 265 |
-| MBC | 2214 | 2060 | 3 | 60 | 1997 | 1997 | 8 | 8 | 2213 | 2059 | 1997 |
-| CMM | 737 | 650 | 3 | 50 | 597 | 597 | 9 | 9 | 737 | 650 | 597 |
-| MH3 | 308 | 253 | 1 | 27 | 225 | 225 | 1 | 1 | 308 | 253 | 225 |
-| MH2 | 309 | 275 | 0 | 21 | 254 | 254 | 1 | 1 | 309 | 275 | 254 |
-| CM2 | 279 | 247 | 1 | 10 | 236 | 236 | 10 | 10 | 279 | 247 | 236 |
-| hosted-cmdr | 1234 | 1221 | 2 | 153 | 1066 | 1065 | 33 | 33 | 1233 | 1220 | 1066 |
-| ALL | 34480 | 27455 | 32 | 1519 | 25904 | 25901 | 33 | 33 | 32729 | 26960 | 25532 |
-
-The `4-seat` column is a ceiling; `4-seat pod-evidenced` is its proven subset, the `4-seat` cards with an evidence row whose seats field is four or more. The `4-seat` definition has not changed.
+| list | cards | lowered | refused | unverified | supported | 4-seat | pod-evidenced | in-scope | in-scope lowered | in-scope supported |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| BIG | 30 | 29 | 0 | 4 | 25 | 25 | 0 | 30 | 29 | 25 |
+| BLB | 278 | 265 | 1 | 2 | 262 | 262 | 1 | 278 | 265 | 262 |
+| DFT | 276 | 259 | 0 | 1 | 258 | 258 | 2 | 276 | 259 | 258 |
+| DSK | 276 | 261 | 2 | 7 | 252 | 252 | 1 | 276 | 261 | 252 |
+| ECL | 273 | 251 | 0 | 3 | 248 | 248 | 1 | 273 | 251 | 248 |
+| EOE | 266 | 256 | 0 | 5 | 251 | 251 | 1 | 266 | 256 | 251 |
+| FDN | 517 | 517 | 0 | 0 | 517 | 517 | 9 | 517 | 517 | 517 |
+| FIN | 312 | 284 | 0 | 2 | 282 | 282 | 1 | 312 | 284 | 282 |
+| FRA | 269 | 255 | 0 | 5 | 250 | 250 | 1 | 269 | 255 | 250 |
+| HOB | 172 | 164 | 0 | 4 | 160 | 160 | 1 | 172 | 164 | 160 |
+| LCI | 290 | 266 | 1 | 5 | 260 | 260 | 2 | 290 | 266 | 260 |
+| MKM | 279 | 261 | 1 | 11 | 249 | 249 | 1 | 279 | 261 | 249 |
+| MSH | 276 | 253 | 0 | 4 | 249 | 249 | 1 | 276 | 253 | 249 |
+| OTJ | 276 | 258 | 0 | 5 | 253 | 253 | 1 | 276 | 258 | 253 |
+| SOS | 270 | 261 | 0 | 2 | 259 | 259 | 1 | 270 | 261 | 259 |
+| SPM | 192 | 179 | 2 | 10 | 167 | 167 | 1 | 192 | 179 | 167 |
+| TDM | 276 | 261 | 1 | 1 | 259 | 259 | 2 | 276 | 261 | 259 |
+| TLA | 285 | 265 | 1 | 3 | 261 | 261 | 1 | 285 | 265 | 261 |
+| TMT | 194 | 188 | 0 | 1 | 187 | 187 | 1 | 194 | 188 | 187 |
+| TRC | 337 | 308 | 0 | 30 | 278 | 278 | 6 | 337 | 308 | 278 |
+| TRK | 311 | 311 | 1 | 0 | 310 | 310 | 1 | 311 | 311 | 310 |
+| WOE | 281 | 269 | 0 | 4 | 265 | 265 | 1 | 281 | 269 | 265 |
+| MBC | 2214 | 2060 | 3 | 60 | 1997 | 1997 | 8 | 2213 | 2059 | 1997 |
+| CMM | 737 | 650 | 3 | 50 | 597 | 597 | 9 | 737 | 650 | 597 |
+| MH3 | 308 | 252 | 1 | 26 | 225 | 225 | 1 | 308 | 252 | 225 |
+| MH2 | 309 | 275 | 0 | 21 | 254 | 254 | 1 | 309 | 275 | 254 |
+| CM2 | 279 | 247 | 1 | 10 | 236 | 236 | 10 | 279 | 247 | 236 |
+| hosted-cmdr | 1234 | 1220 | 2 | 152 | 1066 | 1065 | 33 | 1233 | 1219 | 1066 |
+| ALL | 34480 | 27441 | 33 | 1504 | 25904 | 25901 | 33 | 32729 | 26946 | 25532 |
 
 `in-scope` counts the cards `dirac/support/scope/out-of-scope.txt` (1751 lines, written by `scripts/dirac-scope-list.py` from the public carddb) does not name: it leaves out digital-only and Alchemy-rebalanced cards, paper cards that are not Commander-legal (a banned card stays in), non-tournament types and mechanics, and Mutate and Splice cards deferred until 2027-01-15, and the two columns after it count the lowered and supported cards among them.
 
@@ -5295,11 +5293,11 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-32 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+33 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
-| lockstep | 13 |
+| lockstep | 14 |
 | options | 4 |
 | options-options | 3 |
 | projection-Cards.Damage | 1 |

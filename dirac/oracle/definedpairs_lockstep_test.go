@@ -119,7 +119,7 @@ func TestDefinedPairLockstep(t *testing.T) {
 // TestDefinedPairMutation: with each player pair's second node acting on the
 // first node's player (Black Widow's opponent draws nothing, you draw four),
 // some game diverges from gorge, so the pair's two nodes reach the game.
-// Swapping the two nodes, the brief's mutation, cannot diverge on this pool:
+// Swapping the two nodes instead cannot diverge on this pool:
 // two Draws of different libraries with nothing between them reach the same
 // decisions in either order.
 func TestDefinedPairMutation(t *testing.T) {
