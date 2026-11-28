@@ -350,37 +350,11 @@ func (s *State) planSacReserved(k *prep, pk *planner, seq *[maxUnits]uint8, bn i
 	return res
 }
 
-// planSacFundable reports whether every other-sacrifice unit of the plan
-// seq/tys (bn units) can name a distinct victim, in run order: gorge's search
-// ranks only paying sets whose steps each name one (pay.planVictimGate ->
-// AssignPlanVictims), so a fundable set still wins beside an unfundable
-// better-ranked one. It runs for the dry probe and the live pass alike: the
-// offer stands or falls on it in gorge.
-func (s *State) planSacFundable(k *prep, p uint8, pk *planner, seq, tys *[maxUnits]uint8, bn int) bool {
-	res := s.planSacReserved(k, pk, seq, bn)
-	for i := 0; i < bn; i++ {
-		if !pk.types[tys[i]].sacO {
-			continue
-		}
-		sl := pk.units[seq[i]]
-		pc := s.manaPCGen(k, sl)
-		ab, ok := s.otherSacAb(k, sl, pc)
-		if !ok {
-			return false
-		}
-		vic, ok := s.otherSacVictim(k, p, sl, ab, res)
-		if !ok {
-			return false
-		}
-		res = res.with(vic)
-	}
-	return true
-}
-
-// planSacGate is the planner's fundability gate (pk.consider): the current
-// count vector's witness (the least unit sequence, as the plan would tap it)
-// must name a victim for each of its other-sacrifice steps. A vector with no
-// such step passes. gorge judges one witness per count vector the same way
+// planSacGate is the planner's fundability gate (pk.consider): some member
+// choice of the current count vector, starting from its witness (the least unit
+// sequence, as the plan would tap it), must name a victim for each of its
+// other-sacrifice steps (planSacFundable, on a scratch copy of the witness). A
+// vector with no such step passes. gorge judges a count vector the same way
 // (pay.planVictimGate over the search's materialized set).
 func (s *State) planSacGate(k *prep, p uint8, pk *planner) bool {
 	var kv [maxTypes]uint8
@@ -392,10 +366,10 @@ func (s *State) planSacGate(k *prep, p uint8, pk *planner) bool {
 	if !any {
 		return true
 	}
-	var seq, tys [maxUnits]uint8
+	var seq, tys, cols [maxUnits]uint8 // cols: unread, the ranking keeps the witness
 	n := pk.lexLeast(&kv, &seq)
 	pk.seqTypes(&kv, &seq, n, &tys)
-	return s.planSacFundable(k, p, pk, &seq, &tys, n)
+	return s.planSacFundable(k, p, pk, &seq, &tys, &cols, n)
 }
 
 // planSacLogOf is s's witness log, nil when the table plans no
