@@ -648,6 +648,13 @@
         "bot_policy": {
           "type": "string"
         },
+        "decks": {
+          "description": "Decks is one report per submitted seat, in seat order: what the server found and, when the seat consented, every substitution it made.",
+          "items": {
+            "$ref": "#/$defs/DeckReport"
+          },
+          "type": "array"
+        },
         "join": {
           "description": "Join is the base-relative path the human opens to sit in the seat, carrying the seat and its token: /t/<table>?seat=N&token=….",
           "type": "string"
@@ -984,7 +991,7 @@
       "x-go-type": "github.com/adams-shaun/gorge/server/protocol.DeckCheck"
     },
     "DeckCheckRequest": {
-      "description": "DeckCheckRequest is POST /api/decks/check's body: one deck, as ManaBrew deck JSON in Deck or a plain-text decklist in Text (exactly one), checked for Format (\"commander\" when omitted, or \"constructed\"). Substitute is accepted and ignored for now.",
+      "description": "DeckCheckRequest is POST /api/decks/check's body: one deck, as ManaBrew deck JSON in Deck or a plain-text decklist in Text (exactly one), checked for Format (\"commander\" when omitted, or \"constructed\"). Substitute asks the server to replace up to three unsupported cards with basic lands of the deck's colour identity and list each swap.",
       "properties": {
         "deck": {},
         "format": {
@@ -3733,6 +3740,10 @@
         "seat": {
           "format": "int64",
           "type": "integer"
+        },
+        "substitute": {
+          "description": "Substitute consents to replacing each unsupported card (at most three) with a basic land of the deck's colour identity before it is judged.",
+          "type": "boolean"
         },
         "text": {
           "type": "string"

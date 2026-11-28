@@ -147,7 +147,7 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		}
 		// A submitted deck is checked before anything is minted or added, so a
 		// refusal leaves no table, token or stored deck behind.
-		submitted, err := c.importSeatDecks(req)
+		submitted, reports, err := c.importSeatDecks(req)
 		if err != nil {
 			return httpapi.CreateGameResponse{}, err
 		}
@@ -215,7 +215,7 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 			return httpapi.CreateGameResponse{}, err
 		}
 		resp := httpapi.CreateGameResponse{Table: string(id), Match: 1, Seed: seed, Seat: 0,
-			Token: grants[0].Token, Join: grants[0].Join, BotPolicy: policy}
+			Token: grants[0].Token, Join: grants[0].Join, BotPolicy: policy, Decks: reports}
 		if seats > 2 || humans > 1 || len(submitted) > 0 {
 			resp.Seats = grants
 		}

@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/adams-shaun/gorge/server/host"
+	"github.com/adams-shaun/gorge/server/protocol"
 )
 
 // podServer arms CreateGame with a recorder, so a test reads exactly what the
@@ -63,5 +65,47 @@ func TestCreatePodRequestIsValidatedAtTheHandler(t *testing.T) {
 		if code != http.StatusBadRequest || !strings.Contains(e.Message, tc.want) {
 			t.Errorf("%s: %d %q (%s), want 400 naming %q", tc.name, code, e.Message, raw, tc.want)
 		}
+	}
+}
+
+// TestCreateGameResponseCarriesDeckReports: a successful POST /api/games
+// hands back the per-seat deck reports beside the table identity, so a
+// substitution is never silent; an empty list stays omitted.
+func TestCreateGameResponseCarriesDeckReports(t *testing.T) {
+	resp := CreateGameResponse{
+		Table: "pod", Match: 1, Seed: 7, Seat: 0, Token: "t0", BotPolicy: "bot",
+		Join: "/t/pod?seat=0&token=t0",
+		Decks: []protocol.DeckReport{{
+			Name: "seat 0 deck", Format: "commander", Engine: "gorge", Cards: 100,
+			Commanders: []string{}, Problems: []string{}, Unknown: []string{},
+			Unsupported: []protocol.DeckReportCard{},
+			Substituted: []protocol.DeckSubstitution{{Out: "Unplayable Card", In: "Swamp", Count: 2}},
+		}},
+	}
+	raw, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), `"decks":[`) {
+		t.Fatalf("marshalled response has no decks: %s", raw)
+	}
+	var got struct {
+		Decks []protocol.DeckReport `json:"decks"`
+	}
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Decks) != 1 || len(got.Decks[0].Substituted) != 1 ||
+		got.Decks[0].Substituted[0].Out != "Unplayable Card" || got.Decks[0].Substituted[0].In != "Swamp" ||
+		got.Decks[0].Engine != "gorge" {
+		t.Fatalf("decks round trip = %+v", got.Decks)
+	}
+
+	empty, err := json.Marshal(CreateGameResponse{Table: "pod"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(empty), `"decks"`) {
+		t.Fatalf("a response with no submitted seats carries decks: %s", empty)
 	}
 }
