@@ -102,8 +102,20 @@ func foldMutate(g *state.Game, e *Event) {
 			return
 		}
 		survivor.MergedCards = append(survivor.MergedCards, state.MergedCard{Obj: e.IDs[0], Card: srcCard, FaceIdx: srcFace})
+		markCloneLayersBeforeMerge(survivor)
 	}
 	survivor.TimesMutated += e.Amount
+}
+
+// markCloneLayersBeforeMerge marks every copy effect on a pile something just
+// merged under as older than that merge (CR 730.2a's timestamp): they keep
+// applying to it, but do not cover the abilities of the components
+// (state.Object.CopiedSinceMerge).
+func markCloneLayersBeforeMerge(o *state.Object) {
+	o.CloneLayers = slices.Clone(o.CloneLayers)
+	for i := range o.CloneLayers {
+		o.CloneLayers[i].BeforeMerge = true
+	}
 }
 
 // EpicSpellCopyText marks a StackCopy whose source is a resolved Epic

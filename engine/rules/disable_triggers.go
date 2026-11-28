@@ -164,5 +164,10 @@ func triggerKindMatches(raw string, t cards.Trigger) bool {
 	if raw != "Triggered.Ward" {
 		return false
 	}
+	return isWardTrigger(&t)
+}
+
+// isWardTrigger reports whether t carries the ward marker Params["Ward"].
+func isWardTrigger(t *cards.Trigger) bool {
 	return t.ParamStr(cards.PKWard) == "True"
 }

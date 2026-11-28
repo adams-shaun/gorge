@@ -61,6 +61,19 @@ var coldMerge = newCold[mergeRec]("merge", func(g *genPrep) int {
 	return 0
 })
 
+// coldMergeTS is the layer clock at each pile record's latest merge, indexed
+// as coldMerge (CR 730.2a: pileCopied orders the copy layers against it). Only
+// a table with a copy that can land on a permanent already on the battlefield
+// (ExtCloneCopy, an Aegis copy) has it: any other copy is made as its
+// permanent enters, so it is older than every merge. It is a region of its
+// own so that a table without one pays no State bytes.
+var coldMergeTS = newCold[uint16]("mergeTS", func(g *genPrep) int {
+	if (g.anyMerge || g.anyMutate) && (g.anyCloneCopy || g.anyAegis) {
+		return maxMerged
+	}
+	return 0
+})
+
 // DebugMergeKeep skips the split when a merged permanent leaves the
 // battlefield: its components stay parked (mutation testing only: the lockstep
 // must catch it).
@@ -239,6 +252,9 @@ func (s *State) mergeFold(k *prep, surv, src Obj, top bool, amount uint8) bool {
 	}
 	r.n++
 	r.tm += amount
+	if ts := coldMergeTS.of(s); ts != nil {
+		ts[ri] = s.ts
+	}
 	s.pileSubscribe(k, s.objs[surv].slot, r, true) // the top's resubscribe above cleared what an under card shares (kw_mutateunion.go)
 	return true
 }
