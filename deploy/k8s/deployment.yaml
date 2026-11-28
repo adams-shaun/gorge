@@ -39,6 +39,7 @@ spec:
             - -vsbot
             - -events
             - -manabrew
+            - -keep-matches=200
           ports:
             - name: http
               containerPort: 8080

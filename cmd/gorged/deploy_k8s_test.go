@@ -62,6 +62,9 @@ func TestK8sManifestArgs(t *testing.T) {
 		"events":          "true",
 		"dir":             "/data",
 		"cards":           "/cards",
+		// Bot tables prune old finished matches: without it the local pod kept
+		// 9.8 GB of them and ran out of its 2 GiB at startup (11-28).
+		"keep-matches": "200",
 	} {
 		f := fs.Lookup(name)
 		if f == nil {
