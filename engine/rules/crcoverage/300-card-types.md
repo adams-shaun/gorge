@@ -89,7 +89,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 310.7 | follows | `engine/rules/siege_defeat.go#queueSiegeDefeat` | `TestSiegeDefeatIsAStackTrigger` | the defeat is the Siege's triggered ability |
 | 310.8 | follows | `engine/rules/sba.go#Engine.battleZeroDefense` | `TestCounteredSiegeDefeatTriggerBinsTheBattle` | a non-Siege battle at 0 defense goes to the graveyard |
 | 310.9 | follows | `engine/rules/replacement_etb.go#Engine.applySiegeProtector` | - | protector designation |
-| 310.9a | deviates | `engine/rules/replacement_etb.go#Engine.protectorOpponents` | - | non-Siege protector from opponents (no corpus carrier) |
+| 310.9a | deviates | `engine/rules/replacement_etb.go#Engine.protectorOpponents` | `TestCRDeviation310_9a` | non-Siege protector from opponents (no corpus carrier) |
 | 310.9b-310.9c | follows | `engine/rules/combat.go#Engine.blockAttackers` `engine/rules/attack_cost.go#Engine.canAttackBattle` | `TestProtectorCannotAttackOwnBattle` | - |
 | 310.9d-310.9g | follows | `engine/rules/replacement_etb.go#Engine.rechooseDepartedBattleProtector` | - | - |
 | 310.10 | not-impl | - | - | SILENT; unreachable in corpus |

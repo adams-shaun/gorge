@@ -27,7 +27,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 103.5c | deviates | `engine/rules/mulligan.go#newMulliganRound` | `TestCR800MultiplayerFirstMulliganIsFree` | free mulligan counts toward allowance |
 | 103.5d | n/a | - | - | shared team turns absent |
 | 103.6-103.6c | follows | `engine/rules/opening_hand.go#Engine.stepOpening` `engine/rules/opening_hand.go#Engine.applyOpeningEffect` | `TestGemstoneCavernsIsOfferedOnlyAfterMulligans` | opening-hand actions after mulligans |
-| 103.7 | deviates | `engine/rules/genesis.go#Engine.genesisDeal` | - | every seat reveals own plane; no phenomenon skip |
+| 103.7 | deviates | `engine/rules/genesis.go#Engine.genesisDeal` | `TestCRDeviation103_7` | every seat reveals own plane; no phenomenon skip |
 | 103.8-103.8a | follows | `engine/rules/turn.go#skipFirstDrawStep` | `TestFirstTurnDrawStepTriggerDoesNotFireInTwoPlayer` | - |
 | 103.8b | n/a | - | - | no 2HG |
 | 103.8c | follows | `engine/rules/turn.go#skipFirstDrawStep` | `TestCR800StartingPlayerDrawsInMultiplayer` | - |
@@ -45,7 +45,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 104.3j | follows | `engine/rules/sba.go#Engine.checkLoseConditions` | - | commander damage |
 | 104.3k | n/a | - | - | tournament |
 | 104.4-104.4a | follows | `engine/rules/sba.go#Engine.checkGameOver` | - | simultaneous loss is a draw |
-| 104.4b | deviates | `engine/rules/livelock.go#livelockWatcher.abort` `server/host/match.go#Registry.play` | - | gorge crashes table (LOUD) |
+| 104.4b | deviates | `engine/rules/livelock.go#livelockWatcher.abort` `server/host/match.go#Registry.play` | `TestCRDeviation104_4b` | mandatory loop aborts with LivelockError, no draw; gorge crashes table (LOUD) |
 | 104.4c | unknown | - | - | not reached |
 | 104.4d-104.4i | n/a | - | - | teams/range/Emperor/tournament |
 | 104.5 | follows | `engine/rules/sba.go#Engine.ceaseDepartedObjects` | `TestConcedeInFourSeatsLeavesTheRestPlayingOn` |  |

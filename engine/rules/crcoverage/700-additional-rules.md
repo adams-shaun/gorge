@@ -10,7 +10,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 700.2b | follows | `engine/rules/trigger_queue.go#Engine.askTriggerModes` `engine/rules/trigger_mode_targets.go#Engine.placeRandomCharmMode` | `TestModalTriggerWithNoTargetableModeIsRemoved` `TestRandomCharmModeIsChosenAsTheTriggerGoesOnTheStack` `TestRandomCharmDrawsOnlyChoosableModes` |  |
 | 700.2c | follows | `engine/rules/target_modes.go#charmTargetSlots` | `TestModalCastTargetsComeFromTheAnnouncedMode` | targets only for chosen modes |
 | 700.2d | follows | `engine/rules/target_modes.go#charmTargetSlots` `engine/effects/charm.go#CharmModeBounds` | `TestMysticConfluenceRepeatsTargetedModeAsksPerInstance` `TestRepeatedModeTargetsPerInstance` | each repeated mode is a separate instance with its own target group; the same target may fill two groups |
-| 700.2e | deviates | `engine/effects/charm_params.go#compileCharm` `engine/rules/cast_asks.go#Engine.castModeAsk` | - | caster picks mode for Fatal Lore etc.; Note only at resolution |
+| 700.2e | deviates | `engine/effects/charm_params.go#compileCharm` `engine/rules/cast_asks.go#Engine.castModeAsk` | `TestCRDeviation700_2e` | Chooser$ is unread on api:Charm: the caster picks the mode (Fatal Lore etc.); Note only at resolution |
 | 700.2f | follows | `engine/state/object.go#Object.ChosenModes` | - | modes held apart from targets |
 | 700.2g | follows | `engine/rules/target_modes.go#copyCharmModes` | `TestCopyCharmAsksEveryChosenTargetMode` | copies keep modes |
 | 700.2h | follows | `engine/rules/cast_asks.go#Engine.castModeAsk` | `TestRequisitionRaidSpreeChargesEachChosenMode` `TestMetamorphicBlastSpreeUnaffordableModeNotOffered` |  |
@@ -19,13 +19,13 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 700.3a-c | follows | `engine/effects/twopiles.go#effTwoPiles` | - | piles are choices; cards stay until pick |
 | 700.3d | partial | `engine/effects/twopiles.go#effTwoPiles` | - | one-card set forced into pile A |
 | 700.4 | follows | `engine/rules/trigmatch/zone.go#ZoneChangeMatchesWithCapture` | - |  |
-| 700.5 | deviates | `engine/effects/count_body_heads.go#evalCountBodyDotted` | `TestDevotionDualSumsBothColours` | two-colour devotion counts hybrid twice; test pins wrong 5 |
+| 700.5 | follows | `engine/effects/count_body_heads.go#evalCountBodyDotted` | `TestDevotionDualSumsBothColours` `TestDevotionDualCountsEverySpellingOnce` | re-audit 2026-11-27: a two-colour hybrid symbol counts once |
 | 700.5a | partial | `engine/state/object.go#Object.faceSlow` | - | devotion modifier absent; layer timing otherwise ok |
 | 700.6 | follows | `engine/effects/filter_word.go#historicMatches` | - | no historic card in pools |
 | 700.7 | follows | `engine/effects/filter.go#predicates` | `TestDelayedDestroyAndSacrificeFindOnlyTheRememberedObject` | identity by ObjID / obj+version |
 | 700.8-700.8c | follows | `engine/effects/count_agg.go#partySize` | - | 8b highest count done correctly |
 | 700.8d | follows | `engine/effects/choose_control.go#chooseEachGroups` | - | Stick Together |
-| 700.9 | deviates | `engine/effects/filter_attachment.go#modifiedPermanent` | - | internal Shield/Deathtouched markers count as counters |
+| 700.9 | follows | `engine/effects/filter_attachment.go#modifiedPermanent` | `TestModifiedIgnoresInternalMarkers` `TestModifiedPredicate` | re-audit 2026-11-27: internal Shield/Deathtouched markers are excluded (state.InternalCounterMarker) |
 | 700.10 | not-impl | - | - | Cut Short planeswalker branch fails closed |
 | 700.11 | follows | `engine/effects/player_filter.go#descendedThisTurn` `engine/state/game.go#ZoneEntry` | - |  |
 | 700.12-700.12a | follows | `engine/effects/filter_word.go#outlawSubtypes` `engine/effects/filter_word.go#outlawMatches` | - | five outlaw subtypes, layer-aware |
@@ -66,8 +66,8 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.14b | follows | `engine/effects/damage.go#fightPairs` `engine/effects/damage.go#fightMemberOK` | `TestCR701_14bNoncreatureFighterDealsNothing` |  |
 | 701.14c | follows | `engine/effects/damage.go#effFight` | `TestCR701_14cSelfFightDealsTwicePower` |  |
 | 701.14d | follows | `engine/effects/damage.go#emitObjectDamage` | - |  |
-| 701.15a | follows | `engine/effects/misc.go#effGoad` `engine/events/apply_state_helpers.go#expireTurnGoads` | - | no goad in pools |
-| 701.15b | deviates | `engine/rules/combat/goad.go#GoadMayAttack` `engine/rules/attack_cost.go#Engine.attackOffersCompute` | - | goader banned outright, not a requirement (multiplayer) |
+| 701.15a | follows | `engine/effects/misc.go#effGoad` `engine/events/apply_state_helpers.go#expireTurnGoads` | `TestGoadKarazikarEnforcesEveryGoaderAtDeclaration` `TestGoadDurationsUseRealJonAndVislorScripts` | each goader's goad expires at that goader's next turn |
+| 701.15b | follows | `engine/rules/combat/goad.go#GoadMayAttack` `engine/rules/combat/attack.go#AttackRequirements` | `TestGoadKarazikarEnforcesEveryGoaderAtDeclaration` | re-audit 2026-11-27: goad is an attack requirement; a non-goader is preferred, not the goader banned |
 | 701.15c-d | follows | `engine/rules/combat/goad.go#GoadedBy` `engine/events/apply_combat.go#foldGoad` | - |  |
 | 701.16a | follows | `engine/effects/investigate.go#effInvestigate` | - |  |
 | 701.17a | follows | `engine/effects/cardflow.go#effMill` | - |  |
@@ -113,7 +113,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.29a | follows | `engine/effects/dig.go#digChooser` `engine/effects/dig.go#effDig` | `TestJacePlusTwoOnOpponentIsChosenByJacesController` `TestSpinIntoMythFatesealCasterChoosesAndOrdersTheTop` | REVISED: cr-g08 landed; the resolving ability's controller chooses and orders |
 | 701.30a,d | follows | `engine/effects/clash.go#effClash` | `TestClashPlacementOneCardAndReverseChoices` `TestClashTriggerModeReadsWonOrientation` |  |
 | 701.30b-c | partial | `engine/effects/clash.go#clashParticipants` | - | no opponent choice; not APNAP |
-| 701.31a-d | deviates | `engine/rules/planar.go#Engine.currentPlane` `engine/events/apply_misc.go#foldPlanarWalk` | - | per-seat planes; no single planar controller |
+| 701.31a-d | deviates | `engine/rules/planar.go#Engine.currentPlane` `engine/events/apply_misc.go#foldPlanarWalk` | `TestCRDeviation701_31a` | per-seat planes; no single planar controller |
 | 701.32a-c | n/a | - | - | Archenemy absent from gorge |
 | 701.33a-b | n/a | - | - | Archenemy absent |
 | 701.34a | follows | `engine/effects/counters.go#effProliferate` `engine/effects/counters.go#proliferateOnce` | `TestCR701_34aProliferateTwiceIsTwoProliferations` `TestContagionEngineProliferatesTwice` `TestProliferateIgnoresInternalMarkers` | internal Shield/Deathtouched markers excluded |
@@ -171,12 +171,12 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.60b-d | follows | `engine/rules/chars/derive.go#BaseKeywords` `engine/rules/combat/block.go#CanBlock` `engine/effects/misc.go#effAlterAttribute` | - |  |
 | 701.61a | follows | `engine/rules/cast_asks.go#Engine.forageAsk` `engine/rules/pay/castparts.go#NonManaCastableP` `engine/rules/pay/sacparts.go#ManaForagePayable` `engine/rules/trigger_cost_forage.go#triggeredEffectCost.foragePayable` | `TestTriggeredForageCanBePaid` |  |
 | 701.62a | follows | `engine/effects/zone_manifest.go#effManifestDread` | - |  |
-| 701.62b | deviates | `engine/effects/zone_manifest.go#effManifestDread` `engine/effects/zone_manifest.go#manifestDreadMove` | - | empty library: no ManifestDread trigger |
+| 701.62b | deviates | `engine/effects/zone_manifest.go#effManifestDread` `engine/effects/zone_manifest.go#manifestDreadMove` | `TestCRDeviation701_62b` | empty library: no ManifestDread trigger |
 | 701.63a | partial | `engine/effects/endure.go#endureCreateSpirit` | - | Spirit is 0/0 + rider; copies 0/0 |
 | 701.63b | follows | `engine/effects/endure.go#effEndure` | `TestEndureCounterBranch` `TestEndureSpiritBranch` |  |
 | 701.64a-b | follows | `engine/events/apply_player.go#foldAlterAttribute` | - |  |
 | 701.65a-b | follows | `engine/effects/airbend.go#effAirbend` `engine/rules/airbend.go#Engine.airbendCastAvailable` | `TestAirbendRecastCastsExiledCardForTwo` | exile, owner may cast for {2}; ElementalBend air fires only if something exiled |
-| 701.66a | deviates | `engine/cards/link.go#builtinSVars` | - | returns under owner, not earthbender |
+| 701.66a | deviates | `engine/cards/link.go#builtinSVars` | `TestCRDeviation701_66a` | returns under owner, not earthbender |
 | 701.66b | follows | `engine/effects/earthbend.go#effEarthbend` | - |  |
 | 701.67a-b | follows | `engine/rules/pay/castpayment.go#ConvokePayment` `engine/rules/pay/castasks.go#ConvokeOffer` `engine/rules/potential_plan.go#Engine.planAbilityPaymentLifePips` `engine/rules/cast_payment.go#Engine.waterbendTapsNeeded` | `TestWaterbendTapsEarthbentLand` `TestTapPaymentsReadCurrentTypes` `TestWaterbendAbilityOfferedFromSourcesAndHelpers` `TestWaterbendAskRequiresTheTapsThePaymentNeeds` `TestWaterbendAskIgnoresASourceThatCantHelp` | a spell's waterbend cast is offered once the pool plus the taps pay: the cast planner declines the shape |
 | 701.67c | follows | `engine/rules/pay/paidcost.go#EmitConvokeTaps` `engine/rules/pay/unlessspecial.go#PayWaterbend` | `TestWaterbendingTriggersHoweverItIsPaid` |  |
@@ -310,15 +310,15 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 709.5h-709.5i | follows | `engine/rules/rooms.go#Engine.checkUnlockTriggers` `engine/rules/trigmatch/room.go#fullyUnlockMatches` | `TestFearOfSleepParalysisFullyUnlockTapsOnceOnFinalDoor` `TestRoomRepeatFaceUnlockDoesNotQueueUnlockDoorTrigger` | - |
 | 709.5j | follows | `engine/effects/unlockdoor.go#countUnlockedDoors` | `TestCountUnlockedDoorsCountsFacesNotRooms` | door is a half |
 | 710.1-710.1c | follows | `engine/effects/resolve.go#effSetState` `engine/events/apply_copy.go#foldFlipFace` | `TestFlipFaceChangesActiveFace` | flipped face repeats ManaCost in the card data |
-| 710.2 | deviates | `engine/events/apply_zone.go#move` | - | flipped card never resets on leaving battlefield |
+| 710.2 | follows | `engine/events/apply_zone.go#move` | `TestFlipCardLeavesBattlefieldUnflipped` | re-audit 2026-11-27: a flipped card resets to its front face on leaving the battlefield |
 | 710.3 | n/a | - | - | physical |
-| 710.4 | deviates | `engine/effects/resolve.go#effSetState` | - | flip is (FaceIdx+1)%2: a second flip unflips |
+| 710.4 | follows | `engine/effects/resolve.go#effSetState` `engine/effects/resolve.go#setStateFlipGate` | `TestFlipCardSecondFlipStaysFlipped` | re-audit 2026-11-27: setStateFlipGate makes flipping one-way |
 | 710.5 | follows | `engine/cards/universe.go#Universe.Names` `engine/effects/cardflow.go#effNameCard` | `TestCorpusNameUniverseHasEveryNameableFace` | flipped name offered |
 | 711.1-711.6 | follows | `engine/cards/kw_levelup.go#kwLevelUp` | `TestCoralhelmCommanderLevelsIntoThe23Band` `TestLevelUpKeywordIsSupported` | sorcery-speed level up; bands are ordinary statics |
 | 711.7 | follows | `engine/state/object.go#Object.ClassLevel` | `TestClassLevelDesignationIsNotACounter` | designation, not counters |
 | 712.1-712.3c | n/a | - | - | definitional/physical |
 | 712.4-712.4b | follows | `engine/events/apply_meld.go#foldMeld` `engine/effects/meld.go#Meld` | `TestMeldGiselaBrunaBrisela` `TestMeldRefusesANonPair` |  |
-| 712.4c | deviates | `engine/effects/resolve.go#effSetState` | - | result-carrying meld card can be transformed |
+| 712.4c | deviates | `engine/effects/resolve.go#effSetState` | `TestCRDeviation712_4c` | a meld card can be transformed (no meld gate on the transform walk) |
 | 712.5-712.5g | follows | `engine/effects/meld.go#meldRoles` `engine/state/meld.go#MeldResultFace` | `TestMeldCorpusCarriers` `TestMeldVanilleFangRagnarok` `TestMeldAPIDispatchHanweir` | pairs from AlternateMode:Meld data |
 | 712.6-712.7 | n/a | - | - | physical |
 | 712.8 | follows | `engine/state/object.go#Object.Face` `engine/cards/parse.go#ParseBytes` | - | one Face per side |
@@ -328,7 +328,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 712.8d,f | follows | `engine/state/object.go#Object.Face` `engine/state/object.go#Object.faceSlow` | `TestManaValueModalDFCBackFaceIsItsOwn` | Face()=Faces[FaceIdx] |
 | 712.8e | follows | `engine/state/mana_value.go#manaValueAs` | `TestManaValueTransformedBackFaceIsFrontFace` `TestSephirothTransformsOnlyOnFourthResolution` |  |
 | 712.8g | follows | `engine/events/apply_meld.go#foldMeld` `engine/state/mana_value.go#manaValueAs` | `TestManaValueMeldedPermanentSumsFrontFaces` |  |
-| 712.9-712.10 | deviates | `engine/effects/resolve.go#effSetState` `engine/effects/zone_change.go#applyTransformed` | - | any 2-face card transforms; no DFC, face-down or instant-face gate |
+| 712.9-712.10 | deviates | `engine/effects/resolve.go#effSetState` `engine/effects/zone_change.go#applyTransformed` | `TestCRDeviation712_9` | any 2-face card transforms; no DFC, face-down or instant-face gate |
 | 712.11-712.11a | follows | `engine/rules/cast_begin.go#Engine.beginCastWith` | `TestDefeatedBattleOffersTransformedCast` `TestOptimusPrimeCastsConvertedForMTMTECost` | front face by default; transformed cast puts back face up |
 | 712.11b-712.11c | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | `TestModalSpellBackFaceRestrictionWithholdsOffer` `TestModalSpellOfferSurvivesFrontFaceRestriction` | - |
 | 712.11d | follows | `engine/rules/legal_walk_hand.go#appendConvertedCast` | `TestOptimusPrimeCastsConvertedForMTMTECost` | the front face's More Than Meets the Eye ability is read when evaluating the converted cast (the back face is what is judged, 712.11c) |
@@ -340,14 +340,14 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 712.14b | unknown | - | - | not located: no nonpermanent-face gate found on battlefield entry |
 | 712.14c | follows | `engine/events/apply_meld.go#foldMeld` | `TestMeldGiselaBrunaBrisela` `TestMeldEntersTappedAndAttacking` | - |
 | 712.15-712.15a | partial | `engine/events/apply_copy.go#foldTurnFaceUp` `engine/effects/resolve.go#effSetState` | - | turn-up keeps front; transform of face-down not blocked |
-| 712.16 | deviates | `engine/effects/resolve.go#effSetState` `engine/events/apply_copy.go#foldTurnFaceDown` | - | DFC can be turned face down |
+| 712.16 | deviates | `engine/effects/resolve.go#effSetState` `engine/events/apply_copy.go#foldTurnFaceDown` | `TestCRDeviation712_16` | DFC can be turned face down |
 | 712.17 | n/a | - | - | physical |
 | 712.18 | follows | `engine/events/apply_copy.go#foldFlipFace` | `TestIncubatorTokenTransformsIntoThePhyrexianFace` | FaceIdx change only, same object |
 | 712.19 | follows | `engine/cards/universe.go#Universe.Names` `engine/cards/universe.go#Universe.FaceByName` `engine/effects/cardflow.go#effNameCard` | `TestCorpusNameUniverseHasEveryNameableFace` `TestCloneKillerCosplayCopiesANamedBackFace` | back-face and combined meld names offered; a chosen back-face name copies that face |
 | 712.20 | follows | `engine/rules/replacement_phase.go#Engine.applyTransformReplacement` | `TestSephirothTransformRunsTheDestinationFaceReplacement` | destination-face as-transforms replacement applied during the flip |
 | 712.21 | follows | `engine/events/apply_meld.go#unmeld` | `TestMeldTwoOwners` `TestMeldFoldPairsAndSplits` |  |
 | 712.21a-712.21b | partial | `engine/events/apply_meld.go#unmeld` | - | fixed order result then partner; no arrange or timestamp choice |
-| 712.21c | deviates | `engine/events/apply_meld.go#unmeld` | - | code-read: effects follow only the result object; partner card untracked after split |
+| 712.21c | deviates | `engine/events/apply_meld.go#unmeld` | `TestCRDeviation712_21c` | effects follow only the result object; partner card stays put after split |
 | 712.21d | follows | `engine/events/apply_meld.go#unmeld` | - | code-read: partner follows the replaced destination; commander exemption untested |
 | 712.21e | unknown | - | - | not located |
 | 713.1-713.5 | n/a | - | - | physical substitute cards |
@@ -387,7 +387,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 720.5 | follows | `engine/cards/universe.go#Universe.Names` | `TestCorpusNameUniverseHasEveryNameableFace` | Omen name offered |
 | 721.1,721.3 | n/a | - | - |  |
 | 721.2-721.2b | follows | `engine/effects/filter_value.go#numericPred` | `TestEveryStationCarrierStationsThroughTheStack` |  |
-| 721.2c | deviates | `engine/rules/chars/derive.go#PT` | - | REVISED: SILENT |
+| 721.2c | deviates | `engine/rules/chars/derive.go#PT` | `TestCRDeviation721_2c` | off-battlefield station card keeps its printed P/T |
 | 721.4 | follows | `engine/rules/station.go#Engine.askStation` `engine/rules/station.go#Engine.handleStation` `engine/cards/kw_station.go#KeywordPushAbility` | `TestStationUsesTheStack` `TestStationNegativeGates` |  |
 | 722.1 | n/a | - | - |  |
 | 722.2-722.2c | follows | `engine/state/object.go#Object.HasPrepareSpell` | `TestPrepareCensusMatchesCorpus` `TestPrepareBackFaceHelperCensus` | inset face held on Card |
@@ -434,7 +434,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 728.1a | not-impl | `engine/effects/counters.go#effRadiationDrain` | - | LOUD: stat:GainLifeRadiation unregistered |
 | 729.1-729.6 | not-impl | - | - |  |
 | 730.1-730.2c | follows | `engine/events/apply_copy.go#foldMutate` `engine/rules/mutate.go#Engine.resolveMutate` | `TestEverquillPhoenixMutatesOntoTopAndCreatesFeather` `TestEverquillPhoenixMutatesUnderKeepsTargetOnTop` `TestMutatesCountAccumulatesAcrossTwoMutations` | same object keeps ID |
-| 730.2d-730.2e | deviates | `engine/events/apply_copy.go#foldMutate` | - | SILENT: token and face-down status stay the target's, not the topmost component's |
+| 730.2d-730.2e | deviates | `engine/events/apply_copy.go#foldMutate` | `TestCRDeviation730_2d` | SILENT: token and face-down status stay the target's, not the topmost component's (token half pinned) |
 | 730.2f-730.2j | not-impl | - | - | SILENT: face-down/flip/transform code never reads merged components |
 | 730.3 | follows | `engine/events/apply_zone.go#move` | `TestMutateMergedCardsLeaveWithThePile` | under-cards follow the pile to its destination |
 | 730.3a-730.3b | partial | `engine/events/apply_zone.go#move` | - | no arrangement or exile-timestamp choice; fixed pile order |

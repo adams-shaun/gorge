@@ -87,9 +87,9 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 603.9 | follows | `engine/rules/trigmatch/ordinary.go#losesGameMatches` | - | d two players: loss ends game |
 | 603.10 | follows | `engine/rules/trigger_match.go#Engine.checkTriggers` | - | post-event state by default |
 | 603.10a | partial | `engine/rules/trigger_kinds.go#looksBackOnDeparture` `engine/rules/trigger_kinds.go#computeFaceLookBackZones` `engine/rules/trigger_match.go#Engine.checkFaceTriggers` `engine/rules/trigger_match.go#Engine.checkTriggersNow` `engine/rules/trigmatch_board.go#trigBoard.MatchesObject` `engine/rules/trigger_inactive_face.go#triggerPushAmount` `engine/effects/count_player.go#countEnteredOver` `engine/rules/trigger_match.go#Engine.triggerStint` | `TestThisTurnEnteredCreatureReadsTheEntry` `TestSacrificedOnceReadsTheFoodAsItLastExisted` `TestCR603_10aMorbidOpportunistSeesItsOwnWrath` `TestCR603_10aMayhemDevilSeesSacrificesWithIt` `TestDepartedCopyTriggersOnLeaving` `TestCR603_10aLookBackReadsStartingLife` `TestCR603_10aLookBackReadsTurnLedgers` `TestCR603_10aLookBackFilterReadsDerivedPower` `TestCR603_10aOnceEachTurnSpansTheSourcesOwnDeath` `TestTriggerLimitHoldsOnLookBack` `TestEffectZoneLookbackSeesAnimatedLandTypes` | ChangesZone/ChangesZoneAll Origin$ Battlefield and Sacrificed lines look back at a battlefield departure, reading the object's derived characteristics (an Effect-owned registration reads the departing permanent's layer-4 types held across its emission) and the no-event ledgers a gate reads; a card leaving a graveyard and a public object put into a hand or library are still matched on the board after the event |
-| 603.10b | deviates | `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | - | d no phasing |
+| 603.10b | follows | `engine/rules/trigger_match.go#Engine.checkFaceTriggers` `engine/rules/trigger_eligibility.go#phasedOutSkipsWalk` `engine/rules/trigger_eligibility.go#phasedOutSourceAdmits` | `TestErtaisFamiliarPhaseOutTriggers` `TestIndirectPhaseOutTriggers` `TestPhaseOutAllStillBatches` | re-audit 2026-11-27: a phasing-out source's own PhaseOut line looks back (directly and indirectly); d no phasing |
 | 603.10c | unknown | `engine/rules/trigmatch/unattached.go#unattachedMatches` | - | not verified |
-| 603.10d | deviates | `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | - | g thief controls Kharn-style trigger; d none in pool |
+| 603.10d | deviates | `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | `TestCRDeviation603_10d` | g thief controls Kharn-style trigger (TriggerController$ TriggeredOriginalController unread); d none in pool |
 | 603.10e | not-impl | `engine/rules/trigmatch/registry.go#Lookup` | - | LOUD: no Countered mode; cards unsupported |
 | 603.10f | follows | `engine/rules/trigger_queue.go#Engine.dropDepartedTriggers` | - | d two players |
 | 603.10g | follows | `engine/rules/trigger_match.go#Engine.checkTriggers` | - | - |
@@ -132,7 +132,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 607.3 | unknown | - | - | not traced |
 | 607.4 | follows | `engine/state/object.go#Object.ChosenColor` | - | Paradise Plume shape |
 | 607.5 | partial | `engine/state/object.go#Object.ExiledWith` | - | acquired pairs share printed slots |
-| 607.5a | deviates | `engine/events/apply_zone.go#move` | - | g no undefined choice after copy |
+| 607.5a | deviates | `engine/events/apply_zone.go#move` `engine/events/apply_copy.go#foldClonePermanent` | `TestCRDeviation607_5a` | a permanent that becomes a copy keeps its own earlier ChosenColor, so the copied chosen-color ability reads it instead of an undefined choice |
 | 608.1 | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | all pass in succession |
 | 608.2 | follows | `engine/rules/stack.go#Engine.resolveTop` `engine/effects/registry.go#Resolve` | - | instant/sorcery/ability resolution steps |
 | 608.2a | follows | `engine/rules/stack.go#Engine.resolveTop` | `TestCR603InterveningIfRecheckedAtResolution` | intervening-if recheck |
@@ -261,7 +261,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 614.13-614.13c | unknown | - | - | not reached |
 | 614.14 | unknown | - | - | - |
 | 614.15 | follows | `engine/effects/registry.go#Resolve` | - | self-replacement inline in effect bodies before emit |
-| 614.16 | deviates | `engine/rules/replacement_match.go#Engine.replacementMatchesRememberedUngatedBy` | - | cost counters doubled if stack non-empty |
+| 614.16 | follows | `engine/rules/replacement_match.go#Engine.replacementMatchesRememberedUngatedBy` `engine/rules/replacement_counter.go#Engine.addCounterEffectOnlyClosed` `engine/rules/replacement_counter.go#Engine.applyDeferredAddCounterReplacements` | `TestCR61416EffectOnlyCounterPirFirst` `TestCR61416EffectOnlyCounterSeasonFirst` `TestDoublingSeasonLeavesBlightSpellCostUndoubled` | re-audit 2026-11-27: a cost's counters are never doubled (stack depth no longer decides); another replacement applying reopens EffectOnly$ |
 | 614.17 | follows | `engine/rules/replacement.go#Engine.applyReplacementsDispatch` | `TestCR614CantEnterBattlefieldPrevention` | - |
 | 614.17a | follows | `engine/rules/replacement.go#Engine.applyReplacementsDispatch` | - | checked at event time; not audited separately |
 | 614.17b | unknown | - | - | - |
@@ -278,7 +278,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 615.9 | follows | `engine/rules/replacement_damage.go#Engine.damageReplacementMatches` | - | ValidSource recheck at damage time |
 | 615.10 | follows | `engine/rules/replacement.go#Engine.applyNonMoveReplacements` | - | per-event ReplaceDamage |
 | 615.11 | follows | `engine/effects/prevent_damage.go#effPreventDamage` | - | per-recipient shields |
-| 615.12 | deviates | `engine/rules/replacement_damage.go#Engine.applicableDamageReplacements` `engine/rules/replacement.go#Engine.applyNonMoveReplacements` | - | shields skipped; riders never run |
+| 615.12 | partial | `engine/rules/replacement_damage.go#Engine.applicableDamageReplacements` `engine/rules/replacement_damage.go#damageReplacementPreventsWithRider` `engine/rules/replacement.go#Engine.applyNonMoveReplacements` | `TestCantPreventDamageMindskinnerStillMills` `TestFogUnderCantPreventDamageDealsCombatDamage` | re-audit 2026-11-27: shields stay unreduced and a prevent-and-rider rider runs (Mindskinner); a Prevent$/ReplaceDamage body's own SubAbility rider is still skipped with the prevention (code-read) |
 | 615.12a | follows | `engine/rules/replacement_damage.go#Engine.applicableDamageReplacements` | - | follows from skip (applied 0 times) |
 | 615.13 | follows | `engine/rules/replacement_damage.go#Engine.applyReplaceDamageTail` | `TestDamagePreventedOnceFiresPerPrevention` | - |
 | 616.1 | follows | `engine/rules/replacement.go#Engine.replacementAskPlayer` `engine/rules/resolve_mayask.go#tapeTextMayAsk` `engine/rules/replacement.go#Engine.applyReplacementsDispatch` | `TestCR616AffectedControllerChoosesReplacement` `TestMayAskSeesASpellsOwnMove` `TestParkedDeathsAskOncePerCreature` | affected player/controller orders |
