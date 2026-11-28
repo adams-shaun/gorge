@@ -71,6 +71,7 @@ func hostedCmdrCases() []hostedCmdrCase {
 	tesakDeck := append(append(deckOf(8, "Tesak, Judith's Hellhound"), deckOf(8, "Abzan Devotee")...),
 		append(deckOf(16, "Mountain"), deckOf(8, "Forest")...)...)
 	dogBearsDeck := append(deckOf(8, "Grizzly Bears"), deckOf(32, "Forest")...)
+	cataractsDeck := append(append(deckOf(14, "Cascading Cataracts"), deckOf(14, "Wastes")...), deckOf(12, "Tide Probe")...)
 	return []hostedCmdrCase{
 		{
 			name:     "flayer_probe_gain_control_granted_annihilator",
@@ -101,7 +102,37 @@ func hostedCmdrCases() []hostedCmdrCase {
 			seats:   [2]string{"hck-tesak-a", "hck-tesak-b"},
 			decks:   [2][]string{tesakDeck, dogBearsDeck},
 		},
+		{
+			name:     "cascading_cataracts_combo_mana",
+			carrier:  "Tide Probe",
+			seats:    [2]string{"hck-cataracts-a", "hck-cataracts-b"},
+			decks:    [2][]string{cataractsDeck, creatureDeck},
+			fixtures: map[string]string{"Tide Probe": tideProbeScript},
+			reached:  tideProbeCast,
+		},
 	}
+}
+
+// tideProbeScript is a {U}{U} body for a seat whose only lands are Cascading
+// Cataracts and Wastes: its sole blue source is Cataracts' "{5}, {T}: Add
+// five mana in any combination of colors" (Combo Any x5), so every cast of
+// the probe is paid by that second mana ability's allocation ask (gorge's
+// first 64 odometer answers, the kernel's filtCombo).
+const tideProbeScript = "Name:Tide Probe\nManaCost:U U\nTypes:Creature Elemental\nPT:2/2\n" +
+	"Oracle:A body only Cascading Cataracts' five-any ability can pay for.\n"
+
+// tideProbeCast: a Tide Probe entered the battlefield, which seat 0 can only
+// pay for with Cascading Cataracts' {5},{T} five-mana combination ability.
+func tideProbeCast(g *GorgeSide) bool {
+	for i := range g.E.L.Events {
+		e := &g.E.L.Events[i]
+		if e.Kind == events.MoveZone && e.To == state.ZBattlefield {
+			if o := g.E.G.Obj(e.Obj); o != nil && o.Face() != nil && o.Face().Name == "Tide Probe" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // packLeaderProbeScript is Tesak's Other-Dogs Unleash grant on a {R} body,
@@ -263,7 +294,8 @@ func TestHostedCmdrKeywordsCostsLockstep(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			dir := corpusDirOrSkip(t)
 			if len(c.fixtures) > 0 {
-				dir = filters11Corpus(t, c.fixtures, "Swamp", "Forest", "Grizzly Bears", "Mountain")
+				dir = filters11Corpus(t, c.fixtures, "Swamp", "Forest", "Grizzly Bears", "Mountain",
+					"Cascading Cataracts", "Wastes")
 			}
 			reg, err := cards.SharedCorpus(dir)
 			if err != nil {
