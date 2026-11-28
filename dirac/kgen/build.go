@@ -1025,6 +1025,18 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.Mutate != nil {
+		// CR 702.140a: the mutate marker has its own field; the cost is the
+		// hand's alternative cost of the mutating cast and MutateTgt the
+		// non-Human creature its controller owns (dirac/kw_mutate.go)
+		d.HasMutate = true
+		if d.MutateCost, err = manaCostOf(*c.Mutate); err != nil {
+			return err
+		}
+		if d.MutateTgt, err = cb.target(*c.MutateT); err != nil {
+			return err
+		}
+	}
 	if c.AnimateEnchant != nil {
 		// the Licids' self-granted enchant: the kernel's Aura state-based
 		// action reads it once the card's own animation makes it an Aura
