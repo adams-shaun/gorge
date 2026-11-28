@@ -1,15 +1,17 @@
 // Command irmeter prints how much of the code still reads Forge-spelled
 // strings (internal/irmeter): one tab-separated row per metric and scope,
 // `metric<TAB>scope<TAB>value`, sorted by metric then scope, then the
-// kgen-filter section (irmeter.MeasureKgenFilter): its three refusal-site
-// rows and kgen_filter_refuse_drop_pct, one decimal. It reads source
-// files only; two runs on one tree print identical bytes.
+// kgen-filter section (irmeter.MeasureKgenFilter), scope dirac/kgen: its
+// three refusal-site rows, kgen_filter_refuse_drop_pct (one decimal),
+// kgen_filter_refuse_sites (their sum), kgen_filter_refuse_site_share_pct
+// (that sum as a percentage of refuse_sites, one decimal) and
+// kgen_refuse_sites_removed_by_typed (string_only - typed_only, at least 0).
+// It reads source files only; two runs on one tree print identical bytes.
 //
 //	go run ./cmd/irmeter
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -34,19 +36,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	w := bufio.NewWriter(os.Stdout)
-	for _, r := range rows {
-		fmt.Fprintf(w, "%s\t%s\t%d\n", r.Metric, r.Scope, r.Value)
-	}
 	kf, err := irmeter.MeasureKgenFilter(root)
 	if err != nil {
 		return err
 	}
-	for _, r := range kf.Rows() {
-		fmt.Fprintf(w, "%s\t%s\t%d\n", r.Metric, r.Scope, r.Value)
-	}
-	fmt.Fprintln(w, kf.DropRow())
-	return w.Flush()
+	return irmeter.Print(os.Stdout, rows, kf)
 }
 
 // moduleRoot walks up from the working directory to the directory holding
