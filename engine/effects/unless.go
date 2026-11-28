@@ -628,8 +628,14 @@ func unlessPayerTargetsFor(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Targ
 	}
 	var out []state.Target
 	seen := map[state.PlayerID]bool{}
+	departed := false
 	add := func(p state.PlayerID) {
 		if int(p) < 0 || int(p) >= len(g.Players) || seen[p] {
+			return
+		}
+		// CR 800.4f: a player who left the game can't be asked to pay.
+		if g.Players[p].Lost {
+			departed = true
 			return
 		}
 		seen[p] = true
@@ -765,7 +771,7 @@ func unlessPayerTargetsFor(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Targ
 		if c.TriggerSource != 0 {
 			if o := g.Obj(c.TriggerSource); o != nil {
 				add(o.Controller)
-				return out, true
+				break
 			}
 		}
 		add(c.Controller)
@@ -813,9 +819,10 @@ func unlessPayerTargetsFor(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Targ
 	for i, p := range alive {
 		rank[p] = i
 	}
-	if len(out) == 0 && !unlessPayerControllerFallback(spec) {
+	if len(out) == 0 && (departed || !unlessPayerControllerFallback(spec)) {
 		// A named binding that yielded no live player is unavailable, not the
-		// default-selector case where c.Controller is intentionally used.
+		// default-selector case where c.Controller is intentionally used; nor
+		// does the controller stand in for a departed payer.
 		return nil, false
 	}
 	sortTargets(out, rank)
