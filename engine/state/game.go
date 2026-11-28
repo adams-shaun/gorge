@@ -969,7 +969,7 @@ type DelayedTrigger struct {
 	SourceBattlefield bool
 	// Emblem records that an emblem-creating api:Effect registered this
 	// trigger (CR 114): the ability it puts on the stack is the emblem's, so
-	// events.Apply marks it Object.EmblemAbility. It rides the
+	// events.Apply sets its Object.EmblemSource. It rides the
 	// DelayedRegister event's Text ("|EM").
 	Emblem bool
 	// RememberedAmount is the per-trigger remembered Integer a DelayedTrigger

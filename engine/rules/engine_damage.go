@@ -19,12 +19,12 @@ func (e *Engine) inFlightDamageSource() state.ObjID {
 }
 
 // damageHost is the object whose identity a Damage event from source reads:
-// protectionSource's host, except that an emblem's ability is itself the
-// source of its damage -- its owner's, with no characteristics (CR 114.2,
-// 114.3), never the card that made the emblem.
+// protectionSource's host, except that an emblem's ability (or a copy of it)
+// deals damage from the emblem -- its owner's source, with no characteristics
+// (CR 114.2, 114.3), never the card that made the emblem.
 func damageHost(g *state.Game, source state.ObjID) state.ObjID {
-	if o := g.Obj(source); o != nil && o.EmblemAbility {
-		return source
+	if o := g.Obj(source); o != nil && o.EmblemSource != 0 {
+		return o.EmblemSource
 	}
 	return abilityHost(g, source)
 }

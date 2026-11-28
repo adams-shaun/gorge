@@ -41,10 +41,19 @@ const emblemOwnPitSrc = "Name:Test Self Pit\nManaCost:3 R\nTypes:Enchantment\n" 
 
 const emblemWardedSrc = "Name:Test Red Ward\nManaCost:1 W\nTypes:Creature Soldier\nPT:1/5\nK:Protection from red\nOracle:x\n"
 
-// emblemUpkeep has seat 1 give seat 0 the Test Inferno emblem and resolves
-// its trigger in seat 0's upkeep. It returns the engine, the maker and the
-// log mark taken just before the trigger resolved.
+// emblemUpkeep is emblemOnStack with the trigger then resolved. It returns the
+// engine, the maker and the log mark taken just before the trigger resolved.
 func emblemUpkeep(t *testing.T, setup func(e *Engine)) (*Engine, state.ObjID, int) {
+	t.Helper()
+	e, maker := emblemOnStack(t, setup)
+	mark := len(e.L.Events)
+	e.resolveTop()
+	return e, maker, mark
+}
+
+// emblemOnStack has seat 1 give seat 0 the Test Inferno emblem and puts its
+// trigger on the stack in seat 0's upkeep. It returns the engine and the maker.
+func emblemOnStack(t *testing.T, setup func(e *Engine)) (*Engine, state.ObjID) {
 	t.Helper()
 	e := layerEngine(t)
 	maker := onBoard(t, e, 1, emblemMakerSrc)
@@ -72,9 +81,7 @@ func emblemUpkeep(t *testing.T, setup func(e *Engine)) (*Engine, state.ObjID, in
 	if len(e.G.Stack) != 1 {
 		t.Fatalf("precondition: stack = %d objects, want the emblem trigger", len(e.G.Stack))
 	}
-	mark := len(e.L.Events)
-	e.resolveTop()
-	return e, maker, mark
+	return e, maker
 }
 
 func TestEmblemDamageIsNotFromASourceItsCreatorControls(t *testing.T) {
@@ -166,5 +173,44 @@ func TestEmblemDamageReplacementBodyReadsTheEmblemsController(t *testing.T) {
 	})
 	if got0, got1 := life0-e.G.Players[0].Life, life1-e.G.Players[1].Life; got0 != 4 || got1 != 0 {
 		t.Errorf("life lost: owner %d, creator %d; want 4 and 0", got0, got1)
+	}
+}
+
+// TestEmblemAbilityCopyKeepsTheEmblemAsSource: a copy of an ability has the
+// same source as the original (CR 707.10b), so when the creator copies the
+// emblem's trigger its damage is still the emblem owner's source -- not the
+// copier's, whose +2 replacement must not see it.
+func TestEmblemAbilityCopyKeepsTheEmblemAsSource(t *testing.T) {
+	t.Parallel()
+	var life0 int32
+	e, _ := emblemOnStack(t, func(e *Engine) {
+		onBoard(t, e, 1, emblemPitSrc)
+		life0 = e.G.Players[0].Life
+	})
+	original := e.G.Stack[0]
+	e.emit(events.Event{Kind: events.StackCopy, Obj: original, Player: 1})
+	if len(e.G.Stack) != 2 {
+		t.Fatalf("precondition: stack = %d objects, want the trigger and its copy", len(e.G.Stack))
+	}
+	if c := e.G.Obj(e.G.Stack[1]); !c.IsCopy || c.Controller != 1 {
+		t.Fatalf("precondition: want a copy controlled by seat 1 on top, got %+v", c)
+	}
+	mark := len(e.L.Events)
+	e.resolveTop()
+	if got := life0 - e.G.Players[0].Life; got != 1 {
+		t.Errorf("emblem owner lost %d life to the copy, want 1: the copier does not control the emblem", got)
+	}
+	seen := false
+	for _, ev := range e.L.Events[mark:] {
+		if ev.Kind != events.DamageProvenance {
+			continue
+		}
+		seen = true
+		if ev.Obj != original || e.G.Obj(ev.Obj).Controller != 0 {
+			t.Errorf("damage source = %d, want the original emblem ability %d controlled by seat 0", ev.Obj, original)
+		}
+	}
+	if !seen {
+		t.Fatal("no damage provenance recorded: the copy dealt no damage")
 	}
 }

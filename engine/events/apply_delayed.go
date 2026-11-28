@@ -596,7 +596,9 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		}
 	}
 	o.Remembered = rememberedFrom(e.IDs)
-	o.EmblemAbility = registration != nil && registration.Emblem
+	if registration != nil && registration.Emblem {
+		o.EmblemSource = o.ID // this ability stands for its emblem (CR 114.2)
+	}
 	if monarchSteal {
 		o.Remembered = []state.Target{{Player: state.PlayerID(e.Amount), IsPlayer: true}}
 	}
