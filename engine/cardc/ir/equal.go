@@ -48,6 +48,9 @@ func Equal(a, b any) bool {
 	case *Ability:
 		y, ok := b.(*Ability)
 		return ok && eqPtr(x, y, eqAbility)
+	case *Custom:
+		y, ok := b.(*Custom)
+		return ok && eqPtr(x, y, eqCustom)
 	case *Keyword:
 		y, ok := b.(*Keyword)
 		return ok && eqPtr(x, y, eqKeyword)
@@ -178,9 +181,12 @@ func eqAbility(a, b *Ability) bool {
 		eqPtr(a.Cond, b.Cond, eqCond) &&
 		eqPtr(a.Body, b.Body, eqProgram) &&
 		eqPtr(a.Keyword, b.Keyword, eqKeyword) &&
+		eqPtr(a.Custom, b.Custom, eqCustom) &&
 		a.Zones == b.Zones &&
 		a.SorceryOnly == b.SorceryOnly && a.InstantOnly == b.InstantOnly && a.Once == b.Once
 }
+
+func eqCustom(a, b *Custom) bool { return a.Card == b.Card && a.Scope == b.Scope }
 
 func eqKeyword(a, b *Keyword) bool {
 	return a.Name == b.Name &&

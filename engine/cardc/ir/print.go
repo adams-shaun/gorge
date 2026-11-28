@@ -285,10 +285,21 @@ func prAbility(p *printer, n *Ability) {
 	knode(p, "cond", n.Cond, prCond)
 	knode(p, "body", n.Body, prProgram)
 	knode(p, "keyword", n.Keyword, prKeyword)
+	knode(p, "custom", n.Custom, prCustom)
 	p.kbare("zones", n.Zones.String())
 	p.kflag("sorcery-only", n.SorceryOnly)
 	p.kflag("instant-only", n.InstantOnly)
 	p.kflag("once", n.Once)
+	p.end()
+}
+
+// prCustom prints (custom "Card" Scope); Scope is a bare word ("a0").
+func prCustom(p *printer, n *Custom) {
+	p.open("custom")
+	p.atom(strconv.Quote(n.Card))
+	if n.Scope != "" {
+		p.atom(n.Scope)
+	}
 	p.end()
 }
 
@@ -416,6 +427,7 @@ func (n *Value) String() string    { return render(n, prValue) }
 func (n *Cond) String() string     { return render(n, prCond) }
 func (n *Ability) String() string  { return render(n, prAbility) }
 func (n *Keyword) String() string  { return render(n, prKeyword) }
+func (n *Custom) String() string   { return render(n, prCustom) }
 func (n *Trigger) String() string  { return render(n, prTrigger) }
 func (n *Program) String() string  { return render(n, prProgram) }
 func (n *Step) String() string     { return render(n, prStep) }
