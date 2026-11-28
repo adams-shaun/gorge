@@ -1032,3 +1032,33 @@ func (r *Registry) ids() []TableID {
 	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
 	return ids
 }
+
+// SearchSlotsBusy is how many searched decisions hold a search slot now: 0
+// when the registry has no search gate.
+func (r *Registry) SearchSlotsBusy() int {
+	if r.searchGate == nil {
+		return 0
+	}
+	return r.searchGate.busy()
+}
+
+// busy is the number of slots held, read under the semaphore's mutex.
+func (s *searchSlots) busy() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.held
+}
+
+// OnDemandTables counts the tables POST /api/games created that are still
+// registered (draft-event tables excluded).
+func (r *Registry) OnDemandTables() int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	n := 0
+	for _, t := range r.tables {
+		if t.cfg.OnDemand && t.cfg.Event == "" {
+			n++
+		}
+	}
+	return n
+}
