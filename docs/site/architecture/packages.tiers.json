@@ -278,6 +278,10 @@
       "tier": "engine",
       "status": "CORE (no own tests)"
     },
+    "engine/cardc/custom": {
+      "tier": "engine",
+      "status": "TOOL"
+    },
     "engine/cardc/ir": {
       "tier": "engine",
       "status": "CORE"
