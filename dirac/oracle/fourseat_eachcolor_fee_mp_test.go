@@ -37,11 +37,11 @@ func eachColorFeeReplay(t *testing.T) Result {
 	if err != nil {
 		t.Fatal(err)
 	}
-	set, err := cardset.ByName("edh")
+	// Raw: a recording replays its own game, so a card refused later still plays (globSet).
+	set, err := cardset.RawByName("edh")
 	if err != nil {
 		t.Skipf("no edh table (make dirac-tables): %v", err)
 	}
-	set = cardset.AllowUnverified(set)
 	es := make([][]cardset.Entry, 0, 4)
 	for _, names := range [][]string{r.Cards[0], r.Cards[1], r.MoreCards[0], r.MoreCards[1]} {
 		en := ReproEntries(reg, set, names)

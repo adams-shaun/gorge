@@ -90,7 +90,7 @@ func TestPaymentStrandedPlanStallPropagates(t *testing.T) {
 	if _, owedMask, ok := s.windowRestrOwed(sc.k, 0, sc.slot(owedO), &cost); !ok || owedMask != 1<<kop.W {
 		t.Fatalf("precondition: the owed source is not owed its {W} (ok %v mask %#x)", ok, owedMask)
 	}
-	if ok, known, restr, _ := s.windowDryWalk(sc.k, 0, &cost, false); ok || known || !restr {
+	if ok, known, restr, _, _ := s.windowDryWalk(sc.k, 0, &cost, false); ok || known || !restr {
 		t.Fatalf("precondition: dry walk ok=%v known=%v restr=%v, want false/false/true", ok, known, restr)
 	}
 
