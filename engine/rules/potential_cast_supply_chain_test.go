@@ -25,8 +25,8 @@ const (
 	// (Elvish Guidance): a triggered mana ability whose amount the tap-extra
 	// bound does not count.
 	chainGuidance = "Name:Chain Guidance\nManaCost:2 G\nTypes:Enchantment Aura\nK:Enchant:Land\n" +
-		"T:Mode$ TapsForMana | ValidCard$ Card.AttachedBy | Execute$ TrigMana | Static$ True | TriggerDescription$ Add one green per Elf.\n" +
-		"SVar:TrigMana:DB$ Mana | Produced$ G | Amount$ X | Defined$ TriggeredCardController\n" +
+		"T:Mode$ TapsForMana | ValidCard$ Card.AttachedBy | Execute$ ChainElfAdd | Static$ True | TriggerDescription$ Add one green per Elf.\n" +
+		"SVar:ChainElfAdd:DB$ Mana | Produced$ G | Amount$ X | Defined$ TriggeredCardController\n" +
 		"SVar:X:Count$Valid Creature.Elf\nOracle:x\n"
 	chainElf    = "Name:Chain Elf\nManaCost:G\nTypes:Creature Elf\nPT:1/1\nOracle:x\n"
 	chainFilter = "Name:Chain Filter\nManaCost:no cost\nTypes:Land\n" +
@@ -120,8 +120,8 @@ func TestCensusTapSupplyRefusesAGrantedOrRegisteredTapTrigger(t *testing.T) {
 	t.Parallel()
 	const granter = "Name:Chain Granter\nManaCost:1 G\nTypes:Enchantment\n" +
 		"S:Mode$ Continuous | Affected$ Land.YouCtrl | AddTrigger$ TrigTap | Description$ Lands add one more.\n" +
-		"SVar:TrigTap:Mode$ TapsForMana | ValidCard$ Card.Self | Execute$ TrigMana | Static$ True | TriggerDescription$ Add one green.\n" +
-		"SVar:TrigMana:DB$ Mana | Produced$ G\nOracle:x\n"
+		"SVar:TrigTap:Mode$ TapsForMana | ValidCard$ Card.Self | Execute$ ChainGrantAdd | Static$ True | TriggerDescription$ Add one green.\n" +
+		"SVar:ChainGrantAdd:DB$ Mana | Produced$ G\nOracle:x\n"
 	for _, tc := range []struct {
 		name string
 		add  func(t *testing.T, e *Engine)
