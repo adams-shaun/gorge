@@ -11,32 +11,32 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | BIG | 30 | 29 | 0 | 4 | 25 | 25 | 0 |
 | BLB | 278 | 265 | 1 | 2 | 262 | 262 | 1 |
 | DFT | 276 | 259 | 0 | 1 | 258 | 258 | 2 |
-| DSK | 276 | 260 | 2 | 6 | 252 | 252 | 1 |
+| DSK | 276 | 261 | 2 | 7 | 252 | 252 | 1 |
 | ECL | 273 | 251 | 0 | 3 | 248 | 248 | 1 |
 | EOE | 266 | 254 | 0 | 3 | 251 | 251 | 1 |
 | FDN | 517 | 517 | 0 | 0 | 517 | 517 | 9 |
 | FIN | 312 | 283 | 0 | 1 | 282 | 282 | 1 |
 | FRA | 269 | 255 | 0 | 5 | 250 | 250 | 1 |
 | HOB | 172 | 164 | 0 | 4 | 160 | 160 | 1 |
-| LCI | 290 | 265 | 1 | 4 | 260 | 260 | 2 |
-| MKM | 279 | 260 | 1 | 10 | 249 | 249 | 1 |
-| MSH | 276 | 252 | 0 | 3 | 249 | 249 | 1 |
+| LCI | 290 | 266 | 1 | 5 | 260 | 260 | 2 |
+| MKM | 279 | 261 | 1 | 11 | 249 | 249 | 1 |
+| MSH | 276 | 253 | 0 | 4 | 249 | 249 | 1 |
 | OTJ | 276 | 258 | 0 | 5 | 253 | 253 | 1 |
 | SOS | 270 | 261 | 0 | 2 | 259 | 259 | 1 |
 | SPM | 192 | 179 | 2 | 10 | 167 | 167 | 1 |
 | TDM | 276 | 261 | 1 | 1 | 259 | 259 | 2 |
-| TLA | 285 | 264 | 1 | 2 | 261 | 261 | 1 |
+| TLA | 285 | 265 | 1 | 3 | 261 | 261 | 1 |
 | TMT | 194 | 188 | 0 | 1 | 187 | 187 | 1 |
-| TRC | 337 | 307 | 0 | 29 | 278 | 278 | 6 |
+| TRC | 337 | 308 | 0 | 30 | 278 | 278 | 6 |
 | TRK | 311 | 311 | 1 | 0 | 310 | 310 | 1 |
-| WOE | 281 | 268 | 0 | 4 | 264 | 264 | 1 |
-| MBC | 2214 | 2057 | 3 | 57 | 1997 | 1997 | 8 |
-| CMM | 737 | 641 | 2 | 41 | 598 | 598 | 9 |
-| MH3 | 308 | 248 | 1 | 22 | 225 | 225 | 1 |
-| MH2 | 309 | 273 | 0 | 19 | 254 | 254 | 1 |
+| WOE | 281 | 269 | 0 | 4 | 265 | 265 | 1 |
+| MBC | 2214 | 2059 | 3 | 59 | 1997 | 1997 | 8 |
+| CMM | 737 | 649 | 3 | 49 | 597 | 597 | 9 |
+| MH3 | 308 | 251 | 2 | 25 | 224 | 224 | 1 |
+| MH2 | 309 | 274 | 0 | 20 | 254 | 254 | 1 |
 | CM2 | 279 | 247 | 1 | 10 | 236 | 236 | 10 |
-| hosted-cmdr | 1234 | 1161 | 0 | 96 | 1065 | 1064 | 33 |
-| ALL | 34480 | 27259 | 41 | 1325 | 25893 | 25890 | 33 |
+| hosted-cmdr | 1234 | 1206 | 4 | 138 | 1064 | 1063 | 33 |
+| ALL | 34480 | 27371 | 45 | 1434 | 25892 | 25889 | 33 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; `hosted-cmdr` is the union of every card of gorged's hosted Commander decks (`testkit/testutil/decks`, format commander), so each deck is judged in one set; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field of three or more — a clean pod game, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A four-seat row evidences its card (OD-4 stage 2, `oracle.EvidencePodMinPlays` = 1): a Commander-only key such as Command Tower's colour-identity mana is used there and credited as any own key is, while a three-seat row stays in this column only. The `4-seat` column's pod requirement is report only until pod coverage is large enough to gate it; read `pod-evidenced` beside it.
 
@@ -5291,13 +5291,13 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-41 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+45 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | lockstep | 18 |
 | options | 6 |
-| options-options | 5 |
+| options-options | 9 |
 | projection-Cards.Damage | 1 |
 | projection-Cards.Flags | 2 |
 | projection-Cards.Zone | 1 |
