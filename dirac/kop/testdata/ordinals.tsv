@@ -1877,6 +1877,7 @@ TrigUnattached	TrigEvent	50
 TrigUnlockDoor	TrigEvent	30
 TrigUntaps	TrigEvent	17
 TurnReplEtbCreatureCtr	untyped int	7
+TurnReplEtbLandTapped	untyped int	8
 TurnReplExileOpp	untyped int	1
 TurnReplHexUB	untyped int	6
 TurnReplPlayerHex	untyped int	5

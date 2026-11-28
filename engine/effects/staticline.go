@@ -166,13 +166,21 @@ var addTriggerGrantKeys = state.NewNameSet("Mode", "Affected", "Description", "A
 // grant (Explore, Scale the Heights, Urban Evolution, Summer Bloom): the
 // Effect path cannot evaluate a condition gate, so only the grant's own
 // display/placement metadata is accepted. The value grammar is shared with
-// rules' printed-static read (AdjustLandPlaysValueOK).
-func adjustLandPlaysGrantFromLine(params map[string]string) (n int32, affected string, ok bool) {
+// rules' printed-static read (AdjustLandPlaysValueOK), with one Effect-only
+// spelling: a value naming an SVar of svars whose whole body is
+// Count$ChosenNumber is the Effect's frozen SetChosenNumber$, chosen
+// (Nahiri's Lithoforming's "you may play X additional lands this turn"). A
+// frozen zero or less is a zero grant, which the land-play gate skips.
+func adjustLandPlaysGrantFromLine(params, svars map[string]string, chosen int32) (n int32, affected string, ok bool) {
 	raw, has := params["AdjustLandPlays"]
 	if !has {
 		return 0, "", false
 	}
-	n, ok = AdjustLandPlaysValueOK(raw)
+	if body, named := svars[strings.TrimSpace(raw)]; named && strings.TrimSpace(body) == "Count$ChosenNumber" {
+		n, ok = max(chosen, 0), true
+	} else {
+		n, ok = AdjustLandPlaysValueOK(raw)
+	}
 	if !ok {
 		return 0, "", false
 	}

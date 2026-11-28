@@ -36,6 +36,11 @@ package kop
 //	Moved replacement over the controller's creatures): a per-player count of
 //	activations in the cold buffer, applied by enterGen as the creature enters.
 //	Both end at cleanup.
+//	TurnReplEtbLandTapped: "lands you control enter tapped this turn"
+//	(Nahiri's Lithoforming's Effect-borne Moved replacement over the
+//	controller's lands, a DB$ Tap | ETB$ True body): a per-player count of
+//	resolutions in the cold buffer; enterGen taps a land its player's side
+//	enters while the count is not zero. It ends at cleanup.
 //
 // No other field. dirac/repl_turnrepl.go.
 //
@@ -51,6 +56,7 @@ const (
 	TurnReplPlayerHex
 	TurnReplHexUB
 	TurnReplEtbCreatureCtr
+	TurnReplEtbLandTapped
 )
 
 func init() { extOpNames[ExtTurnRepl] = "TurnRepl" }
