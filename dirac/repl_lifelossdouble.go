@@ -20,15 +20,21 @@ func (s *State) replLoss(k *prep, p uint8, n int) int {
 	g := k.gen
 	for m := s.statM.and(s.ctrlM[q]); m.any(); m = m.rest() {
 		sl := m.first()
-		if g.replBits[s.cardAt(sl)]&rbDblLoss == 0 || s.genLost(k, sl) {
+		if s.genLost(k, sl) {
 			continue
 		}
-		cd := &k.t.Cards[s.cardAt(sl)]
-		for i := range cd.Abilities {
-			if a := &cd.Abilities[i]; a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplLifeLossDouble && n <= 0x3fff {
-				n *= 2
+		s.eachPileCard(k, sl, func(c CardID) bool {
+			if g.replBits[c]&rbDblLoss == 0 {
+				return true
 			}
-		}
+			cd := &k.t.Cards[c]
+			for i := range cd.Abilities {
+				if a := &cd.Abilities[i]; a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplLifeLossDouble && n <= 0x3fff {
+					n *= 2
+				}
+			}
+			return true
+		})
 	}
 	return n
 }

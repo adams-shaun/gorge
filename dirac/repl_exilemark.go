@@ -174,24 +174,29 @@ func (s *State) graveMoveSources(k *prep, o Obj, out *[MaxPerm]Obj) int {
 	n := 0
 	for m := s.statM; m.any(); m = m.rest() {
 		b := m.first()
-		sc := s.cardAt(b)
 		// a departed seat's effects no longer apply (CR 800.4a; gorge's
 		// replacement walk visits only living seats' zones)
-		if g.replBits[sc]&rbExileOnLeave == 0 || s.genLost(k, b) || s.out(s.perms[b].ctrl) {
+		if s.genLost(k, b) || s.out(s.perms[b].ctrl) {
 			continue
 		}
-		var hit bool
-		if ob.zone == kop.ZoneBattlefield {
-			hit = s.matchPerm(k, g.exileOnLeave[sc], ob.slot, s.perms[b].ctrl, b)
-		} else if g.exileAnyC == nil || g.exileAnyC[sc]&eaSelf == 0 {
-			// a self filter is not a card matcher; the moving card's own bit is
-			// added after the loop
-			hit = g.anyExileAny && g.exileAnyC[sc]&eaAny != 0 && s.matchCardGen(k, g.exileOnLeave[sc], ob.card, ob.owner(), s.perms[b].ctrl, o)
-		}
-		if hit {
-			out[n] = s.perms[b].obj
-			n++
-		}
+		s.eachPileCard(k, b, func(sc CardID) bool {
+			if g.replBits[sc]&rbExileOnLeave == 0 {
+				return true
+			}
+			var hit bool
+			if ob.zone == kop.ZoneBattlefield {
+				hit = s.matchPerm(k, g.exileOnLeave[sc], ob.slot, s.perms[b].ctrl, b)
+			} else if g.exileAnyC == nil || g.exileAnyC[sc]&eaSelf == 0 {
+				// a self filter is not a card matcher; the moving card's own bit is
+				// added after the loop
+				hit = g.anyExileAny && g.exileAnyC[sc]&eaAny != 0 && s.matchCardGen(k, g.exileOnLeave[sc], ob.card, ob.owner(), s.perms[b].ctrl, o)
+			}
+			if hit {
+				out[n] = s.perms[b].obj
+				n++
+			}
+			return true
+		})
 	}
 	if ob.zone != kop.ZoneBattlefield && g.exileAnyC != nil && g.exileAnyC[ob.card]&eaSelf != 0 && n < len(out) {
 		// the moving card's own "from anywhere" replacement: its source is the

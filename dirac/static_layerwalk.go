@@ -299,21 +299,23 @@ func (s *State) lfxCollectOne(k *prep, sl, src Slot, cid CardID, abs, rem, kept 
 func (s *State) lfxCollectStaticsDirect(k *prep, sl Slot, fx *[maxLfx]lfx, n int) int {
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
-		cid := s.cardAt(src)
-		var fl uint8
-		if k.gen.has(cid, gfOvrStat) {
-			fl |= lsrcOvr
-		}
-		if k.gen.has(cid, gfSubGrant) {
-			fl |= lsrcSub
-		}
-		if fl == 0 {
-			continue
-		}
-		if k.gen.has(cid, gfGlobOvr) {
-			fl |= lsrcGlob
-		}
-		n = s.lfxCollectOne(k, sl, src, cid, 0, 0, 0, fl|lsrcMany, fx, n)
+		s.eachPileCard(k, src, func(cid CardID) bool {
+			var fl uint8
+			if k.gen.has(cid, gfOvrStat) {
+				fl |= lsrcOvr
+			}
+			if k.gen.has(cid, gfSubGrant) {
+				fl |= lsrcSub
+			}
+			if fl == 0 {
+				return true
+			}
+			if k.gen.has(cid, gfGlobOvr) {
+				fl |= lsrcGlob
+			}
+			n = s.lfxCollectOne(k, sl, src, cid, 0, 0, 0, fl|lsrcMany, fx, n)
+			return true
+		})
 	}
 	return n
 }
@@ -327,12 +329,13 @@ func (s *State) lfxCollectStatics(k *prep, sl Slot, fx *[maxLfx]lfx, n int) int 
 	}
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
-		cid := s.cardAt(src)
-		e := &k.srcs[cid]
-		if e.flags == 0 {
-			continue
-		}
-		n = s.lfxCollectOne(k, sl, src, cid, e.abs, e.rem, e.kept, e.flags, fx, n)
+		s.eachPileCard(k, src, func(cid CardID) bool {
+			e := &k.srcs[cid]
+			if e.flags != 0 {
+				n = s.lfxCollectOne(k, sl, src, cid, e.abs, e.rem, e.kept, e.flags, fx, n)
+			}
+			return true
+		})
 	}
 	return n
 }
@@ -534,15 +537,24 @@ func (s *State) charsFxMay(k *prep, sl Slot) bool {
 	}
 	if k.srcs != nil {
 		for m := s.statM; m.any(); m = m.rest() {
-			if k.srcs[s.cardAt(m.first())].flags != 0 {
+			found := false
+			s.eachPileCard(k, m.first(), func(cid CardID) bool {
+				found = k.srcs[cid].flags != 0
+				return !found
+			})
+			if found {
 				return true
 			}
 		}
 		return false
 	}
 	for m := s.statM; m.any(); m = m.rest() {
-		cid := s.cardAt(m.first())
-		if g.has(cid, gfOvrStat) || g.has(cid, gfSubGrant) {
+		found := false
+		s.eachPileCard(k, m.first(), func(cid CardID) bool {
+			found = g.has(cid, gfOvrStat) || g.has(cid, gfSubGrant)
+			return !found
+		})
+		if found {
 			return true
 		}
 	}
@@ -987,41 +999,43 @@ func (s *State) globalGrants(k *prep, sl Slot, lost bool, lts uint16, f func(c C
 func (s *State) globalGrantsIn(k *prep, from slotMask, sl Slot, lost bool, lts uint16, f func(c CardID, ab uint8, n int, ts uint16)) {
 	for m := from; m.any(); m = m.rest() {
 		src := m.first()
-		cid := s.cardAt(src)
-		if !k.gen.has(cid, gfGlobOvr) {
-			continue
-		}
 		if lost && s.layerTs(src) < lts {
 			continue
 		}
 		srcLost := s.genLost(k, src)
-		cd := &k.t.Cards[cid]
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatOverride || a.Static.Override == 0 {
-				continue
+		s.eachPileCard(k, src, func(cid CardID) bool {
+			if !k.gen.has(cid, gfGlobOvr) {
+				return true
 			}
-			if srcLost && !keptOnLoss(k.t, a) {
-				continue // CR 613.6: the grant of a type-setting static outlives the loss with it
-			}
-			o := &k.t.Overrides[a.Static.Override-1]
-			if o.Grant[0] == 0 && o.Grant[1] == 0 {
-				continue
-			}
-			st := statSrc{a: a, sl: src, ctrl: s.perms[src].ctrl, obj: s.perms[src].obj}
-			if !s.statCond(k, st) {
-				continue
-			}
-			c := s.chars(k, sl, upTo5)
-			if !s.matchPermCur(k, a.Static.Filter, sl, st.ctrl, src, &c) {
-				continue
-			}
-			for _, g := range o.Grant {
-				if g != 0 {
-					f(cid, g-1, 1, s.layerTs(src))
+			cd := &k.t.Cards[cid]
+			for i := range cd.Abilities {
+				a := &cd.Abilities[i]
+				if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatOverride || a.Static.Override == 0 {
+					continue
+				}
+				if srcLost && !keptOnLoss(k.t, a) {
+					continue // CR 613.6: the grant of a type-setting static outlives the loss with it
+				}
+				o := &k.t.Overrides[a.Static.Override-1]
+				if o.Grant[0] == 0 && o.Grant[1] == 0 {
+					continue
+				}
+				st := statSrc{a: a, sl: src, ctrl: s.perms[src].ctrl, obj: s.perms[src].obj}
+				if !s.statCond(k, st) {
+					continue
+				}
+				c := s.chars(k, sl, upTo5)
+				if !s.matchPermCur(k, a.Static.Filter, sl, st.ctrl, src, &c) {
+					continue
+				}
+				for _, g := range o.Grant {
+					if g != 0 {
+						f(cid, g-1, 1, s.layerTs(src))
+					}
 				}
 			}
-		}
+			return true
+		})
 	}
 }
 
