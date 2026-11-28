@@ -30,7 +30,7 @@ func kxminsacxCard(t *testing.T, name, dir, file string, drop ...func(string) bo
 // TestXMinSacXCarriers: XMin<N> on an activated ability's own cost and
 // Sac<X/Spec> on a spell's or an activated ability's own cost lower to the
 // kernel's cost shape (kop.Cost.XMin; CostSac with N 0). A printed trigger's
-// own Draw over Count$xPaid lowers too, to the decline-only IfPaid PaySac
+// own Draw over Count$xPaid lowers too, to the announced-X IfPaid PaySac
 // (kop.PayBSubSacXTrig; Sephiroth, One-Winged Angel). A spell's own XMin
 // (gorge folds no floor into the cast), a trigger's non-Draw Sac<X> body and
 // every other place either token stands refuse by name.
@@ -97,7 +97,7 @@ func TestXMinSacXCarriers(t *testing.T) {
 	}
 
 	// A printed trigger's own Sac<X> Draw over Count$xPaid (Sephiroth,
-	// One-Winged Angel): gorge poses the decline-only election, so the
+	// One-Winged Angel): gorge announces X, then poses the election, so the
 	// lowering is an IfPaid PaySac carrying PayBSubSacXTrig.
 	const triggerSac = "Name:Trigger Sac Probe\nManaCost:1 B\nTypes:Creature Human\nPT:2/2\n" +
 		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDraw\n" +

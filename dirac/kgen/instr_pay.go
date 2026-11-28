@@ -65,7 +65,7 @@ func (ic *instrCtx) opUnlessPaid() error {
 		ki.B = kop.Const(kop.PayBSubLifeX) // the announced X life, not {X} (cost_paylifetrig.go)
 	}
 	if in.CS == "SacrificeXTrig" {
-		ki.B = kop.Const(kop.PayBSubSacXTrig) // the announced sacrifice gorge's trigger window poses decline only (interp_ask.go payAnswerGate)
+		ki.B = kop.Const(kop.PayBSubSacXTrig) // the announced sacrifice: X first, then the election (cost_sacxtrig.go)
 	}
 	if in.CS == "ExileTrigNewEvidence" {
 		ki.B = kop.Const(kop.PayBSubTrigNewEvidence) // the triggered card, then evidence A (cost_collectevidencex.go)

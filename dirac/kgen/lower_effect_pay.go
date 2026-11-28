@@ -382,11 +382,10 @@ func (lc *lowerCtx) moveGravePayInstr(in *lInstr, c *lCost, n int) error {
 }
 
 // sacXTrigPayInstr lowers Sac<X/Spec> as a printed trigger's own whole cost
-// (Sephiroth, One-Winged Angel): gorge's triggered-cost window has no settle
-// for an announced sacrifice, so it poses the election decline only and the
-// body never runs (cumulative.go costCarriesUnfoldedX,
-// triggeredCostComponentsPayable). The body's Count$xPaid reads the
-// resolution's X, which is never paid. A no-op unless the cost is Sac<X>.
+// (Sephiroth, One-Winged Angel): gorge's triggered-cost window announces X,
+// then poses the election on the literal Sac<X> (cumulative.go
+// triggeredCostXAsk, costCarriesSacX; the kernel's cost_sacxtrig.go). The
+// body's Count$xPaid reads the announced X. A no-op unless the cost is Sac<X>.
 func (lc *lowerCtx) sacXTrigPayInstr(in *lInstr, c *lCost, n *int) error {
 	if c.Sac == nil || !c.SacX {
 		return nil
