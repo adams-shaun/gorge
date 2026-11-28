@@ -31,7 +31,8 @@ import (
 // (dirac_mp) bar since 2026-11-14, when the operator approved room for 16-bit
 // counter kinds; it was 32 KiB since 2026-11-12, when the operator approved
 // 16-bit object codes. It covers State plus a pool's cold arrays, about 34 KB
-// of a 48 KiB L1d at the largest.
+// at the largest. State size is held by TestStateSize against the byte bar, and
+// wall time is watched by the bench as an alert, not gated.
 // Before it the two-seat build's bar was 24 KiB since 2026-11-03, when the largest pool's
 // State reached 16352 B. Measured that day with stateCore (the part every fork copies
 // whole) padded by 8192 B, eight interleaved pinned reps, user-mode cycles:

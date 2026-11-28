@@ -206,6 +206,7 @@ The scale shows in the code:
 - `dirac.State` holds no references beyond its views of one pointer-free buffer and the fork pool. The transition loop
   allocates nothing (gate step 3, `TestColdArraysHoldNoPointers`). Escapes and inlining are checked by gate steps 6-7.
 - Mutable state fits L1d: `maxStateBytes` 44 KiB (`dirac/kernel_test.go:38`) over State plus a pool's cold arrays.
+  Retired 2026-11-27: the byte bar is the rule (`TestStateSize` under `maxStateBytes`).
   The bar is protected.
 - Instructions: `INSTR_MB_MAX` 1.05 against the merge base and `INSTR_PB_MAX` 1.02 against the program base
   (`scripts/dirac-gate.sh:47-57`). Both are protected.
