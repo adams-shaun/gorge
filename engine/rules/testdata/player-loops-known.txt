@@ -68,7 +68,6 @@ effects/resolve.go:setStateChoose#0
 effects/sacrificeall.go:effSacrificeAll#0
 effects/staticeffect_lock.go:lockEffectGrant#0
 effects/taporuntapall_election.go:tapOrUntapAllSweep#0
-effects/token.go:effToken#0
 effects/token.go:tokenOwnerPlayers#0
 effects/token.go:tokenOwnersControllingAny#0
 effects/trigger_referents.go:controlReferentPlayers#0
