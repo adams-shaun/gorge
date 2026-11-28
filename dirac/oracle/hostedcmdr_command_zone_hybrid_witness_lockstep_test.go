@@ -49,7 +49,10 @@ func hostedCmdrPodReplay(t *testing.T, name string, done func(g *GorgeSide)) Res
 	if err != nil {
 		t.Fatal(err)
 	}
-	set = cardset.AllowUnverified(set)
+	// Raw, as every other repro replay path: a recording's decks are fixed and the
+	// oracle must still play a card dirac refuses by name (the census pod can hold a
+	// Mutate card refused until 2027-01-15), or the replay never starts.
+	set = cardset.Raw(set)
 	es := make([][]cardset.Entry, 0, 4)
 	for _, names := range [][]string{r.Cards[0], r.Cards[1], r.MoreCards[0], r.MoreCards[1]} {
 		es = append(es, ReproEntries(reg, set, names))

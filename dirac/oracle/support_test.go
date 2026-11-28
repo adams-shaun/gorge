@@ -397,6 +397,7 @@ func refusedEntries(t *testing.T, mine func(i int) bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	entries = slices.DeleteFunc(entries, deferredRefusal) // before sampling and the deal: no divergence is claimed
 	var only map[string]bool
 	if base := os.Getenv("KERNEL_REFUSED_BASE"); base != "" {
 		only = sampleRefused(changedRefused(t, base))
