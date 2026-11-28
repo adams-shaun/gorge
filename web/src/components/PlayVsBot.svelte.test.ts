@@ -27,6 +27,7 @@ describe('PlayVsBot entry point', () => {
     expect(html).toContain('data-testid="deck-text"');
     expect(html).toContain('rows="12"');
     expect(html).toContain('1 Your Commander');
+    expect(html).toContain('data-testid="human-deck"');
     expect(html).not.toMatch(/<select[^>]*disabled[^>]*data-testid="human-deck"/);
   });
 
