@@ -10,7 +10,7 @@ type RefusalKind uint8
 
 const (
 	RefuseNone RefusalKind = iota
-	// RefuseEmpty is an empty filter.
+	// RefuseEmpty is an empty filter or value.
 	RefuseEmpty
 	// RefuseEachForm is a filter that starts with "EACH ".
 	RefuseEachForm
@@ -34,8 +34,25 @@ const (
 	RefuseNeedsReference
 	// RefuseNestedFilter is a token holding an inner filter.
 	RefuseNestedFilter
+	// RefuseUnknownHead is a value head outside the head table.
+	RefuseUnknownHead
+	// RefuseUnknownOperator is a value operator outside the operator table.
+	RefuseUnknownOperator
+	// RefuseNeedsCondition is a value that branches on a game condition.
+	RefuseNeedsCondition
+	// RefuseSVarCycle is an SVar chain that revisits a name or runs past
+	// maxSVarDepth names.
+	RefuseSVarCycle
+	// RefuseSVarMissing is a name the card's SVar table does not hold.
+	RefuseSVarMissing
+	// RefuseNotANumber is a value text, or an SVar body, that is no numeric
+	// form (an ability, a trigger, a filter).
+	RefuseNotANumber
 	refusalKindCount
 )
+
+// firstValueRefusal is the first kind only LowerValue gives.
+const firstValueRefusal = RefuseUnknownHead
 
 var refusalKindNames = [...]string{
 	RefuseNone:             "none",
@@ -50,6 +67,12 @@ var refusalKindNames = [...]string{
 	RefuseBoundNamesSVar:   "bound-names-svar",
 	RefuseNeedsReference:   "needs-reference",
 	RefuseNestedFilter:     "nested-filter",
+	RefuseUnknownHead:      "unknown-head",
+	RefuseUnknownOperator:  "unknown-operator",
+	RefuseNeedsCondition:   "needs-condition",
+	RefuseSVarCycle:        "svar-cycle",
+	RefuseSVarMissing:      "svar-missing",
+	RefuseNotANumber:       "not-a-number",
 }
 
 // String returns the lower-kebab name of k.
