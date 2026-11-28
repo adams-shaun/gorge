@@ -1,5 +1,4 @@
-bound-names-svar	counters_GE_MNMN
-bound-names-svar	powerLTtoughness
+bound-names-svar	Valid
 needs-condition	AltCost
 needs-condition	Bargain
 needs-condition	Bargained
@@ -18,43 +17,40 @@ needs-condition	Initiative
 needs-condition	Kicked
 needs-condition	Landfall
 needs-condition	Madness
+needs-condition	MaxSpeed
 needs-condition	Metalcraft
 needs-condition	Monarch
 needs-condition	Morbid
 needs-condition	Night
 needs-condition	OptionalGenericCostPaid
+needs-condition	Presence_Dragon
 needs-condition	PromisedGift
-needs-condition	Random
+needs-condition	Revolt
 needs-condition	StartingPlayer
 needs-condition	Teamwork
+needs-condition	ThisTurnActivated_Activated
 needs-condition	Threshold
 needs-condition	TriggeredPayingMana
 needs-condition	UrzaLands
 needs-condition	Void
 needs-condition	wasCastFromExile
 needs-condition	wasCastFromGraveyard
+needs-condition	wasCastFromYourHandByYou
 needs-condition	wasCastFromYourLibrary
-needs-reference	!TriggeredAttacker
-needs-reference	!TriggeredCard
 needs-reference	CardTriggeredTarget$ExcessDamageReceivedThisTurn
 needs-reference	ChosenCard$CardManaCost
 needs-reference	ChosenCard$CardPower
 needs-reference	ChosenCard$TotalValue
-needs-reference	ChosenCtrl
 needs-reference	Collected$Amount
-needs-reference	ControlledBy Player.EnchantedController
-needs-reference	ControlledBy Player.OpponentOf ParentTarget
-needs-reference	ControlledBy TargetedController
-needs-reference	ControlledBy TargetedOrController
-needs-reference	ControlledBy TriggeredActivator
-needs-reference	ControlledBy TriggeredTarget
 needs-reference	Convoked$Amount
+needs-reference	Crewed$Valid
 needs-reference	Devotion.Chosen
 needs-reference	Discarded$Amount
 needs-reference	Discarded$CardManaCost
 needs-reference	Discarded$CardMulticolor
 needs-reference	Discarded$Valid
 needs-reference	DungeonsCompleted$Amount
+needs-reference	DungeonsCompleted$Valid
 needs-reference	Enchanted$CardPower
 needs-reference	Enchanted$CardToughness
 needs-reference	Equipped$CardCounters
@@ -64,6 +60,7 @@ needs-reference	Exiled$CardManaCost
 needs-reference	Exiled$CardPower
 needs-reference	Exiled$Valid
 needs-reference	ExiledCards$Amount
+needs-reference	ExiledWith$Amount
 needs-reference	ExiledWith$CardManaCost
 needs-reference	ExiledWith$CardPower
 needs-reference	ExiledWith$CardToughness
@@ -72,24 +69,23 @@ needs-reference	Imprinted$Amount
 needs-reference	Imprinted$CardManaCost
 needs-reference	Imprinted$CardPower
 needs-reference	Imprinted$CardToughness
+needs-reference	Imprinted$Valid
 needs-reference	ImprintedLKI$TotalDamageDoneByThisTurn
 needs-reference	ImprintedLKI$Valid
 needs-reference	OriginalHost$CardCounters
-needs-reference	OwnedBy EnchantedController
-needs-reference	OwnedBy Player.IsRemembered
-needs-reference	OwnedBy Spawner>TriggeredTarget
-needs-reference	OwnedBy Targeted
-needs-reference	OwnedBy TargetedController
-needs-reference	OwnedBy TargetedPlayer
-needs-reference	OwnedBy TriggeredAttackingPlayer
 needs-reference	ParentTargeted$CardCounters
 needs-reference	ParentTargeted$CardManaCost
 needs-reference	ParentTargeted$CardPower
+needs-reference	PlayerCount$HasPropertyHasCardsInHand
 needs-reference	PlayerCount$SacrificedThisTurn
+needs-reference	PlayerCountDefinedRegistered$HasPropertywasDealtCombatDamageThisTurnBy
+needs-reference	PlayerCountDefinedRegistered$HighestLifeLostThisTurn
+needs-reference	PlayerCountDefinedTriggeredAttackedTargetAndYou$HasPropertyhasInitiative
 needs-reference	PlayerCountDefinedTriggeredCardOwner$LifeTotal
 needs-reference	PlayerCountDefinedTriggeredSourceController$LifeTotal
 needs-reference	PlayerCountHasLost$Amount
 needs-reference	PlayerCountOpponents$Amount
+needs-reference	PlayerCountOpponents$CardsDiscardedThisTurn
 needs-reference	PlayerCountOpponents$CardsDrawn
 needs-reference	PlayerCountOpponents$CardsInHand
 needs-reference	PlayerCountOpponents$ConditionGEN
@@ -107,40 +103,64 @@ needs-reference	PlayerCountOpponents$HasPropertyhasFewerCreaturesInPlayThanYou
 needs-reference	PlayerCountOpponents$HasPropertylifeLTCount
 needs-reference	PlayerCountOpponents$HasPropertywasDealtCombatDamageThisTurn
 needs-reference	PlayerCountOpponents$HasPropertywasDealtDamageThisTurn
+needs-reference	PlayerCountOpponents$HasPropertywasDealtNonCombatDamageLastTurn
+needs-reference	PlayerCountOpponents$HasPropertywasDealtNonCombatDamageThisTurn
 needs-reference	PlayerCountOpponents$HasPropertywithMoreCreaturesThanYou
 needs-reference	PlayerCountOpponents$HasPropertywithMoreLandsThanYou
 needs-reference	PlayerCountOpponents$HighestCardsDrawn
 needs-reference	PlayerCountOpponents$HighestCardsInGraveyard
 needs-reference	PlayerCountOpponents$HighestCardsInHand
+needs-reference	PlayerCountOpponents$HighestCounters
 needs-reference	PlayerCountOpponents$HighestLifeTotal
 needs-reference	PlayerCountOpponents$HighestValid
+needs-reference	PlayerCountOpponents$LifeGainedThisTurn
+needs-reference	PlayerCountOpponents$LifeLostLastTurn
+needs-reference	PlayerCountOpponents$LowestCardsInHand
 needs-reference	PlayerCountOpponents$LowestLifeTotal
+needs-reference	PlayerCountOpponents$LowestValid
 needs-reference	PlayerCountOther$Amount
 needs-reference	PlayerCountPlayers$Amount
 needs-reference	PlayerCountPlayers$AttackersDeclared
+needs-reference	PlayerCountPlayers$CardsDiscardedThisTurn
 needs-reference	PlayerCountPlayers$ConditionGEN
+needs-reference	PlayerCountPlayers$ConditionLEY
 needs-reference	PlayerCountPlayers$Counters
 needs-reference	PlayerCountPlayers$HasPropertyDefending
 needs-reference	PlayerCountPlayers$HasPropertyHasCardsInGraveyard
 needs-reference	PlayerCountPlayers$HasPropertyLostLifeThisTurn
+needs-reference	PlayerCountPlayers$HasPropertyattackedYouTheirLastTurn
+needs-reference	PlayerCountPlayers$HasPropertyisMonarch
 needs-reference	PlayerCountPlayers$HasPropertywasDealtCombatDamageThisTurn
+needs-reference	PlayerCountPlayers$HighestCardsInGraveyard
 needs-reference	PlayerCountPlayers$HighestCardsInHand
 needs-reference	PlayerCountPlayers$HighestLifeTotal
 needs-reference	PlayerCountPlayers$HighestValid
 needs-reference	PlayerCountPlayers$HighestValidGraveyard
 needs-reference	PlayerCountPlayers$LifeLostThisTurn
 needs-reference	PlayerCountPlayers$LowestLifeTotal
+needs-reference	PlayerCountPlayers$LowestValid
+needs-reference	PlayerCountPlayers$LowestValidHand
+needs-reference	PlayerCountPlayers$LowestValidLibrary
 needs-reference	PlayerCountPropertyYou$AttractionsVisitedThisTurn
+needs-reference	PlayerCountPropertyYou$BeenDealtCombatDamageSinceLastTurn
 needs-reference	PlayerCountPropertyYou$CardsDiscardedThisTurn
 needs-reference	PlayerCountPropertyYou$DamageThisTurn
+needs-reference	PlayerCountPropertyYou$DamageToOppsThisTurn
+needs-reference	PlayerCountPropertyYou$HasPropertyBeenAttackedThisCombat
+needs-reference	PlayerCountPropertyYou$HasPropertyMaxSpeed
+needs-reference	PlayerCountPropertyYou$LandsPlayed
+needs-reference	PlayerCountPropertyYou$LifeLostLastTurn
+needs-reference	PlayerCountPropertyYou$LifeLostThisTurn
 needs-reference	PlayerCountPropertyYou$OpponentsAttackedThisCombat
 needs-reference	PlayerCountPropertyYou$OpponentsAttackedThisTurn
+needs-reference	PlayerCountPropertyYou$PlaneswalkedToThisTurn
 needs-reference	PlayerCountPropertyYou$SacrificedPermanentTypesThisTurn
 needs-reference	PlayerCountPropertyYou$SacrificedThisTurn
 needs-reference	PlayerCountRegisteredOpponents$HasPropertyLostLifeThisTurn
 needs-reference	PlayerCountRegisteredOpponents$HasPropertywasDealtCombatDamageThisTurn
 needs-reference	PlayerCountRegisteredOpponents$HasPropertywasDealtCombatDamageThisTurnBy
 needs-reference	PlayerCountRegisteredOpponents$HasPropertywasDealtDamageThisTurn
+needs-reference	PlayerCountRegisteredOpponents$HighestLifeLostThisTurn
 needs-reference	PlayerCountRegisteredOpponents$NonCombatDamageDealtThisTurn
 needs-reference	PlayerCountRemembered$Amount
 needs-reference	PlayerCountRemembered$CardsDrawn
@@ -189,6 +209,7 @@ needs-reference	Sacrificed$CardPower
 needs-reference	Sacrificed$CardToughness
 needs-reference	Sacrificed$ChromaSource
 needs-reference	Sacrificed$Valid
+needs-reference	SpellTargeted$CardManaCostLKI
 needs-reference	Tapped$CardPower
 needs-reference	Targeted$AllTypes
 needs-reference	Targeted$CardCounters
@@ -223,11 +244,11 @@ needs-reference	TargetedPlayer$StartingLife
 needs-reference	TargetedPlayer$TotalCommanderCastFromCommandZone
 needs-reference	TargetedPlayer$Valid
 needs-reference	TargetedPlayer$ValidGraveyard
-needs-reference	TargetedPlayerCtrl
-needs-reference	TargetedPlayerOwn
 needs-reference	ThisTargetedPlayer$CardsInHand
 needs-reference	ThisTargetedPlayer$LifeTotal
 needs-reference	ThisTargetedPlayer$Valid
+needs-reference	ThisTurnCast
+needs-reference	ThisTurnEntered
 needs-reference	TriggerCount$Amount
 needs-reference	TriggerCount$CurrentStormCount
 needs-reference	TriggerCount$DamageAmount
@@ -296,24 +317,20 @@ needs-reference	TriggeredSpellAbility$AmountManaProduced
 needs-reference	TriggeredSpellAbility$CardManaCost
 needs-reference	TriggeredSpellAbility$CardManaCostLKI
 needs-reference	TriggeredSpellAbility$CardPower
+needs-reference	TriggeredSpellAbility$NumTimesChoseMode
 needs-reference	TriggeredSpellAbility$TimesKicked
 needs-reference	TriggeredTarget$CardsInHand
 needs-reference	TriggeredTarget$Counters
 needs-reference	TriggeredTarget$LifeLostThisTurn
 needs-reference	TriggeredTarget$LifeTotal
 needs-reference	TriggeredTarget$Valid
-nested-filter	AttachedByValid Communicator
-nested-filter	AttachedTo Creature
-nested-filter	AttachedTo Creature.EnchantedBy
-nested-filter	AttachedTo Creature.EquippedBy
-nested-filter	AttachedTo Creature.IsRemembered
-nested-filter	AttachedTo Player.EnchantedBy
-nested-filter	attacking RememberedPlayer
-nested-filter	canProduceManaColor Colorless
-nested-filter	sharesCreatureTypeWith TriggeredCard
-nested-filter	sharesNameWith Imprinted
-nested-filter	sharesNameWith TriggeredCard
-nested-filter	stickeredWith Art
+needs-reference	Valid
+needs-reference	ValidGraveyard
+needs-reference	ValidHand
+needs-reference	ValidLibrary
+nested-filter	ThisTurnCast
+nested-filter	Valid
+nested-filter	ValidGraveyard
 not-a-number	CastSA
 not-a-number	Spawner
 not-a-number	TriggeredSpellAbility
@@ -343,6 +360,7 @@ svar-missing	SetPwr
 svar-missing	SetTgn
 svar-missing	StickerUniqueVowels
 svar-missing	Thrice
+svar-missing	TrigSwitch
 svar-missing	Triple
 svar-missing	VoteNum
 svar-missing	Votes
@@ -355,7 +373,9 @@ unknown-counter	CardCounters.ACQUIREDTASTE
 unknown-counter	CardCounters.AGE
 unknown-counter	CardCounters.ALL
 unknown-counter	CardCounters.BLESSING
+unknown-counter	CardCounters.BLIGHT
 unknown-counter	CardCounters.BLOOD
+unknown-counter	CardCounters.BRICK
 unknown-counter	CardCounters.BURDEN
 unknown-counter	CardCounters.CORPSE
 unknown-counter	CardCounters.CREDIT
@@ -399,7 +419,7 @@ unknown-counter	CardCounters.UNITY
 unknown-counter	CardCounters.VALOR
 unknown-counter	CardCounters.VERSE
 unknown-counter	CardCounters.WIND
-unknown-counter	counters_GEN_FLOOD
+unknown-counter	Valid
 unknown-head	AbilityYouCtrl
 unknown-head	Adamant
 unknown-head	BloodthirstAmount
@@ -417,6 +437,7 @@ unknown-head	CommanderCastFromCommandZone
 unknown-head	Conspired
 unknown-head	CountersAddedThisTurn
 unknown-head	CountersRemovedThisTurn
+unknown-head	CreaturesAttackedThisTurn
 unknown-head	CrewSize
 unknown-head	DamageThisTurn
 unknown-head	Devoured
@@ -425,30 +446,50 @@ unknown-head	DomainActivePlayer
 unknown-head	DraftNotesCount
 unknown-head	DraftNotesHighest
 unknown-head	EachSpentToCast
+unknown-head	EnchantedControllerCreatures
 unknown-head	ExactManaCostGraveyard
+unknown-head	FinishedUpkeepsThisTurn
 unknown-head	HasNumChosenColors
 unknown-head	ImprintedSize
 unknown-head	Intensity
+unknown-head	IsPrime
 unknown-head	LastStateBattlefield
 unknown-head	LastStateBattlefieldWithFallback
 unknown-head	LastStateGraveyard
 unknown-head	LastStateGraveyardWithFallback
+unknown-head	LastTurnEntered
 unknown-head	LeftBattlefieldThisTurn
+unknown-head	LeftGraveyardThisTurn
 unknown-head	LifeOppsLostThisTurn
 unknown-head	LifeYouLostThisTurn
+unknown-head	LifeYourTeamGainedThisTurn
 unknown-head	ManaPool:All
 unknown-head	ManaPool:green
+unknown-head	MaxCombatDamageThisTurn
 unknown-head	MaxDistinctOnStack
+unknown-head	MaxOppDamageThisTurn
 unknown-head	MaxSameStoredRolls
+unknown-head	MostCardName
 unknown-head	MostProminentCreatureType
+unknown-head	NonCombatDamageThisTurn
 unknown-head	NumCombatDamageThisTurn
+unknown-head	NumDamageThisTurn
 unknown-head	NumInAllHands
 unknown-head	NumPiledGuessedSA
+unknown-head	OffspringPaid
 unknown-head	OppGreatestLifeTotal
+unknown-head	Random
 unknown-head	RegeneratedThisTurn
 unknown-head	ReplicatePaid
 unknown-head	ResolvedThisTurn
+unknown-head	SearchedLibrary
 unknown-head	SingleMaxDamageThisTurn
+unknown-head	SquadPaid
+unknown-head	ThisTurnActivated
+unknown-head	ThisTurnCast$CardManaCost
+unknown-head	ThisTurnCast$CardTypes
+unknown-head	ThisTurnCast$GreatestCardManaCost
+unknown-head	ThisTurnEntered$CardPower
 unknown-head	TimesMutated
 unknown-head	TopOfLibraryCMC
 unknown-head	TotalCommanderCastFromCommandZone
@@ -457,6 +498,7 @@ unknown-head	TotalDamageReceivedThisTurn
 unknown-head	TotalDamageThisTurn
 unknown-head	TotalManaSpent
 unknown-head	TotalOppPoisonCounters
+unknown-head	TotalTurns
 unknown-head	TotalValue
 unknown-head	TriggeredManaCostDevotion
 unknown-head	TriggeredManaCostGeneric
@@ -486,49 +528,35 @@ unknown-head	ValidBattlefield,Hand
 unknown-head	ValidExile,Graveyard
 unknown-head	ValidGraveyard,Battlefield
 unknown-head	ValidGraveyard,Exile
+unknown-head	ValidGraveyard,Library,Hand
 unknown-head	ValidSelf
 unknown-head	ValidSideboard
 unknown-head	ValidStack
+unknown-head	YouCastThisGame
 unknown-head	YouDescendedThisTurn
+unknown-head	YouDrewLastTurn
 unknown-head	YouFaceDilemmaThisTurn
+unknown-head	YouFlipThisTurn
+unknown-head	YouRollThisTurn
+unknown-head	YouRolledThisTurnN
+unknown-head	YouScryThisTurn
+unknown-head	YouSurveilThisTurn
 unknown-head	YourCountersEnergy
 unknown-head	YourCountersExperience
 unknown-head	YourSpeed
 unknown-head	YourTurns
 unknown-head	xColorPaid
-unknown-keyword	hasKeywordCARDNAME count as Flame Burst.
-unknown-keyword	hasKeywordCARDNAME count as Muscle Burst.
-unknown-keyword	withTypeCycling
+unknown-keyword	ValidGraveyard
 unknown-operator	Abs
 unknown-operator	DivideEvenlyDown
 unknown-operator	NMinus
+unknown-operator	Negative
 unknown-operator	Pow
-unknown-predicate	!CastSaSource
-unknown-predicate	!CastSaSource$CardManaCost
-unknown-predicate	AdventureCard
-unknown-predicate	Attached
-unknown-predicate	CanBeTargetedByTriggeredSpellAbility
-unknown-predicate	CanEnchantEquippedBy
-unknown-predicate	CanTransform
-unknown-predicate	DefenderCtrlForRemembered
-unknown-predicate	EnchantedControllerCtrl
-unknown-predicate	EnchantedPlayerOwn
-unknown-predicate	IsGoaded
-unknown-predicate	IsRingbearer
-unknown-predicate	RememberedPlayerCtrl
-unknown-predicate	RememberedPlayerOwn
-unknown-predicate	Transformed
-unknown-predicate	YouCtrl$CardTypes
-unknown-predicate	YouCtrl$GreatestCardManaCost
-unknown-predicate	basePowerEQN
-unknown-predicate	basePowerLEN
-unknown-predicate	blockingTriggeredAttacker
-unknown-predicate	countersReceivedThisTurn_GEN_Any_You
-unknown-predicate	foretold
-unknown-predicate	sharesCreatureTypeWith
-unknown-predicate	sharesNameWith
-unknown-predicate	tokenCreated
-unknown-word	Affinity
-unknown-word	Dalek$CardPower
-unknown-word	Historic
-unknown-word	Outlaw
+unknown-predicate	ThisTurnCast
+unknown-predicate	ThisTurnEntered
+unknown-predicate	Valid
+unknown-predicate	ValidExile
+unknown-predicate	ValidGraveyard
+unknown-predicate	ValidHand
+unknown-predicate	ValidLibrary
+unknown-word	Valid

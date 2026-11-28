@@ -44,6 +44,7 @@ func TestValidateValue(t *testing.T) {
 		{"bad filter", "card type", &Value{Kind: VCount, Filter: &Filter{Op: FPred, Pred: PCardType, Word: "Elf"}}},
 		{"bad ref filter", "no op", &Value{Kind: VPower, Ref: &Ref{Kind: RefAll, Filter: &Filter{}}}},
 		{"compare no cmp", "needs l, r and cmp", &Value{Kind: VIf, Test: &Cond{Kind: CCompare, L: one(), R: one()}, Args: []*Value{one(), one()}}},
+		{"bad test ref filter", "no op", &Value{Kind: VIf, Test: &Cond{Kind: CCompare, L: one(), R: one(), Cmp: CmpEQ, Ref: &Ref{Kind: RefAll, Filter: &Filter{}}}, Args: []*Value{one(), one()}}},
 		{"bad test value", "no kind", &Value{Kind: VIf, Test: &Cond{Kind: CCompare, L: &Value{}, R: one(), Cmp: CmpEQ}, Args: []*Value{one(), one()}}},
 	}
 	for _, c := range bad {

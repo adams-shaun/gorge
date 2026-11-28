@@ -76,12 +76,12 @@ func init() { headFamilies = headFamilyTable() }
 
 func headFamilyTable() []headFamily {
 	return []headFamily{
-		{"Valid ", validIn(ir.ZoneBattlefield)},
-		{"ValidBattlefield ", validIn(ir.ZoneBattlefield)},
-		{"ValidGraveyard ", validIn(ir.ZoneGraveyard)},
-		{"ValidHand ", validIn(ir.ZoneHand)},
-		{"ValidLibrary ", validIn(ir.ZoneLibrary)},
-		{"ValidExile ", validIn(ir.ZoneExile)},
+		{"Valid ", validIn("Valid", ir.ZoneBattlefield)},
+		{"ValidBattlefield ", validIn("ValidBattlefield", ir.ZoneBattlefield)},
+		{"ValidGraveyard ", validIn("ValidGraveyard", ir.ZoneGraveyard)},
+		{"ValidHand ", validIn("ValidHand", ir.ZoneHand)},
+		{"ValidLibrary ", validIn("ValidLibrary", ir.ZoneLibrary)},
+		{"ValidExile ", validIn("ValidExile", ir.ZoneExile)},
 		{"CardCounters.", cardCounters},
 		{"Devotion.", devotion},
 		{"DevotionDual.", devotion},
@@ -92,8 +92,9 @@ func headFamilyTable() []headFamily {
 }
 
 // validIn counts the objects in zone matching the filter; a
-// "<filter>$CardPower" suffix sums their power instead.
-func validIn(zone ir.Zone) func(*valueReader, string) (*ir.Value, *Refusal) {
+// "<filter>$CardPower" suffix sums their power instead. word is the head, the
+// atom of any refusal of its filter.
+func validIn(word string, zone ir.Zone) func(*valueReader, string) (*ir.Value, *Refusal) {
 	return func(_ *valueReader, rest string) (*ir.Value, *Refusal) {
 		text, prop, hasProp := strings.Cut(rest, "$")
 		kind := ir.VCount
@@ -103,22 +104,45 @@ func validIn(zone ir.Zone) func(*valueReader, string) (*ir.Value, *Refusal) {
 			}
 			kind = ir.VTotalPower
 		}
-		f, r := LowerFilter(text)
+		f, r := scopedFilter(word, text, ir.MakeZoneSet(zone))
 		if r != nil {
 			return nil, r
 		}
-		setScope(f, ir.MakeZoneSet(zone))
 		return &ir.Value{Kind: kind, Filter: f}, nil
 	}
 }
 
+// scopedFilter lowers a head's filter text and gives it the head's scope
+// zones (none for zones 0). A refusal of the filter keeps its kind and takes
+// the head word as its atom: the census holds heads, never filter text. A zone
+// predicate disagreeing with the scope is refused, not overwritten.
+func scopedFilter(word, text string, zones ir.ZoneSet) (*ir.Filter, *Refusal) {
+	f, r := LowerFilter(text)
+	if r != nil {
+		return nil, refuse(r.Kind, word)
+	}
+	if zones != 0 && !setScope(f, zones) {
+		return nil, refuse(RefuseUnknownPredicate, word+".inZone")
+	}
+	return f, nil
+}
+
 // setScope gives f, and each alternative of an FAny root with no zones of its
-// own, the scope zones. A player filter has no zone.
-func setScope(f *ir.Filter, zones ir.ZoneSet) {
+// own, the scope zones. A player filter has no zone. It reports false, and
+// changes nothing, when f or an alternative names zones other than the scope.
+func setScope(f *ir.Filter, zones ir.ZoneSet) bool {
 	if f.Subject == ir.SubjPlayer {
-		return
+		return true
+	}
+	if f.Zones != 0 && f.Zones != zones {
+		return false
 	}
 	if f.Op == ir.FAny {
+		for _, a := range f.Args {
+			if a.Subject != ir.SubjPlayer && a.Zones != 0 && a.Zones != zones {
+				return false
+			}
+		}
 		for _, a := range f.Args {
 			if a.Zones == 0 && a.Subject != ir.SubjPlayer {
 				a.Zones = zones
@@ -126,6 +150,7 @@ func setScope(f *ir.Filter, zones ir.ZoneSet) {
 		}
 	}
 	f.Zones = zones
+	return true
 }
 
 func cardCounters(_ *valueReader, kind string) (*ir.Value, *Refusal) {
@@ -176,7 +201,10 @@ func compare(rd *valueReader, rest string) (*ir.Value, *Refusal) {
 }
 
 func castThisTurn(_ *valueReader, rest string) (*ir.Value, *Refusal) {
-	f, r := LowerFilter(rest)
+	if _, prop, ok := strings.Cut(rest, "$"); ok {
+		return nil, refuse(RefuseUnknownHead, "ThisTurnCast$"+leadWord(prop))
+	}
+	f, r := scopedFilter("ThisTurnCast", rest, 0)
 	if r != nil {
 		return nil, r
 	}
@@ -185,6 +213,9 @@ func castThisTurn(_ *valueReader, rest string) (*ir.Value, *Refusal) {
 
 // enteredThisTurn reads "<Zone>[_from_<Zone>]_<filter>".
 func enteredThisTurn(_ *valueReader, rest string) (*ir.Value, *Refusal) {
+	if _, prop, ok := strings.Cut(rest, "$"); ok {
+		return nil, refuse(RefuseUnknownHead, "ThisTurnEntered$"+leadWord(prop))
+	}
 	to, rest, _ := strings.Cut(rest, "_")
 	dest, ok := zoneWords[to]
 	if !ok {
@@ -199,18 +230,21 @@ func enteredThisTurn(_ *valueReader, rest string) (*ir.Value, *Refusal) {
 		}
 		origin, rest = ir.MakeZoneSet(z), filter
 	}
-	f, r := LowerFilter(rest)
+	f, r := scopedFilter("ThisTurnEntered", rest, ir.MakeZoneSet(dest))
 	if r != nil {
 		return nil, r
 	}
-	setScope(f, ir.MakeZoneSet(dest))
 	return &ir.Value{Kind: ir.VEnteredThisTurn, Filter: f, Zones: origin}, nil
 }
+
+// notConditions are "<word>.<a>.<b>" heads that branch on no game state:
+// Random picks a number between a and b.
+var notConditions = map[string]bool{"Random": true}
 
 // twoBranchHead reports a "<State>.<a>.<b>" head and its state word.
 func twoBranchHead(head string) (string, bool) {
 	parts := strings.Split(head, ".")
-	if len(parts) != 3 || !isName(parts[0]) || parts[1] == "" || parts[2] == "" {
+	if len(parts) != 3 || !isName(parts[0]) || notConditions[parts[0]] || parts[1] == "" || parts[2] == "" {
 		return "", false
 	}
 	return parts[0], true

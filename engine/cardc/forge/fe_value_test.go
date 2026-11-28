@@ -91,6 +91,8 @@ func TestLowerValueFilterHeads(t *testing.T) {
 		{"Count$ThisTurnCast_Card.YouCtrl", ir.VCastThisTurn, 0, 0},
 		{"Count$ThisTurnEntered_Battlefield_Creature.YouCtrl", ir.VEnteredThisTurn, bf, 0},
 		{"Count$ThisTurnEntered_Graveyard_from_Battlefield_Creature", ir.VEnteredThisTurn, gy, bf},
+		{"Count$Valid Creature.inZoneBattlefield", ir.VCount, bf, 0},
+		{"Count$ValidGraveyard Creature.inZoneGraveyard", ir.VCount, gy, 0},
 	}
 	for _, c := range cases {
 		v, r := LowerValue(c.in, nil)
@@ -137,7 +139,17 @@ func TestLowerValueRefusals(t *testing.T) {
 		{"Remembered$Amount/Plus.1", RefuseNeedsReference, "Remembered$Amount"},
 		{"Count$Devotion.Chosen", RefuseNeedsReference, "Devotion.Chosen"},
 		{"Count$CardCounters.WIDGET", RefuseUnknownCounter, "CardCounters.WIDGET"},
-		{"Count$Valid Creature.blorp", RefuseUnknownPredicate, "blorp"},
+		{"Count$Valid Creature.blorp", RefuseUnknownPredicate, "Valid"},
+		{"Count$ValidGraveyard Creature.blorp", RefuseUnknownPredicate, "ValidGraveyard"},
+		{"Count$ThisTurnCast_Creature.blorp", RefuseUnknownPredicate, "ThisTurnCast"},
+		{"Count$ThisTurnEntered_Battlefield_Creature.blorp", RefuseUnknownPredicate, "ThisTurnEntered"},
+		{"Count$ValidGraveyard Creature.inZoneBattlefield", RefuseUnknownPredicate, "ValidGraveyard.inZone"},
+		{"Count$Valid Card.inZoneExile", RefuseUnknownPredicate, "Valid.inZone"},
+		{"Count$ValidGraveyard Creature.inZoneBattlefield,Artifact", RefuseUnknownPredicate, "ValidGraveyard.inZone"},
+		{"Count$ThisTurnEntered_Battlefield_Creature.inZoneGraveyard", RefuseUnknownPredicate, "ThisTurnEntered.inZone"},
+		{"Count$ThisTurnCast_Card.namedFoo$CardPower", RefuseUnknownHead, "ThisTurnCast$CardPower"},
+		{"Count$ThisTurnEntered_Battlefield_Card.namedFoo$CardPower", RefuseUnknownHead, "ThisTurnEntered$CardPower"},
+		{"Count$Random.0.2", RefuseUnknownHead, "Random"},
 		{"L", RefuseSVarCycle, "L"},
 		{"Result", RefuseSVarMissing, "Result"},
 		{"Count$xPaid/Plus.Q7", RefuseSVarMissing, "QN"},

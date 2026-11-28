@@ -66,6 +66,9 @@ func validateTest(c *Cond) error {
 			return err
 		}
 	}
+	if err := validateRefFilters(c.Ref); err != nil {
+		return err
+	}
 	if c.Kind == CCompare && (c.L == nil || c.R == nil || c.Cmp == CmpNone) {
 		return fmt.Errorf("ir: if: a compare test needs l, r and cmp")
 	}
