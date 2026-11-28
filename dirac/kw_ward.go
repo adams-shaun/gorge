@@ -37,6 +37,13 @@ func wardIsGrantedLife(amt int16) bool {
 	return amt > 0 && amt&(wardGrantedBits|wardGrantedLifeBit) == wardGrantedBits|wardGrantedLifeBit
 }
 
+// staticGrantsWard reports whether a Continuous static grants ward: its
+// AddKeyword$ Ward:N or Ward:PayLife<N> sets kop.Static.Ward / WardLife beside
+// the KwWard bit (kgen lower_continuous.go). The withWard filter reads it
+// beside the printed record (fwWithKeyword), as staticGrantsHorsemanship is
+// read: gorge's derived keyword list carries both.
+func staticGrantsWard(st *kop.Static) bool { return st.Ward != 0 || st.WardLife != 0 }
+
 // wardGranted enqueues the ward triggers of the permanent at sl (object
 // ob) that entry e targeted, when the table has a granted ward.
 //
