@@ -120,13 +120,14 @@ func (s *State) wardGranted(k *prep, sl Slot, ob *object, e *stackEntry, disguis
 
 // printedWards queues the printed ward triggers of the face-up permanent at
 // sl: one for each of its cards that prints ward, a merged permanent's under
-// cards among them, each its own instance at its own card's cost (CR 702.140e,
-// 113.2c), in pile order; none once it has lost its abilities.
+// cards among them unless a newer copy covers the pile (eachKwCard), each its
+// own instance at its own card's cost (CR 702.140e, 113.2c), in pile order;
+// none once it has lost its abilities.
 func (s *State) printedWards(k *prep, sl Slot, ver uint8, e *stackEntry) {
 	if s.genLost(k, sl) {
 		return
 	}
-	s.eachPileCard(k, sl, func(c CardID) bool {
+	s.eachKwCard(k, sl, func(c CardID) bool {
 		if cd := &k.t.Cards[c]; cd.Keywords&kop.KwWard != 0 {
 			s.printedWard(k, sl, ver, e, c, wardAmt(cd)) // negative: pay N life
 		}

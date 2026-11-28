@@ -300,7 +300,7 @@ func (s *State) evadesShadowFear(k *prep, b, a Slot, akw, bkw kop.KwMask) bool {
 // granted ones (gorge HasKW over the derived keywords).
 func (s *State) evasionAt(k *prep, sl Slot) uint8 {
 	var ev uint8
-	s.eachPileCard(k, sl, func(c CardID) bool {
+	s.eachKwCard(k, sl, func(c CardID) bool {
 		ev |= k.t.Cards[c].Evasion
 		return true
 	})

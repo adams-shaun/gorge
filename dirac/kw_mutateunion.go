@@ -17,8 +17,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     legendary bit.
 //   - keywords: kwGen and the layer-6 walk's base read pileKw. The printed
 //     records outside KwMask (CR 702.140e: infect, wither, toxic, evasion,
-//     printedKeyword's words) are read through pilePrints and eachPileCard,
-//     and each card's ward is its own trigger (printedWards).
+//     printedKeyword's words) are read through pilePrints and eachKwCard,
+//     and each card's ward is its own trigger (printedWards). The under
+//     cards lend none of these once a copy newer than the merge covers the
+//     pile (pileCopied).
 //   - statics: eachStaticOf, eachStaticC, eachStaticTS and mayPlayZones walk
 //     pileStatics after the top card; the class gates read statClsAt. A
 //     top-card swap that stays on the battlefield resubscribes the pile
@@ -94,8 +96,27 @@ func underObj(r *mergeRec, j int) Obj { return Obj(r.und[j] - 1) }
 // names its face (turnFace, face_multiface.go).
 func (s *State) underCard(r *mergeRec, j int) CardID { return s.objs[underObj(r, j)].card }
 
-// pileKw is the printed keywords of the under cards of the pile at sl (0 for
-// a permanent that is not one). The caller has checked the loss.
+// pileCopied reports whether a copy effect newer than the latest merge of the
+// pile r at sl applies: the merge and a copy are layer-1 copiable effects in
+// timestamp order (CR 613.2a, 730.2a), so that copy's rules text replaces the
+// merge's (CR 707.2; gorge state.Object.CopiedSinceMerge). A table without
+// the merge clocks has no copy that can be newer (coldMergeTS).
+func (s *State) pileCopied(sl Slot, r *mergeRec) bool {
+	if s.perms[sl].ovr.flags&ovCopy == 0 {
+		return false
+	}
+	recs := coldMerge.of(s)
+	for i, ts := range coldMergeTS.of(s) {
+		if &recs[i] == r {
+			return s.copyTop(sl, NoSlot).ts > ts
+		}
+	}
+	return false
+}
+
+// pileKw is the printed keywords the under cards of the pile at sl lend it (0
+// for a permanent that is not one, or one a newer copy covers). The caller has
+// checked the loss.
 func (s *State) pileKw(k *prep, sl Slot) kop.KwMask {
 	if !k.piles {
 		return 0
@@ -106,7 +127,7 @@ func (s *State) pileKw(k *prep, sl Slot) kop.KwMask {
 // pileKwAt is pileKw on a table that builds piles.
 func (s *State) pileKwAt(k *prep, sl Slot) kop.KwMask {
 	r := s.pileAt(k, sl)
-	if r == nil {
+	if r == nil || s.pileCopied(sl, r) {
 		return 0
 	}
 	var m kop.KwMask
@@ -206,6 +227,17 @@ func (s *State) pileStaticsAt(k *prep, sl Slot, keep []bool, cls uint16, layered
 	return true
 }
 
+// eachKwCard is eachPileCard for a read of printed keywords: under a copy
+// newer than the merge (pileCopied) only the top card, which shows the copied
+// face, prints any (CR 707.2; gorge chars.UnderKeywordLines). The under
+// cards' replacement and static abilities stay on eachPileCard.
+func (s *State) eachKwCard(k *prep, sl Slot, f func(c CardID) bool) bool {
+	if r := s.pileAt(k, sl); r != nil && s.pileCopied(sl, r) {
+		return f(s.cardAt(sl))
+	}
+	return s.eachPileCard(k, sl, f)
+}
+
 // eachPileCard calls f for the card at sl (the top card) and then for each
 // under card of the pile at sl, in pile order, until f returns false. It
 // reports false when f stopped. A permanent that is not a pile calls f once.
@@ -231,10 +263,10 @@ func (s *State) eachPileCard(k *prep, sl Slot, f func(c CardID) bool) bool {
 }
 
 // pilePrints reports whether a card of the permanent at sl, its top card or
-// one beneath it, prints what has reads (CR 702.140e). The caller applies the
-// loss of abilities.
+// one beneath it, prints the keyword has reads (CR 702.140e; eachKwCard). The
+// caller applies the loss of abilities.
 func (s *State) pilePrints(k *prep, sl Slot, has func(cd *kop.CardDef) bool) bool {
-	return !s.eachPileCard(k, sl, func(c CardID) bool { return c == kop.NoCard || !has(&k.t.Cards[c]) })
+	return !s.eachKwCard(k, sl, func(c CardID) bool { return c == kop.NoCard || !has(&k.t.Cards[c]) })
 }
 
 // prepPileMana registers, for a table that builds piles, each card's plain
