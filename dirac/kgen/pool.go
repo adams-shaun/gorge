@@ -157,6 +157,11 @@ type pool struct {
 	// output of a card that lowers cleanly is the same either way.
 	allBlockers bool
 
+	// noSets turns the Defined$ set grammar off (lower_definedset.go): every
+	// value it reads refuses bare, as before it existed. The comparison
+	// path of TestDefinedSetKeepsOldLowerings only.
+	noSets bool
+
 	// commander: the pool's games are Commander pods (tables.go readPool
 	// sets it by pool name); a Meld result card refuses in one (lower_meld.go).
 	commander bool
