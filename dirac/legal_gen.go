@@ -815,7 +815,7 @@ func (s *State) targetableGen(k *prep, sl Slot, p uint8) bool {
 		return false // a printed CantTarget static (tgt_canttarget.go)
 	}
 	if kw&(kop.KwHexproofFromInstants|kop.KwProtBlack|kop.KwProtRed) == 0 && !(k.gen.anyProtCol && s.protPrinted(k, sl) != 0) &&
-		!(k.gen.anyProtF && (k.t.Cards[s.cardAt(sl)].ProtFrom != 0 || k.gen.anyProtGrant)) && hexC == 0 {
+		!(k.gen.anyProtF && (k.gen.anyProtGrant || s.pilePrints(k, sl, printsProtFrom))) && hexC == 0 {
 		return true
 	}
 	spell, card, c, srcSl, ok := s.tgtSource(k)

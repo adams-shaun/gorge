@@ -12,7 +12,10 @@ import (
 //
 //go:noinline
 func (s *State) landwalkEvades(k *prep, b, a Slot) bool {
-	if f := k.t.Cards[s.cardAt(a)].Landwalk; f != 0 && !s.genLost(k, a) && !s.landwalkRemoved(k, a, f, 0) && s.landwalkHit(k, f, b, a, a) {
+	if s.pilePrints(k, a, func(cd *kop.CardDef) bool { // a pile's every card (CR 702.140e)
+		f := cd.Landwalk
+		return f != 0 && !s.landwalkRemoved(k, a, f, 0) && s.landwalkHit(k, f, b, a, a)
+	}) && !s.genLost(k, a) {
 		return true
 	}
 	if s.landwalkGranted(k, b, a) || s.landwalkPumped(k, b, a) {
@@ -217,7 +220,10 @@ func landwalkNames(t *kop.Table, f kop.FilterID, sub uint8) bool {
 //go:noinline
 func (s *State) hasIslandwalk(k *prep, sl Slot) bool {
 	sub := islandSub(k)
-	if f := k.t.Cards[s.cardAt(sl)].Landwalk; f != 0 && !s.genLost(k, sl) && !s.landwalkRemoved(k, sl, f, 0) && landwalkNames(k.t, f, sub) {
+	if s.pilePrints(k, sl, func(cd *kop.CardDef) bool { // a pile's every card (CR 702.140e)
+		f := cd.Landwalk
+		return f != 0 && !s.landwalkRemoved(k, sl, f, 0) && landwalkNames(k.t, f, sub)
+	}) && !s.genLost(k, sl) {
 		return true
 	}
 	lts, lost := s.lossAt(k, sl)

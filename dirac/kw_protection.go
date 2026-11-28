@@ -17,12 +17,44 @@ import (
 //
 //go:noinline
 func (s *State) protPrintedCw(k *prep, sl Slot) kop.ColorMask {
-	c := k.t.Cards[s.cardAt(sl)].ProtColors
+	var c kop.ColorMask
+	s.eachKwCard(k, sl, func(id CardID) bool { // a pile's every card, each face's words (CR 702.140e)
+		if id == kop.NoCard {
+			return true
+		}
+		m := k.t.Cards[id].ProtColors
+		if k.anyColorWords && m != 0 && m != kop.ColW|kop.ColU|kop.ColB|kop.ColR|kop.ColG {
+			m, _ = s.cwMask(k, id, s.perms[sl].obj, m)
+		}
+		c |= m
+		return true
+	})
 	if c != 0 && s.genLost(k, sl) {
 		c = 0
 	}
-	if k.anyColorWords && c != 0 && c != kop.ColW|kop.ColU|kop.ColB|kop.ColR|kop.ColG {
-		c, _ = s.cwMask(k, s.cardAt(sl), s.perms[sl].obj, c)
+	return c
+}
+
+func printsProtFrom(cd *kop.CardDef) bool { return cd.ProtFrom != 0 }
+
+// underProtColors is the printed protection-from-colour colours of the cards
+// beneath the top of the pile at sl (CR 702.140e; eachKwCard's walk less the
+// top card): none for a permanent that is not a pile, one a newer copy covers,
+// or one that lost its abilities.
+func (s *State) underProtColors(k *prep, sl Slot) kop.ColorMask {
+	if !k.piles {
+		return 0
+	}
+	r := s.pileAt(k, sl)
+	if r == nil || s.pileCopied(sl, r) {
+		return 0
+	}
+	var c kop.ColorMask
+	for j := 0; j < int(r.n); j++ {
+		c |= k.t.Cards[s.underCard(r, j)].ProtColors
+	}
+	if c != 0 && s.genLost(k, sl) {
+		return 0
 	}
 	return c
 }
@@ -64,7 +96,9 @@ func (s *State) protQuality(k *prep, sl, srcSl Slot, srcCard CardID) bool {
 //
 //go:noinline
 func (s *State) protQualityAt(k *prep, sl, srcSl Slot, srcCard CardID, sba bool) bool {
-	if f := k.t.Cards[s.cardAt(sl)].ProtFrom; f != 0 && !s.genLost(k, sl) && s.protMatchPrinted(k, f, sl, srcSl, srcCard) {
+	if s.pilePrints(k, sl, func(cd *kop.CardDef) bool { // a pile's every card (CR 702.140e)
+		return cd.ProtFrom != 0 && s.protMatchPrinted(k, cd.ProtFrom, sl, srcSl, srcCard)
+	}) && !s.genLost(k, sl) {
 		return true
 	}
 	return k.gen.anyProtGrant && (s.protOvF(k, sl, srcSl, srcCard, sba) || s.protGranted(k, sl, srcSl, srcCard, sba) || s.protYours(k, sl, srcSl, srcCard))
