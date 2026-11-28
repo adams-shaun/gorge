@@ -1856,7 +1856,7 @@ func (s *State) srcColors(k *prep, sl Slot, c CardID) kop.ColorMask {
 		return s.colorsGen(k, sl)
 	}
 	if s.emblemSrc(k, c) {
-		return 0 // an emblem's ability: the emblem has no colour (CR 114.3; src_emblem.go)
+		return 0 // an emblem's ability: the emblem has no colour (CR 114.3; repl_emblemsrc.go)
 	}
 	return k.t.Cards[c].Colors
 }

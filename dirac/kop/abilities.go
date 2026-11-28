@@ -155,7 +155,7 @@ type Ability struct {
 	// begins "Emblem", CR 114), not of a timed Effect stored as one. As it
 	// resolves its source is the emblem, which has no characteristics
 	// (CR 114.3; gorge state.Object.EmblemSource): its damage is colourless
-	// and keywordless, not the creating card's (dirac/src_emblem.go). A table
+	// and keywordless, not the creating card's (dirac/repl_emblemsrc.go). A table
 	// byte: AbilityFlags has no free bit.
 	EmblemSrc bool
 	// ManaEach: the mana ability adds ManaN mana of EACH colour in ManaColors

@@ -1113,7 +1113,7 @@ func (s *State) srcKw(k *prep) kop.KwMask {
 		return s.kw(k, sl)
 	}
 	if s.emblemSrc(k, s.res.e.card) {
-		return 0 // an emblem's ability: the emblem has no keywords (CR 114.3; src_emblem.go)
+		return 0 // an emblem's ability: the emblem has no keywords (CR 114.3; repl_emblemsrc.go)
 	}
 	kw := k.cards[s.res.e.card].kw
 	if e := &s.res.e; e.kind != seSpell {
