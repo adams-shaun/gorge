@@ -59,7 +59,7 @@ func (lc *lowerCtx) sacrificedTypeFilter(spec string) (*lFilter, bool) {
 	if head != "Card" && head != "Creature" {
 		return nil, false // a bare subtype head ("Human") is not one of the two forms
 	}
-	f, err := parseFilter(spec, lc.known, lc.p.isTypeWord)
+	f, err := lc.parseFilterText(spec)
 	if err != nil || f.Players != 0 || f.Each || len(f.Clauses) != 1 {
 		return nil, false
 	}
@@ -92,7 +92,7 @@ func (lc *lowerCtx) sacrificedLegendaryFilter(spec string) (*lFilter, bool) {
 	if strings.TrimSpace(spec) != "Card.Legendary" {
 		return nil, false
 	}
-	f, err := parseFilter(spec, lc.known, lc.p.isTypeWord)
+	f, err := lc.parseFilterText(spec)
 	if err != nil || f.Players != 0 || f.Each || len(f.Clauses) != 1 {
 		return nil, false
 	}
