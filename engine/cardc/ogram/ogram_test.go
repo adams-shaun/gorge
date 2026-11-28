@@ -147,11 +147,35 @@ func TestLowerFilterFixture(t *testing.T) {
 		t.Errorf("Property:\n got %+v\nwant %+v", got, want)
 	}
 
-	// A variant the adapter does not map is refused by its name.
-	_, err = LowerFilter(json.RawMessage(`{"kind":"SameObject","args":{"kind":"Source"}}`))
-	var re *RefusedError
-	if !errors.As(err, &re) || re.Key != "ObjectFilter.SameObject" {
-		t.Errorf("SameObject: err %v, want a RefusedError naming ObjectFilter.SameObject", err)
+	// "this permanent" and "another permanent": SameObject(Source) is
+	// mtgish's SinglePermanent row (PIs self), its Not the Other row.
+	self := func() *ir.Filter { return perm(&ir.Filter{Op: ir.FPred, Pred: ir.PIs, Ref: &ir.Ref{Kind: ir.RefSelf}}) }
+	got, err = LowerFilter(json.RawMessage(`{"kind":"SameObject","args":{"kind":"Source"}}`))
+	if err != nil {
+		t.Fatalf("SameObject: %v", err)
+	}
+	if want = self(); !ir.Equal(got, want) {
+		t.Errorf("SameObject:\n got %+v\nwant %+v", got, want)
+	}
+	got, err = LowerFilter(json.RawMessage(`{"kind":"Not","args":{"kind":"SameObject","args":{"kind":"Source"}}}`))
+	if err != nil {
+		t.Fatalf("Not(SameObject): %v", err)
+	}
+	if want = perm(&ir.Filter{Op: ir.FNot, Args: []*ir.Filter{self()}}); !ir.Equal(got, want) {
+		t.Errorf("Not(SameObject):\n got %+v\nwant %+v", got, want)
+	}
+
+	// A variant the adapter does not map is refused by its name; so is a
+	// reference it has no mtgish node for.
+	for src, key := range map[string]string{
+		`{"kind":"InZone","args":"Graveyard"}`:                                       "ObjectFilter.InZone",
+		`{"kind":"SameObject","args":{"kind":"Target","args":{"slot":0,"index":0}}}`: "ObjectRef.Target",
+	} {
+		_, err = LowerFilter(json.RawMessage(src))
+		var re *RefusedError
+		if !errors.As(err, &re) || re.Key != key {
+			t.Errorf("%s: err %v, want a RefusedError naming %s", src, err, key)
+		}
 	}
 }
 
