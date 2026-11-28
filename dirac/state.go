@@ -771,6 +771,13 @@ func registerTable(t *kop.Table) uint16 {
 	return i
 }
 
+// RegisteredTables is how many tables hold a registry entry.
+func RegisteredTables() int {
+	tablesMu.Lock()
+	defer tablesMu.Unlock()
+	return len(tableIdx)
+}
+
 // ReleaseTable frees t's registry entry: every State playing t becomes
 // invalid, and t's index is reused by a later registration. A table that
 // was never registered is ignored.

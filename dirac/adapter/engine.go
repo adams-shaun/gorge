@@ -272,8 +272,7 @@ func (e *Engine) New(c game.Config) (game.Game, error) {
 			return nil, err
 		}
 	}
-	dirac.Register(tbl)
-	g := &Game{eng: e, set: s, tbl: tbl, cfg: c, log: newLog(c.Seed)}
+	g := &Game{eng: e, set: s, tbl: tbl, hold: holdTable(tbl), cfg: c, log: newLog(c.Seed)}
 	for i, d := range c.Decks {
 		var name, arch string
 		if i < len(c.Names) {

@@ -33,7 +33,9 @@ type Game struct {
 	eng *Engine
 	set cardset.Set
 	tbl *kop.Table
-	cfg game.Config
+	// hold keeps tbl registered while this game or a fork of it is reachable.
+	hold *tableHold
+	cfg  game.Config
 
 	s  dirac.State
 	d  dirac.Decision
@@ -119,7 +121,7 @@ func (g *Game) StallReason() string {
 
 // Fork is an independent copy at this point.
 func (g *Game) Fork() game.Game {
-	c := &Game{eng: g.eng, set: g.set, tbl: g.tbl, cfg: g.cfg, tr: g.tr,
+	c := &Game{eng: g.eng, set: g.set, tbl: g.tbl, hold: g.hold, cfg: g.cfg, tr: g.tr,
 		d: g.d, log: g.log.Clone(), multi: g.multi, conceded: g.conceded, loser: g.loser,
 		ids: g.ids, targets: g.targets, stalled: g.stalled, poison: g.poison, manifests: g.manifests, tally: g.tally, tallyTurn: g.tallyTurn, landsPlayed: g.landsPlayed, building: g.building, vers: g.vers}
 	c.bind()
@@ -234,12 +236,13 @@ func surfaceName(s dirac.Surface) string {
 	return "full"
 }
 
-// Table is the game's card table.
+// Table is the game's card table. Its registry entry lasts as long as this game
+// or a fork of it does.
 func (g *Game) Table() *kop.Table { return g.tbl }
 
 // Set is the card set the game's table came from.
 func (g *Game) Set() cardset.Set { return g.set }
 
 // CopyState copies the kernel's position into dst, for a conformance check that
-// compares it.
+// compares it. dst plays on g's table, so keep g reachable while using dst.
 func (g *Game) CopyState(dst *dirac.State) { dst.CopyFrom(&g.s) }
