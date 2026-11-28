@@ -10,9 +10,10 @@ import (
 )
 
 // RefusedError is a filter that does not lower. Key names the variant:
-// "ObjectFilter.SameObject" (a release variant the adapter does not map;
+// "ObjectFilter.InZone" (a release variant the adapter does not map;
 // "ObjectFilter.Not(InZone)" for a Not mtgish has no negated row for),
-// "Property.ColorCount" (one of its arguments), or "mtgish
+// "Property.ColorCount" (one of its arguments), "ObjectRef.Target" (a
+// SameObject reference with no mtgish reference node), or "mtgish
 // Permanents.IsNamed" (a mapped variant mtgish's row table refuses).
 type RefusedError struct{ Key string }
 
@@ -141,6 +142,8 @@ func (a *adapter) filter(x any) (any, error) {
 		return a.node("IsNamed", map[string]any{"_NameFilter": "NamedCard", "args": args}), nil
 	case "Not":
 		return a.not(args)
+	case "SameObject":
+		return a.same(args, false)
 	case "Property":
 		return a.property(args)
 	case "ControlledBy", "OwnedBy":
@@ -174,8 +177,60 @@ func (a *adapter) not(inner any) (any, error) {
 			return nil, err
 		}
 		return a.node("DoesntHaveAbility", map[string]any{"_CheckHasable": kw}), nil
+	case "SameObject":
+		return a.same(args, true)
 	}
 	return nil, refuse("ObjectFilter.Not(" + kind + ")")
+}
+
+// singleRow is each group's "is that object" row (mtgish's PIs); Not of it
+// is the group's Other row.
+var singleRow = map[string]string{"Permanents": "SinglePermanent", "Spells": "SingleSpell"}
+
+// refNodes maps the release's unit ObjectRef variants, by group, to the
+// mtgish reference node of that group's single-object enum, lowered by
+// mtgish's fe_ref.go rows.
+var refNodes = map[string]map[string][2]string{
+	"Source": {
+		"Permanents":        {"Permanent", "ThisPermanent"},
+		"Spells":            {"Spell", "ThisSpell"},
+		"Cards":             {"Card", "ThisCard"},
+		"CardsInGraveyards": {"CardInGraveyards", "ThisGraveyardCard"},
+	},
+	"EventSubject": {
+		"Permanents":        {"Permanent", "Trigger_ThatPermanent"},
+		"Spells":            {"Spell", "Trigger_ThatSpell"},
+		"CardsInGraveyards": {"CardInGraveyards", "Trigger_ThatGraveyardCard"},
+	},
+	// AttachedTo(Source): the permanent the source is attached to.
+	"AttachedTo(Source)": {"Permanents": {"Permanent", "HostPermanent"}},
+}
+
+// same maps SameObject(ref) to the group's Single* row, or under Not to
+// its Other row. A Target ref needs a declared target slot the adapter
+// cannot declare: it is refused, as is any ref with no mtgish reference node.
+func (a *adapter) same(ref any, negate bool) (any, error) {
+	kind, args, ok := kindArgs(ref)
+	if !ok {
+		return nil, fmt.Errorf("ogram: not an ObjectRef node: %T", ref)
+	}
+	key := kind
+	if of, _, _ := kindArgs(args); kind == "AttachedTo" && of == "Source" {
+		key = "AttachedTo(Source)"
+	}
+	r, ok := refNodes[key][a.g]
+	if !ok {
+		return nil, refuse("ObjectRef." + kind)
+	}
+	arg := map[string]any{"_" + r[0]: r[1]}
+	if negate {
+		return a.node("Other", arg), nil
+	}
+	row, ok := singleRow[a.g]
+	if !ok {
+		return nil, refuse("ObjectFilter.SameObject(" + a.g + ")")
+	}
+	return a.node(row, arg), nil
 }
 
 func keywordName(x any) (string, error) {
