@@ -400,6 +400,8 @@ func (s *State) copyResume(k *prep) {
 			more = s.demonstrateCopy(k, left)
 		} else if in.Ext() == kop.ExtCopyAbility {
 			more = s.copyAbilityN(k, in, int(left))
+		} else if in.Ext() == kop.ExtCopyStackValid {
+			more = s.copyStackValidNext(k, in) // copy_validstack.go
 		} else {
 			more = s.copySpells(k, in, int(left))
 		}
