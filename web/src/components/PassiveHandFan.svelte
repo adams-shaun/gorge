@@ -160,6 +160,11 @@
     z-index: 5;
   }
   .face {
+    /* The wrapper's line box must not add descender space below the face:
+       aspect-ratio fixes the card's shape, so a fallback font's descent made
+       the box taller than its CardImage (and failed the shape assertion on
+       CI's DejaVu Sans). Same rule as CardTile's .face. */
+    line-height: 0;
     filter: brightness(0.94);
     cursor: default;
   }

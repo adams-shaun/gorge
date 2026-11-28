@@ -485,6 +485,10 @@
      to the card width like every other offset here. Measured via
      HandFan.geometry.test.ts. */
   .face {
+    /* As in CardTile and PassiveHandFan: the box's line box must not add
+       descender space below the CardImage, or a fallback font changes the
+       card's measured height from its 63:88 shape. */
+    line-height: 0;
     scroll-margin-bottom: calc(var(--card-w) * -50 / 63);
     filter: brightness(0.92);
     transition: filter 0.12s ease-out;
