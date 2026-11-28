@@ -955,7 +955,8 @@ def sub_run_tops(rx, names):
     return [n for n in names if any(re.search(t, n) for t in tops)]
 
 
-def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None, plain_lanes=ORACLE_PLAIN_LANES, sha=None):
+def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None, plain_lanes=ORACLE_PLAIN_LANES, sha=None,
+                 slow=None):
     """Deal the ./dirac/oracle replay slice into cost-balanced bins of "oraclelane" entries: `plain_lanes`
     for the plain tests and `lanes` for each subtest -run.
 
@@ -981,7 +982,11 @@ def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None, p
     the old table median, ~14 s, made every sub-second test outweigh the real ones). A subtest top weighs
     SLICE_SHARE of its table cost. zero is the names that weigh nothing (the pool-only tests when no deck
     pools are on disk). sha is the merge base (replay_sel's): with it, the cmd5 and refusal shards outside its
-    rotation lane leave the slice unless the entry names them (rotated_out); None keeps them all. When the slice cannot be dealt (no test list) every entry is left as it was, so a
+    rotation lane leave the slice unless the entry names them (rotated_out), and so do the slow list's
+    replay tests (slow; None reads SLOW_REPROS) that the CENSUS arm matches by name alone: the slice
+    population already leaves them to the batch (replay_sel), but a recording replay whose name carries
+    "Census" (TestMBCTail08CensusSearchLockstep, 82.2 s alone at 76.6 idle cores on 11-27) joined every
+    run through CENSUS. None keeps them all. When the slice cannot be dealt (no test list) every entry is left as it was, so a
     broken listing never runs less. Every other package and entry is untouched."""
     picks = [i for i, (kind, pkg, rx) in enumerate(res)
              if pkg == ORACLE and kind == "named" and "/" not in rx and REFUSED in rx]
@@ -996,7 +1001,8 @@ def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None, p
     if sha is not None:
         named = set(rx[2:rx.index(")$")].split("|")) if rx.startswith("^(") and ")$" in rx else set()
         lane = zlib.crc32(sha.encode()) % ROTATION
-        selected = [n for n in selected if n in named or not rotated_out(n, lane)]
+        slow = set(slow_repros()) if slow is None else set(slow)
+        selected = [n for n in selected if n in named or (not rotated_out(n, lane) and n not in slow)]
     if not selected:
         return res
     subs = [i for i, (kind, pkg, srx) in enumerate(res) if pkg == ORACLE and kind == "named" and "/" in srx]

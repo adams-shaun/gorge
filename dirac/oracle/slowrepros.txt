@@ -12,6 +12,10 @@
 # 2026-11-27 (fifth): the 27 sliced replay tests the fifth ci-shard-seconds.txt refresh weighs at >= 10 s, or
 # that took over 10 s at 4 cores in its idle `make test-one` (Kor Haven 100.3 s, Iron Fist 59.8 s, Orzhova
 # typed-artifact tally 59.2 s), joined by the rule above.
+# 2026-11-27 (sixth): two recording replays whose names carry "Census", so the precheck's CENSUS arm picked them
+# on every oracle run whatever the slice (scripts/test_targets.py oracle_lanes now drops this list's names from
+# it too): TestMBCTail08CensusSearchLockstep 82.2 s and TestMBCOrzhovaFeeOnlyCensusNotAProofLockstep 37.3 s,
+# one `make test-one` at 37bb534499 (76.6 idle cores, 4 cores).
 TestMBCAboshanSDesireReprosLockstep
 TestMBCBashToBitsReprosLockstep
 TestMBCBatrocTheLeaperReprosLockstep
@@ -33,6 +37,7 @@ TestMBCKamahlFistOfKrosaReprosLockstep
 TestMBCKorHavenReprosLockstep
 TestMBCLavaStormReprosLockstep
 TestMBCOAkaTravelingMerchantReprosLockstep
+TestMBCOrzhovaFeeOnlyCensusNotAProofLockstep
 TestMBCOrzhovaTypedArtifactTallyReprosLockstep
 TestMBCPathToTheWorldTreeReprosLockstep
 TestMBCPucaSCovenantReprosLockstep
@@ -44,6 +49,7 @@ TestMBCStarfleetAcademyReprosLockstep
 TestMBCSternProctorReprosLockstep
 TestMBCSurtlandFrostpyreReprosLockstep
 TestMBCSvogthosReproReplaysClean
+TestMBCTail08CensusSearchLockstep
 TestMBCTramwayStationReprosLockstep
 TestMBCTrapjawKelpieReprosLockstep
 TestMBCVaultOfTheArchangelOfferReprosLockstep

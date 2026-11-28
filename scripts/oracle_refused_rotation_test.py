@@ -59,3 +59,22 @@ def test_the_parent_is_never_rotated_in():
     assert not tt.rotated_out("TestRefusedEntriesStillDiverge", 1)
     assert tt.rotated_out("TestRefusedEntriesStillDiverge1", 0)
     assert not tt.rotated_out("TestRefusedEntriesStillDiverge5", 1)
+
+
+def test_a_slow_listed_census_named_replay_leaves_the_lanes_unless_named():
+    # TestMBCTail08CensusSearchLockstep replays one recording (82 s alone) and matches CENSUS by name only
+    tail = "TestMBCTail08CensusSearchLockstep"
+    names = NAMES + [tail]
+    weights = dict(WEIGHTS, **{tail: 10.0})
+
+    def got(named, slow):
+        laned = tt.oracle_lanes(slice_entry(named), names=names, weights=weights, zero=set(), sha=sha_in(0),
+                                slow=slow)
+        return [n for k, _, rx in laned if k == "oraclelane" and "/" not in rx for n in rx[2:-2].split("|")]
+
+    assert tail in got((), ())  # precondition: the CENSUS arm selects it
+    assert tail not in got((), {tail})
+    assert tail in got((tail,), {tail})  # a diff that names it plays it
+    assert "TestReproCensusIsCurrent" in got((), {tail})
+    # the real slow list carries it
+    assert tail in tt.slow_repros(str(HERE.parent / tt.SLOW_REPROS))
