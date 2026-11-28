@@ -11,7 +11,7 @@ import (
 
 func init() { Register("Myriad", effMyriad) }
 
-// effMyriad implements CR 702.109's Myriad: when a creature with Myriad
+// effMyriad implements CR 702.116's Myriad: when a creature with Myriad
 // attacks, for each opponent OTHER than the defending player, the controller
 // creates a token that is a copy of the attacking creature, tapped and
 // attacking that opponent. The trigger (engine/cards/keywords.go) fires on the

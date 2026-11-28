@@ -105,7 +105,7 @@ func drawFor(h Host, p state.PlayerID, cursor int, resumeSA *cards.SA, upto draw
 			From: state.ZLibrary, To: state.ZHand, Secret: true})
 		return false
 	}
-	// Dredge (CR 702.55): before a player draws a card, if they have a card
+	// Dredge (CR 702.52): before a player draws a card, if they have a card
 	// with Dredge in the graveyard they may instead mill N cards (N = the
 	// dredge number) and return that card from the graveyard to their hand,
 	// and the draw is replaced. This is a player choice at the point of the
@@ -1893,7 +1893,7 @@ func effScry(h Host, c *Ctx, sa *cards.SA) {
 	effLookAndArrange(h, c, sa, n, "bottom", "Scry", nil, false)
 }
 
-// effSurveil implements the Surveil prompt API (CR 701.42): look at the top
+// effSurveil implements the Surveil prompt API (CR 701.25): look at the top
 // Amount$ cards of Defined$'s library, put any number of them -- the ones
 // the player does NOT pick -- into the GRAVEYARD (surveil has no bottom
 // pile; this code follows

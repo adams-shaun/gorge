@@ -230,7 +230,7 @@ func remove(g *state.Game, id state.ObjID, z state.Zone, p state.PlayerID) {
 	}
 }
 
-// applyPair writes a Soulbond pairing (CR 702.103): both permanents' Paired
+// applyPair writes a Soulbond pairing (CR 702.95): both permanents' Paired
 // fields are set to each other's id when both are on the battlefield. Neither
 // half is written for an object that has left the battlefield (its own Move
 // already reset it).
