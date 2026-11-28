@@ -9338,6 +9338,53 @@
         ],
         "x-gorge-requires": "-pprof"
       }
+    },
+    "/healthz": {
+      "get": {
+        "description": "Always on. 200 with the body `ok` and a newline as soon as the listener serves; reads no state and needs no seat token.",
+        "operationId": "healthz",
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "example": "ok\n",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The text body."
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": [
+          "lobby"
+        ]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "description": "Prometheus text format (version 0.0.4): tables by state (live, cooldown, idle, halted), on-demand tables, stored matches and busy search slots. Counts only. Mounted only with -metrics; without it the path answers the web client.",
+        "operationId": "metrics",
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain; version=0.0.4": {
+                "example": "# HELP gorged_tables Tables by state.\n# TYPE gorged_tables gauge\ngorged_tables{state=\"live\"} 0\n",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The text body."
+          }
+        },
+        "summary": "Prometheus gauges",
+        "tags": [
+          "lobby"
+        ],
+        "x-gorge-requires": "-metrics"
+      }
     }
   },
   "servers": [
