@@ -50,7 +50,6 @@ Boggart Brute
 Boon of Safety
 Borrowed Time
 Botanical Plaza
-Bottle-Cap Blast
 Brambleweft Behemoth
 Brawn
 Brazen Borrower
@@ -255,7 +254,6 @@ Obsidian Obelisk
 Ogre Jailbreaker
 Olivia's Wrath
 Order of Yawgmoth
-Orzhov Locket
 Otherworldly Outburst
 Paladin Danse, Steel Maverick
 Peace of Mind
