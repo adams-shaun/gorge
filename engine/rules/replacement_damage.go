@@ -474,7 +474,7 @@ func (e *Engine) damageSourceLeftThisTurn(src state.ObjID) (left, entered bool) 
 // and false, so the dispatcher keeps its "awaiting replacement-order choice"
 // Note and finishChosenDamage keeps paying those riders.
 func (e *Engine) poseDamageReplacementChoice(ev events.Event, matches []replMatch, p state.PlayerID) (events.Event, bool) {
-	source := damageHost(e, e.inFlightDamageSource())
+	source := damageHost(e.G, e.inFlightDamageSource())
 	combat := e.combatDamaging
 	e.replChoices = append(e.replChoices, replChoice{
 		kind: replChoiceDamage, ev: ev, cands: matches, before: e.retainTriggerBefore(), player: p,
