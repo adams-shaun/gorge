@@ -15,6 +15,9 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	if s.Mode == "FlipCoinMod" {
 		return lc.flipCoinModStatic(s) // lower_turnfacts.go
 	}
+	if _, ok := s.Params["ControlOpponentsSearchingLibrary"]; ok {
+		return lc.searchControlStatic(s) // lower_searchcontrol.go
+	}
 	if s.Mode == "TapPowerValue" {
 		return lc.tapPowerValueStatic(s) // lower_hiddenpick.go
 	}

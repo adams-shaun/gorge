@@ -1,0 +1,9 @@
+family: StaticKind
+name: StatSearchControl
+value: next
+forge: ControlOpponentsSearchingLibrary
+census: stat Continuous ControlOpponentsSearchingLibrary$ You over Affected$ Opponent (Opposition Agent)
+state: code 0
+status: active
+ticket: agent-20261128T003312Z-99e1aa70
+doc: StatSearchControl is a Continuous static's ControlOpponentsSearchingLibrary$ You over Affected$ Opponent ("you control your opponents while they're searching their libraries", CR 723.2; Opposition Agent). The kernel reads it live at a library search's pick ask: an opponent of the static's controller answering the pick asks the controller instead (gorge searchControlRedirect over ResumeKind "search"; dirac/zone_searchcontrol.go).
