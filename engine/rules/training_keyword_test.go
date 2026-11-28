@@ -178,12 +178,11 @@ func TestGrantedTrainingOnATokenUsesElderArthurMaxson(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestTrainingGrantAndPrintedKeywordDoNotStack pins the dedup: a token that
+// TestTrainingGrantAndPrintedKeywordStack pins CR 702.149b: a token that
 // PRINTS Training (the Human Soldier token Torens/Rural Recruit create) and is
-// also granted it by Elder Arthur Maxson fires exactly ONE trigger. Without
-// the printed-keyword skip in checkGrantedTrainingTriggers the token would
-// carry the printed expansion AND the synthesized one and train twice.
-func TestTrainingGrantAndPrintedKeywordDoNotStack(t *testing.T) {
+// also granted it by Elder Arthur Maxson has two instances, so the printed
+// expansion and the synthesized trigger each fire and it trains twice.
+func TestTrainingGrantAndPrintedKeywordStack(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	maxson := mustCorpusCard(t, reg, "Elder Arthur Maxson")
 	wurm := mustCorpusCard(t, reg, "Craw Wurm")
@@ -192,7 +191,7 @@ func TestTrainingGrantAndPrintedKeywordDoNotStack(t *testing.T) {
 		t.Fatal("corpus has no gw_1_1_human_soldier_training token")
 	}
 	if !token.Faces[0].HasKeyword("Training") {
-		t.Fatal("the Human Soldier token must PRINT Training for this dedup test")
+		t.Fatal("the Human Soldier token must PRINT Training for this stacking test")
 	}
 	e, cfg := trainingDeck(t, 205, maxson, wurm)
 	maxsonID := battlefieldID(t, e, "Elder Arthur Maxson")
@@ -210,9 +209,9 @@ func TestTrainingGrantAndPrintedKeywordDoNotStack(t *testing.T) {
 	}
 	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{tokID, wurmID}})
 	e.priorityRound()
-	passUntilStackEmpty(t, e, 20)
-	if got := e.G.Obj(tokID).Counter("P1P1"); got != 1 {
-		t.Fatalf("printed + granted Training stacked: %d counters, want 1", got)
+	mutateDrain(t, e, 20) // orders the two simultaneous triggers
+	if got := e.G.Obj(tokID).Counter("P1P1"); got != 2 {
+		t.Fatalf("printed + granted Training gave %d counters, want 2", got)
 	}
 	replayCheck(t, e, cfg)
 }
