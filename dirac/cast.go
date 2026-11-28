@@ -210,7 +210,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		// an announced Sac<X> the floating pool pays at some count: gorge offers
 		// it from the pool (offerSacXMods) and plans nothing, so nothing is
 		// lowered (cost_sacx.go)
-	} else if !(k.gen != nil && s.contribDeclined(k, p, c, o, ob.zone == kop.ZoneHand, mode&(castMayPlay|castFace|castFaceDown|castWarpRecast|3) == 0)) && mode&(castFace|castFaceDown|castWarpRecast) == 0 && (s.cfg&cfgGorgeLowering != 0 && mode&3 == 0 && mode != castFree && ob.zone == kop.ZoneHand ||
+	} else if !(k.gen != nil && s.contribDeclined(k, p, c, o, ob.zone == kop.ZoneHand, mode&(castMayPlay|castFace|castFaceDown|castWarpRecast|3) == 0)) && mode&(castFace|castFaceDown|castWarpRecast) == 0 && (s.cfg&cfgGorgeLowering != 0 && mode&3 == 0 && mode != castFree && plainLowerOrigin(ob.zone) ||
 		s.cfg&(cfgGorgeLowering|cfgGorgeAutopay) != 0 && (mode&castMayPlay != 0 && mode&castFree == 0 || mode&3 == 2)) &&
 		(typed || fl&sfFbGranted != 0 || !s.plannedUnderRider(p, o, mode&3)) {
 		// the oracle lowers a cast from the hand gorge's cast planner never
@@ -251,6 +251,13 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		s.resolveLowerCounterTriggers(k, n0, k.cards[c].instant || s.castFlash(k, p, c))
 	}
 }
+
+// plainLowerOrigin: a plain cast from zone z is one gorge's potential planner
+// prices when its cast planner declines the cost (rules PotentialPaymentPlans:
+// an ordinary cast from the hand or the command zone, the CR 903.8 taxed cast),
+// so the oracle lowers it by floating the witness at priority (CR 601.2g)
+// before the cast's announcements (a hybrid commander's pip ask, CR 601.2b).
+func plainLowerOrigin(z kop.Zone) bool { return z == kop.ZoneHand || z == kop.ZoneCommand }
 
 // plannedUnderRider is FeatPlannedCast for the cast being built, whose flags hold the
 // rider of a permission it has already spent.
