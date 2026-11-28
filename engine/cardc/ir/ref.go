@@ -25,6 +25,7 @@ const (
 	RefPlayerOrControllerOf
 	RefChoose
 	RefTopOfLibrary
+	RefMemory
 	refKindCount
 )
 
@@ -48,6 +49,7 @@ var refKindNames = [...]string{
 	RefPlayerOrControllerOf: "player-or-controller-of",
 	RefChoose:               "choose",
 	RefTopOfLibrary:         "top-of-library",
+	RefMemory:               "memory",
 }
 
 // String returns the lower-kebab name of k.
@@ -110,6 +112,48 @@ func (k *ReceiptKind) UnmarshalJSON(b []byte) error {
 	return unmarshalEnum(k, b, "ReceiptKind", ParseReceiptKind)
 }
 
+// Memory names a per-source store an earlier step of the same card wrote. It
+// is the unresolved form of a link between abilities: a reader that cannot yet
+// say which step wrote the store names the store.
+type Memory uint8
+
+const (
+	MemNone Memory = iota
+	MemRemembered
+	MemImprinted
+	MemTriggerRemembered
+	MemChosenCard
+	MemChosenType
+	MemChosenColor
+	MemNamedCard
+	MemExiledWithSource
+	memoryCount
+)
+
+var memoryNames = [...]string{
+	MemNone:              "none",
+	MemRemembered:        "remembered",
+	MemImprinted:         "imprinted",
+	MemTriggerRemembered: "trigger-remembered",
+	MemChosenCard:        "chosen-card",
+	MemChosenType:        "chosen-type",
+	MemChosenColor:       "chosen-color",
+	MemNamedCard:         "named-card",
+	MemExiledWithSource:  "exiled-with-source",
+}
+
+// String returns the lower-kebab name of k.
+func (k Memory) String() string { return enumString(memoryNames[:], k, "Memory") }
+
+// ParseMemory is the inverse of String.
+func ParseMemory(s string) (Memory, bool) { return parseEnum[Memory](memoryNames[:], s) }
+
+// MarshalJSON encodes k by name.
+func (k Memory) MarshalJSON() ([]byte, error) { return json.Marshal(k.String()) }
+
+// UnmarshalJSON decodes a name, rejecting unknown ones.
+func (k *Memory) UnmarshalJSON(b []byte) error { return unmarshalEnum(k, b, "Memory", ParseMemory) }
+
 // Ref denotes an object or a player.
 //
 //   - RefTarget uses Slot.
@@ -125,6 +169,7 @@ func (k *ReceiptKind) UnmarshalJSON(b []byte) error {
 //     of kind Receipt.
 //   - RefIterPlayer and RefIterObject are the current element of the enclosing
 //     for-each.
+//   - RefMemory is the contents of the source's store named by Memory.
 type Ref struct {
 	Kind RefKind `json:"kind,omitempty"`
 	// Slot is the target declaration index.
@@ -137,7 +182,9 @@ type Ref struct {
 	UpTo    bool        `json:"upTo,omitempty"`
 	Receipt ReceiptKind `json:"receipt,omitempty"`
 	Union   []*Ref      `json:"union,omitempty"`
-	Src     string      `json:"src,omitempty"`
+	// Memory is the store a RefMemory reads.
+	Memory Memory `json:"memory,omitempty"`
+	Src    string `json:"src,omitempty"`
 }
 
 // Target is one target declaration. The enclosing Program's Targets index is the

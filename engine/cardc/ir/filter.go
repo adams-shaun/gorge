@@ -107,43 +107,79 @@ const (
 	PName
 	PKicked
 	PSurged
+	PEmblem
+	PMonocolored
+	PBlocked
+	PUnblocked
+	PBlockedBy
+	PFaceDown
+	PEquipped
+	PEnchanted
+	PModified
+	PHasAnyCounter
+	PIsCommander
+	PTopOfLibrary
+	PWasCast
+	PEnteredThisTurn
+	PDealtDamageThisTurn
+	PSuspended
+	PHasXInCost
+	PSharesName
 	predCount
 )
 
 var predNames = [...]string{
-	PNone:             "none",
-	PAny:              "any",
-	PCardType:         "card-type",
-	PSubtype:          "subtype",
-	PSupertype:        "supertype",
-	PColor:            "color",
-	PColorless:        "colorless",
-	PMulticolored:     "multicolored",
-	PPermanentCard:    "permanent-card",
-	PManaValue:        "mana-value",
-	PPower:            "power",
-	PToughness:        "toughness",
-	PControlledBy:     "controlled-by",
-	POwnedBy:          "owned-by",
-	PIs:               "is",
-	PToken:            "token",
-	PTapped:           "tapped",
-	PAttacking:        "attacking",
-	PBlocking:         "blocking",
-	PHasKeyword:       "has-keyword",
-	PCounters:         "counters",
-	POpponentOf:       "opponent-of",
-	PPlayerIs:         "player-is",
-	PAttackedThisTurn: "attacked-this-turn",
-	PControls:         "controls",
-	PLifeTotal:        "life-total",
-	PLostLifeThisTurn: "lost-life-this-turn",
-	PCardsInGraveyard: "cards-in-graveyard",
-	PCardsInHand:      "cards-in-hand",
-	PControlsMoreThan: "controls-more-than",
-	PName:             "name",
-	PKicked:           "kicked",
-	PSurged:           "surged",
+	PNone:                "none",
+	PAny:                 "any",
+	PCardType:            "card-type",
+	PSubtype:             "subtype",
+	PSupertype:           "supertype",
+	PColor:               "color",
+	PColorless:           "colorless",
+	PMulticolored:        "multicolored",
+	PPermanentCard:       "permanent-card",
+	PManaValue:           "mana-value",
+	PPower:               "power",
+	PToughness:           "toughness",
+	PControlledBy:        "controlled-by",
+	POwnedBy:             "owned-by",
+	PIs:                  "is",
+	PToken:               "token",
+	PTapped:              "tapped",
+	PAttacking:           "attacking",
+	PBlocking:            "blocking",
+	PHasKeyword:          "has-keyword",
+	PCounters:            "counters",
+	POpponentOf:          "opponent-of",
+	PPlayerIs:            "player-is",
+	PAttackedThisTurn:    "attacked-this-turn",
+	PControls:            "controls",
+	PLifeTotal:           "life-total",
+	PLostLifeThisTurn:    "lost-life-this-turn",
+	PCardsInGraveyard:    "cards-in-graveyard",
+	PCardsInHand:         "cards-in-hand",
+	PControlsMoreThan:    "controls-more-than",
+	PName:                "name",
+	PKicked:              "kicked",
+	PSurged:              "surged",
+	PEmblem:              "emblem",
+	PMonocolored:         "monocolored",
+	PBlocked:             "blocked",
+	PUnblocked:           "unblocked",
+	PBlockedBy:           "blocked-by",
+	PFaceDown:            "face-down",
+	PEquipped:            "equipped",
+	PEnchanted:           "enchanted",
+	PModified:            "modified",
+	PHasAnyCounter:       "has-any-counter",
+	PIsCommander:         "is-commander",
+	PTopOfLibrary:        "top-of-library",
+	PWasCast:             "was-cast",
+	PEnteredThisTurn:     "entered-this-turn",
+	PDealtDamageThisTurn: "was-dealt-damage-this-turn",
+	PSuspended:           "suspended",
+	PHasXInCost:          "has-x-in-cost",
+	PSharesName:          "shares-name-with",
 }
 
 // String returns the lower-kebab name of k.
@@ -166,6 +202,10 @@ func (k *Pred) UnmarshalJSON(b []byte) error { return unmarshalEnum(k, b, "Pred"
 //     predicates.
 //   - PControls takes Args[0] as the object filter.
 //   - PControlsMoreThan takes Ref (the other player) and Args[0].
+//   - PSubtype, PColor and PName take either Word/Colors or a RefMemory Ref.
+//   - PWasCast and PEnteredThisTurn read Zones as the origin (0 = any).
+//   - ValidateFilter checks each predicate's operands against predOperands
+//     and each Word against its closed list (words.go).
 type Filter struct {
 	Subject Subject   `json:"subject,omitempty"`
 	Zones   ZoneSet   `json:"zones,omitempty"`
