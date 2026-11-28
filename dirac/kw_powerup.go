@@ -313,8 +313,8 @@ func (g *grantSrch) leafPays(t *State, cost *kop.ManaCost, cheap bool) bool {
 // cast it would complete is the search's gap step to float, not a priced leaf
 // (mana_grantdynsac.go).
 //
-// affordsUngrantedCast alone is no priced leaf: its other-sacrifice census is an
-// upper bound (addOtherSacCensusAvail: "the planner names the victims"), so two
+// A census alone is no priced leaf: its other-sacrifice units are an upper
+// bound (addOtherSacCensusAvail: "the planner names the victims"), so two
 // sacrifice sources sharing one victim read as two units. A cast it "pays" that
 // no exact plan prices is the search's gap steps to float, not a zero-step leaf:
 // stopping at the root there leaves the sacrifice-and-grant prefix unfloated
@@ -325,7 +325,7 @@ func (g *grantSrch) leafPays(t *State, cost *kop.ManaCost, cheap bool) bool {
 // pays, it costs no more than affordsUngrantedCast alone.
 func (g *grantSrch) ungrantedPays(t *State, cost *kop.ManaCost) bool {
 	if g.d.hasPlay && isCastKind(g.d.play.Kind()) && g.d.play.Kind() != AkActivate && g.k.t != nil && !t.fixedTapsCast(g.k, g.d.play) {
-		return t.affordsUngrantedCast(g.k, g.p, cost, g.d) && t.affordsUngrantedPlay(g.k, g.p, g.d.play, cost, g.ex, g.d)
+		return t.affordsUngrantedCast(g.k, g.p, Obj(g.d.play.Source()), cost, g.d) && t.affordsUngrantedPlay(g.k, g.p, g.d.play, cost, g.ex, g.d)
 	}
 	return t.affordsUngrantedPlay(g.k, g.p, g.d.play, cost, g.ex, g.d)
 }

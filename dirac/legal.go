@@ -27,9 +27,14 @@ func (s *State) castGateAffordable(k *prep, p uint8, c CardID, o Obj, cost *kop.
 	if k.gen != nil && k.gen.uses.has(useSacOtherPlan) && s.g.availX&(availGaps|availAny) == 0 {
 		// a cast's plan prices the planned other-sacrifice source (mana_othersac.go);
 		// the census copy keeps it out of the activated-ability offers
+		// The census units are an upper bound (a victim per step is the planner's
+		// to name, planSacGate): a cast only they pay is offered when its plan
+		// exists.
 		var withSac = *cav
 		s.addOtherSacCensusAvail(k, p, &withSac)
-		cav = &withSac
+		if cost == nil || cav.affords(cost, pipMaskOf(cost), 0) || !withSac.affords(cost, pipMaskOf(cost), 0) || s.otherSacCastPlans(k, p, o, cost) {
+			cav = &withSac
+		}
 	}
 	if s.phyCastGateAffords(k, p, cav, cost) {
 		return true
@@ -1457,7 +1462,7 @@ func (s *State) twobridLowers(k *prep, p uint8, c CardID, o Obj, anyColor bool) 
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
 	cost = s.mayRiderCost(cost, anyColor)
 	d := payDesc{class: pdSpell, card: c, og: s.restrOriginOfObj(o)}
-	if s.affordsUngrantedCast(k, p, &cost, d) {
+	if s.affordsUngrantedCast(k, p, o, &cost, d) {
 		return true, s.twobridSpentReader(k, p, o) // the planner prices it; FeatPlannedCast offers it
 	}
 	return true, k.gen != nil && (len(k.gen.grantPC) != 0 || s.scriptSourceLive(k, p) || k.gen.anyFilt && s.filtOnly(k, p)) && s.affordsFor(k, p, &cost)
