@@ -201,7 +201,7 @@ func (s *State) Step() Decision {
 // counted in Skipped instead of being returned.
 func (s *State) StepInto(d *Decision) {
 	for {
-		s.stepRaw(d)
+		s.stepRaw(d, false)
 		if s.over || s.g.stalled != 0 {
 			// a capacity stall while the options were built: nothing to answer.
 			// A generated table latches the stall (capFull) rather than ending
@@ -233,7 +233,7 @@ func (s *State) StepInto(d *Decision) {
 // the forced targets between two posed decisions -- reads the elided ones
 // without changing anything. StepInto itself (the hot loop's) is unchanged.
 func (s *State) StepOne(d *Decision) {
-	s.stepRaw(d)
+	s.stepRaw(d, false)
 	if s.over || s.g.stalled != 0 {
 		s.stallLatched()
 		d.Kind, d.N = DkNone, 0
@@ -258,7 +258,10 @@ func (s *State) Elide(d *Decision) {
 	s.Apply(d.Options[0])
 }
 
-func (s *State) stepRaw(d *Decision) {
+// stepRaw runs the game forward to its next decision, as built: no elision,
+// no canonical order. kindOnly poses a priority with the pass alone
+// (posePriority); every other decision is posed whole.
+func (s *State) stepRaw(d *Decision, kindOnly bool) {
 	k := s.k()
 	s.filtMemoReset()
 	for {
@@ -323,11 +326,7 @@ func (s *State) stepRaw(d *Decision) {
 				s.prio = s.nextAlive(s.prio) // gorge grantPriority: a departed holder's turn passes on
 			}
 			d.Kind, d.Player = DkPriority, s.prio
-			s.pcMemoOpen(k)     // the per-decision manaPCGen memo (mana_pcmemo.go)
-			s.sfmOpen(k)        // scriptFilt's (mana_sfmemo.go)
-			s.priorityArm(k, d) // cast_quietseat.go: the walk, or pass for a seat the quiet proof shows can only pass
-			s.pcMemoClose()
-			s.sfmClose()
+			s.posePriority(k, d, kindOnly)
 			return
 		case ctlPlaceTriggers:
 			if s.placeTriggers(k, d) {
@@ -409,6 +408,22 @@ func (s *State) stepRaw(d *Decision) {
 			panic("kernel: bad control state")
 		}
 	}
+}
+
+// posePriority adds the options of the priority d. kindOnly adds the pass
+// alone, without generating the holder's other options: a search that settles
+// a forked line reads only that a priority was reached (tapXNextKind), and
+// building every offer there re-ran each activation's pay search per node.
+func (s *State) posePriority(k *prep, d *Decision, kindOnly bool) {
+	if kindOnly {
+		d.add(MakeAction(AkPass, 0, 0, 0))
+		return
+	}
+	s.pcMemoOpen(k)     // the per-decision manaPCGen memo (mana_pcmemo.go)
+	s.sfmOpen(k)        // scriptFilt's (mana_sfmemo.go)
+	s.priorityArm(k, d) // cast_quietseat.go: the walk, or pass for a seat the quiet proof shows can only pass
+	s.pcMemoClose()
+	s.sfmClose()
 }
 
 // Apply answers the last Decision with a, which must be one of its Options.

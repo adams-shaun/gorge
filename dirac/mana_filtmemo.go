@@ -111,6 +111,9 @@ func (s *State) filtMemoReset() {
 		p.fmemo.n, p.fmemo.next = 0, 0
 		p.pcm.owner, p.pcm.live = 0, 0
 		p.sfm.owner = 0
+		if p.depth == 0 {
+			p.offm.reset() // a fork's step keeps the offer verdicts (mana_offersmemo.go)
+		}
 	}
 }
 
