@@ -1,11 +1,13 @@
 package oracle
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // Sephiroth, Fabled SOLDIER // Sephiroth, One-Winged Angel (the
@@ -37,6 +39,9 @@ type sephirothCase struct {
 	// reached reports, at a game's end, whether the shape was exercised;
 	// asked is set by the policy when gorge posed the probe's trigger cost.
 	reached func(g *GorgeSide, asked bool) bool
+	// departed: seat 1 bolts the carrier in response to its abilities, and
+	// asked counts only a cost paid after the source left the battlefield.
+	departed bool
 }
 
 // sacDrawProbeScript is the One-Winged Angel's attack trigger shape (a
@@ -64,6 +69,23 @@ const novaProbeScript = "Name:Nova Probe\nManaCost:B\nTypes:Creature Human\nPT:1
 	"SVar:ProbeNovaGain:DB$ GainLife | LifeAmount$ 1 | Defined$ You\n" +
 	"Oracle:Probe nova: an emblem as it flips.\n"
 
+// departedProbeScript transforms as it enters into a back face carrying the
+// Sac<X> attack trigger, while the front face defines an unrelated SVar:X: once
+// the source has left, only the ability's own SVar:X says the payer announces X
+// (CR 113.7a).
+const departedProbeScript = "Name:Departed Probe\nManaCost:B\nTypes:Creature Human\nPT:2/2\n" +
+	"T:Mode$ ChangesZone | Destination$ Battlefield | Origin$ Any | ValidCard$ Card.Self | Execute$ DepartedFlip | TriggerDescription$ Probe: flips as it enters.\n" +
+	"SVar:DepartedFlip:DB$ SetState | Mode$ Transform | Defined$ Self\n" +
+	"SVar:X:Count$ResolvedThisTurn\n" +
+	"AlternateMode:DoubleFaced\n" +
+	"Oracle:Probe: flips as it enters.\n" +
+	"\nALTERNATE\n\n" +
+	"Name:Departed Probe Angel\nManaCost:no cost\nColors:black\nTypes:Creature Angel\nPT:2/2\n" +
+	"T:Mode$ Attacks | ValidCard$ Card.Self | TriggerZones$ Battlefield | Execute$ DepartedSacDraw | TriggerDescription$ Probe: as it attacks, sacrifice X others to draw X.\n" +
+	"SVar:DepartedSacDraw:AB$ Draw | NumCards$ X | Cost$ Sac<X/Creature.Other/another creature>\n" +
+	"SVar:X:Count$xPaid\n" +
+	"Oracle:Probe: as it attacks, sacrifice X others to draw X.\n"
+
 const sephirothName = "Sephiroth, Fabled SOLDIER"
 
 func sephirothRealCase(tag string) sephirothCase {
@@ -89,6 +111,15 @@ func TestHostedCmdrSephirothSacrificeDrawLockstep(t *testing.T) {
 			reached:  func(_ *GorgeSide, asked bool) bool { return asked },
 		},
 		sephirothRealCase("sac"),
+		{
+			name:     "sac_draw_departed_source",
+			seats:    [2]string{"seph-dep-a", "seph-dep-b"},
+			decks:    [2][]string{append(deckOf(16, "Departed Probe"), deckOf(24, "Swamp")...), append(deckOf(16, "Lightning Bolt"), deckOf(24, "Mountain")...)},
+			fixtures: map[string]string{"Departed Probe": departedProbeScript},
+			carrier:  "Departed Probe",
+			departed: true,
+			reached:  func(_ *GorgeSide, asked bool) bool { return asked },
+		},
 	})
 }
 
@@ -139,7 +170,8 @@ func novaEmblemDrained(g *GorgeSide) bool {
 // sephirothPolicy is hostedCmdrKwCostsPolicy (cast the carrier, target
 // opponents' things, seat 0 attacks with everything, seat 1 never attacks),
 // announcing the largest X for the carrier's own trigger cost and paying it,
-// recording when a positive X was paid.
+// recording when a positive X was paid (for a departed case, only one paid
+// after the source left the battlefield).
 func sephirothPolicy(m *Matchup, c sephirothCase, seed uint64, asked *bool) Policy {
 	inner := hostedCmdrKwCostsPolicy(m, hostedCmdrCase{carrier: c.carrier}, seed)
 	announced := 0
@@ -151,11 +183,14 @@ func sephirothPolicy(m *Matchup, c sephirothCase, seed uint64, asked *bool) Poli
 				if !ok || (o.Kind != "trigger_cost_x" && o.Kind != "trigger_cost_pay") {
 					continue
 				}
-				if ob := p.G.E.G.Obj(o.Obj); ob == nil || ob.Face() == nil || ob.Face().Name != c.carrier {
+				ob := p.G.E.G.Obj(o.Obj)
+				if ob == nil || ob.Face() == nil || !strings.HasPrefix(ob.Face().Name, c.carrier) {
 					continue
 				}
 				if o.Kind == "trigger_cost_pay" && announced > 0 {
-					*asked = true
+					if !c.departed || ob.Zone != state.ZBattlefield {
+						*asked = true
+					}
 					return a
 				}
 				if o.Kind == "trigger_cost_x" && o.Amount > bestX {
@@ -167,8 +202,48 @@ func sephirothPolicy(m *Matchup, c sephirothCase, seed uint64, asked *bool) Poli
 				return p.D.Options[best]
 			}
 		}
+		if c.departed && p.G != nil && p.D.Player == 1 {
+			if a, ok := boltInResponse(p, c.carrier); ok {
+				return a
+			}
+		}
 		return inner.Pick(p)
 	})
+}
+
+// boltInResponse is seat 1 of a departed-source case: play a land, cast only
+// while the top of the stack is an ability, aim at the carrier, else pass.
+func boltInResponse(p *PickCtx, carrier string) (Canon, bool) {
+	g := p.G.E.G
+	switch p.D.Kind {
+	case DTarget:
+		for _, a := range p.D.Options {
+			o, ok := p.G.GorgeOption(a)
+			if !ok || a.Kind() != ActTarget {
+				continue
+			}
+			if ob := g.Obj(o.Obj); ob != nil && ob.Face() != nil && strings.HasPrefix(ob.Face().Name, carrier) {
+				return a, true
+			}
+		}
+	case DPriority:
+		onAbility := false
+		if n := len(g.Stack); n > 0 {
+			top := g.Obj(g.Stack[n-1])
+			onAbility = top != nil && top.Card == nil
+		}
+		for _, kind := range []CanonKind{ActPlayLand, ActCast, ActPass} {
+			if kind == ActCast && !onAbility {
+				continue
+			}
+			for _, a := range p.D.Options {
+				if a.Kind() == kind {
+					return a, true
+				}
+			}
+		}
+	}
+	return Canon(0), false
 }
 
 func runSephirothCases(t *testing.T, cases []sephirothCase) {
@@ -176,7 +251,7 @@ func runSephirothCases(t *testing.T, cases []sephirothCase) {
 		t.Run(c.name, func(t *testing.T) {
 			dir := corpusDirOrSkip(t)
 			if len(c.fixtures) > 0 {
-				dir = filters11Corpus(t, c.fixtures, "Swamp", "Forest", "Grizzly Bears")
+				dir = filters11Corpus(t, c.fixtures, "Swamp", "Forest", "Grizzly Bears", "Mountain", "Lightning Bolt")
 			}
 			reg, err := cards.SharedCorpus(dir)
 			if err != nil {
