@@ -103,6 +103,10 @@ func (s *State) grantedCached(k *prep, sl Slot, f func(c CardID, ab uint8, n int
 		}
 		g.gTouch, g.gStat = s.touchN, s.statM
 	}
+	if m.exM.has(sl) {
+		s.grantedAbilitiesWalk(k, sl, nil, f) // its own statics read more than objects
+		return
+	}
 	obj := s.perms[sl].obj
 	outer := s.g.grantSrc
 	if e := &g.ent[sl]; e.ep == g.ep && e.obj == obj && e.outer == outer && (!s.ChangedSince(obj, e.t0) || debugTyCacheNoInval) {
@@ -173,7 +177,7 @@ func (s *State) grantedShadow(k *prep, sl Slot, want []grItem) {
 // grObjTable reports whether every static of table t that grants an
 // ability reads only objects' own fields (tyObjFilter, tyObjCond), and
 // whether one counts the board.
-func grObjTable(t *kop.Table) (obj, board bool) {
+func grObjTable(t *kop.Table, ex []bool) (obj, board bool, exOut []bool) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
@@ -185,12 +189,19 @@ func grObjTable(t *kop.Table) (obj, board bool) {
 				continue
 			}
 			if sa.Cond != 0 || sa.OvGate != 0 || !tyObjCond(t, sa.Cond2, 0) || !tyObjFilter(t, sa.Filter) {
-				return false, false
+				if !tySelfOnly(t, i, sa) {
+					return false, false, ex
+				}
+				if ex == nil {
+					ex = make([]bool, len(t.Cards))
+				}
+				ex[i] = true
+				continue
 			}
 			if sa.Cond2 != 0 {
 				board = true
 			}
 		}
 	}
-	return true, board
+	return true, board, ex
 }
