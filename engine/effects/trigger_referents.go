@@ -619,6 +619,20 @@ func controlReferent(p string) (op, ref string, ok bool) {
 	switch controlReferentCodes.Code(string(ref)) {
 	case controlReferentTriggeredTarget:
 		return op, ref, true
+	case controlReferentOpponentNonActive:
+		// Forge's CardProperty `OwnedBy` takes a whole PlayerProperty, so
+		// the bare Opponent base beside the NonActive qualifier is the
+		// shared player-spec grammar reached without the Player. prefix
+		// (both words read by player_filter.go); resolved by
+		// controlReferentPlayers exactly like a Player.<qualifier> ref. The
+		// carrier is Tataru Taru's Scions' Secretary
+		// (.cards/cardsfolder/t/tataru_taru.txt, `T:Mode$ Drawn | ValidCard$
+		// Card.OwnedBy Opponent.!Active`, the !Active spelling folded by
+		// engine/cards/parse.go's canonicalNonActive): Forge matches a Drawn
+		// trigger's ValidCard$ against the drawn card and `OwnedBy` against
+		// that card's owner, the drawing player (CR 108.4a), so the scope is
+		// "an opponent of the controller who is not the active player".
+		return op, ref, true
 	}
 	if enchantedControllerPropertyRef(ref) {
 		return op, ref, true
@@ -987,6 +1001,15 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 		// seat read straight off the game and the reading source
 		// (control_referent_global.go); an empty result is unbound.
 		targets = globalControlReferent(g, sc, ref)
+	case controlReferentPlayersOpponentNonActive:
+		// Opponent.NonActive: the bare Opponent base plus the NonActive
+		// qualifier, Forge's PlayerProperty grammar without the Player.
+		// prefix (its CardProperty `OwnedBy` accepts a whole PlayerProperty),
+		// resolved by the same evaluator arm as Player.<qualifier> below.
+		// The spelling the scripts carry is Opponent.!Active (Tataru Taru's
+		// ValidCard$, folded by engine/cards/parse.go's canonicalNonActive),
+		// and the drawn card's owner is the drawing player (CR 108.4a).
+		targets = playerSpecControlTargets(g, sc, ref)
 	default:
 		// Every other Player.<qualifier> is the shared player-spec grammar
 		// applied to the owner/controller. Resolve it exactly like the
@@ -997,17 +1020,7 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 		if !strings.HasPrefix(ref, "Player.") || !controlReferentPlayerSpecKnown(ref) {
 			return nil, false
 		}
-		pc := PlayerSpecCtx{
-			Source:          sc.Source,
-			Remembered:      sc.Remembered,
-			RememberedBound: len(sc.Remembered) > 0,
-			Layers:          sc.Layers,
-		}
-		for p := range g.Players {
-			if MatchesPlayerSpecCtx(g, ref, state.PlayerID(p), sc.You, pc) {
-				targets = append(targets, state.Target{IsPlayer: true, Player: state.PlayerID(p)})
-			}
-		}
+		targets = playerSpecControlTargets(g, sc, ref)
 	}
 
 	players := make([]state.PlayerID, 0, len(targets))
@@ -1053,6 +1066,27 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 		return nil, false
 	}
 	return players, true
+}
+
+// playerSpecControlTargets resolves a shared-grammar player-spec control
+// referent (the Player.<qualifier> default arm and Opponent.NonActive):
+// every seat MatchesPlayerSpecCtx admits is a candidate owner/controller,
+// with the source and the resolution memory the qualifiers read bound; an
+// empty result is unbound, never a guess.
+func playerSpecControlTargets(g *state.Game, sc SpecContext, ref string) []state.Target {
+	pc := PlayerSpecCtx{
+		Source:          sc.Source,
+		Remembered:      sc.Remembered,
+		RememberedBound: len(sc.Remembered) > 0,
+		Layers:          sc.Layers,
+	}
+	var targets []state.Target
+	for p := range g.Players {
+		if MatchesPlayerSpecCtx(g, ref, state.PlayerID(p), sc.You, pc) {
+			targets = append(targets, state.Target{IsPlayer: true, Player: state.PlayerID(p)})
+		}
+	}
+	return targets
 }
 
 // matchControlReferent returns unresolved as ok=false, including beneath '!':
@@ -1154,6 +1188,13 @@ type controlReferentCode uint16
 
 const (
 	controlReferentTriggeredTarget controlReferentCode = iota + 1
+	// controlReferentOpponentNonActive: the bare-base player-property
+	// spelling Opponent.NonActive (Forge writes Opponent.!Active, folded
+	// by the cards parse) -- the Opponent base plus the NonActive
+	// qualifier, the grammar of MatchesPlayerSpec reached without the
+	// Player. prefix (Tataru Taru's Card.OwnedBy Opponent.NonActive on a
+	// drawn card, whose owner is the drawing player, CR 108.4a).
+	controlReferentOpponentNonActive
 )
 
 var controlReferentCodes = state.NewStrCodes(
@@ -1184,6 +1225,7 @@ var controlReferentCodes = state.NewStrCodes(
 	state.StrEntry[controlReferentCode]{Key: "TriggeredSourceSAController", Val: controlReferentTriggeredTarget},
 	state.StrEntry[controlReferentCode]{Key: "NextOpponentToYourLeft", Val: controlReferentTriggeredTarget},
 	state.StrEntry[controlReferentCode]{Key: "NextPlayerToYourLeft", Val: controlReferentTriggeredTarget},
+	state.StrEntry[controlReferentCode]{Key: "Opponent.NonActive", Val: controlReferentOpponentNonActive},
 )
 
 type controlReferentPlayersCode uint16
@@ -1208,6 +1250,7 @@ const (
 	controlReferentPlayersParent
 	controlReferentPlayersEnchantedControllerMonarch
 	controlReferentPlayersEnchantedControllerNotMonarch
+	controlReferentPlayersOpponentNonActive
 )
 
 var controlReferentPlayersCodes = state.NewStrCodes(
@@ -1242,4 +1285,5 @@ var controlReferentPlayersCodes = state.NewStrCodes(
 	state.StrEntry[controlReferentPlayersCode]{Key: "Player.EnchantedBy", Val: controlReferentPlayersPlayerEnchantedBy},
 	state.StrEntry[controlReferentPlayersCode]{Key: "Player.Active", Val: controlReferentPlayersPlayerActive},
 	state.StrEntry[controlReferentPlayersCode]{Key: "ActivePlayer", Val: controlReferentPlayersPlayerActive},
+	state.StrEntry[controlReferentPlayersCode]{Key: "Opponent.NonActive", Val: controlReferentPlayersOpponentNonActive},
 )

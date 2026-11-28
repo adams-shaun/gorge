@@ -148,6 +148,7 @@ var Families = []*Family{
 	flags("TrigFlags3", "Tf3", 8, ""),
 	flags("TrigFlags4", "Tf4", 8, ""),
 	flags("TrigFlags5", "Tf5", 8, ""),
+	flags("TrigFlags6", "Tf6", 8, ""),
 	flags("TypeMask", "T", 16, "mask"),
 	enum8("VKind", "V", "enum"),
 	seeded(enum8("Zone", "Zone", "enum")),

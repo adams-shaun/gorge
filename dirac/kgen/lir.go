@@ -1094,6 +1094,11 @@ type lTrigger struct {
 	// own draw step (gorge trigmatch.firstCardInDrawStep, CR 504.1).
 	FirstInDrawStep    bool // FirstCardInDrawStep$ True (kop.Tf5FirstCardInDrawStep)
 	NotFirstInDrawStep bool // FirstCardInDrawStep$ False (kop.Tf5NotFirstCardInDrawStep)
+	// Drawn ValidCard$ Card.OwnedBy Opponent.NonActive (Tataru Taru): the
+	// drawer, who owns the drawn card (CR 108.4a), is not the active player
+	// (gorge playerSpecQualifierNonActive on the owner seat;
+	// kop.Tf6DrawerNotActive, beside WhoseOpp).
+	DrawerNotActive bool
 
 	// Taps lowered from a non-Static$ Mode$ TapsForMana (lower_tapsformana.go):
 	// only a tap paying a mana ability's cost (kop.Tf5TapsForMana), by a
