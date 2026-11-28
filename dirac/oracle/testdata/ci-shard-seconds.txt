@@ -30,6 +30,8 @@
 # load far more than a one-core replay's; its direct single run (5-11 s) had put it at 5-11 and the deal
 # stacked 2-3 shards in one lane (40-115 s each there). The Orzhova census is one 820-decision game, 19 s alone
 # at 28 idle cores; it is a parallel test, so it starts after its lane's serial tests.
+# 2026-11-27 (fourth): the four tests this file did not list that weighed >= 1 s in the targeted run at a5eaeff9db
+# (12 lanes, 1.4 idle cores): their lane Elapsed divided by that run's scale, 10.97, as above.
 TestAbilityCopyAsksEachChainLink 1.1
 TestAbilityReductionExcessPaysXLockstep 1.1
 TestAbilitycastLockstep 15.2
@@ -701,6 +703,7 @@ TestMBCCounters2Lowers 2.8
 TestMBCCruelUltimatumReprosLockstep 5.1
 TestMBCCyclopsSuperconductorReprosLockstep 5.8
 TestMBCDamageRedirectLowers 8.6
+TestMBCDefiantSalvagerReprosLockstep 1.3
 TestMBCDiregrafRebirthReprosLockstep 9.9
 TestMBCDrMbcBaaaReprosLockstep 2.1
 TestMBCEffectApi1DoublingMutation 5.0
@@ -751,6 +754,7 @@ TestMBCRayOfRevelationReprosLockstep 1.6
 TestMBCReclaimingVinesReprosLockstep 3.2
 TestMBCRepeatEach1Lowers 1.9
 TestMBCReplacements2Lowers 5.3
+TestMBCRepudiateReprosLockstep 1.1
 TestMBCRudeAwakeningEntwineReprosLockstep 16.4
 TestMBCScorchRiderReprosLockstep 13.8
 TestMBCScryingSheetsReprosLockstep 13.6
@@ -772,6 +776,7 @@ TestMBCStatics5Lowers 2.0
 TestMBCSunscapeMasterReprosLockstep 8.1
 TestMBCSvogthosReproReplaysClean 22.7
 TestMBCSvogthosTheRestlessTombReprosLockstep 2.0
+TestMBCTail08CensusSearchLockstep 13.0
 TestMBCTail11ReprosLockstep 2.0
 TestMBCTimelyInterferenceReprosLockstep 5.9
 TestMBCTokens1Lowers 12.7
@@ -853,6 +858,7 @@ TestMercurialPretenderCoveredLockstep 4.3
 TestMercurialPretenderLockstep 4.2
 TestMetalcraftConditionLockstep 40.3
 TestMimicLockstep 11.4
+TestMindbreakTrapReprosLockstep 1.9
 TestMirrexLockstep 41.1
 TestMirrormindCrownLockstep 27.9
 TestMixGapsCombinedSourceLockstep 187.0
