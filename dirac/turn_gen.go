@@ -1646,8 +1646,8 @@ func (s *State) applyGen(k *prep, a Action) {
 			s.g.pre.val = objWord(a.Mode())
 			if s.g.pre.kind == akClone {
 				s.g.pre.val = cloneAnswer(a)
-				if !s.g.pre.land && s.cloneTemplateAsk(k) {
-					return // the template's choice is asked next
+				if s.cloneTemplateAsk(k) {
+					return // the template's choice is asked next, a played land's too (Vesuva)
 				}
 			}
 			if s.g.pre.kind == akType {

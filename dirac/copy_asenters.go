@@ -88,11 +88,13 @@ func (s *State) cloneOptions(k *prep, d *Decision) {
 		}
 	}
 	s.res.active = true
-	if s.res.ask == raGenTokChoice || s.res.ask == raGenRetChoice {
+	if s.g.pre.land || s.res.ask == raGenTokChoice || s.res.ask == raGenRetChoice {
 		s.res.e.trigAmt, s.res.e.x, s.res.e.spc, s.res.e.etbSrc, s.res.e.etbX, s.res.e.ov = 0, 0, 0, 0, [2]uint8{}, 0 // a minted token or a returned card was never cast: no mana spent, no colours (gorge reads 0)
 	}
 	ctrl := s.res.e.ctrl
-	if s.res.ask == raGenRetChoice || s.res.ask == raGenTokChoice {
+	if s.g.pre.land {
+		ctrl = s.preLandSeat() // a played land (Vesuva): its player, no spell on the stack
+	} else if s.res.ask == raGenRetChoice || s.res.ask == raGenTokChoice {
 		ctrl = s.res.askP // a returned card's or a copy token's controller, not the resolving spell's
 	}
 	if in.B.K == kop.VConst && in.B.N&kop.BecomeCopyGrave != 0 {
@@ -268,6 +270,27 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 			}
 		}
 	}
+	if in.B.K == kop.VConst && in.B.N&kop.BecomeCopyTapped != 0 {
+		// IntoPlayTapped$ True (Vesuva): the Clone body's own tap (gorge
+		// effClone), not a move's Tapped$, so a template's election queued
+		// above (a shock land's pay-life) does not hold it back
+		p.flags |= pfTapped
+	}
+}
+
+// cloneElectionDefers reports whether the land play of o elected a copy of a
+// land whose enters program opens with an as-enters election (a shock land's
+// pay-life, a reveal land's; gfShockEntry): the copy's queued election
+// completes the play, so its count waits, as for the template played itself.
+//
+//go:noinline
+func (s *State) cloneElectionDefers(k *prep, o Obj) bool {
+	p := &s.g.pre
+	if p.state != 2 || p.kind != akClone || p.obj != o || Obj(p.val) == NoObj {
+		return false
+	}
+	c, _, ok := s.cloneTmplCard(Obj(p.val))
+	return ok && k.gen.has(c, gfShockEntry)
 }
 
 // embalmMint reports whether copy token t, minted by in, is the embalm token
