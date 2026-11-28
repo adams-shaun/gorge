@@ -87,6 +87,7 @@ rules/payment_plan.go:Engine.paymentPlanManaInterference#0	n/a	skips	any-match b
 rules/payment_plan_interference.go:Engine.paymentPlanTapObservers#0	n/a	skips	any-match on granted tap trigger; returns ce.Source, independent of which seat matched
 rules/payment_plan_interference.go:Engine.paymentPlanSunburstGrantOut#0	n/a	skips	any-match: some battlefield face grants sunburst
 rules/payment_plan_search.go:targetedCastSpendReaderOut#0	n/a	skips	any-match: some object in any zone reads targeted cast spend
+rules/potential_cast_supply.go:triggeredTapManaPossible#0	n/a	includes-ok	any-match boolean over every player's battlefield and command zone: order-free; a left player's zones are empty after CR 800.4a
 rules/potential_script.go:scriptTwin#0	n/a	includes-ok	any-match attachment test; zones empty after CR 800.4a
 rules/prio_memo.go:Engine.prioMemoUsable#0	n/a	includes-ok	any-match memo guard; a conservative false for a left player's restricted mana costs only a re-walk
 rules/prio_memo.go:Engine.prioPoolsIdle#0	n/a	includes-ok	all-pools-empty memo guard; conservative, a left player's pool only disables the memo
