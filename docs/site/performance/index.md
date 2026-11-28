@@ -171,6 +171,7 @@ and the list), and gorge and Forge play the same substituted pods for a like-for
     | fdc · gorge · bot (manual) | 8.99 | 3,010 | 61.0 | 37 | 204 |
     | fdc · Forge · Forge AI | 0.0714 | 360,000 | n/a | 39 | 722 |
     | fdc-sub · dirac · random | 47.2 | 387 | 54.9 | 55 | 184 |
+    | fdc-sub · dirac · hbot ¹ | 38.4 | 675 | 101 | 39 | 182 |
     | fdc-sub · gorge · random (auto-pay) | 3.83 | 3,720 | 72.8 | 71 | 200 |
     | fdc-sub · gorge · random (manual) | 4.48 | 1,800 | 36.0 | 121 | 184 |
     | fdc-sub · gorge · bot (auto-pay) | 8.94 | 2,990 | 66.9 | 37 | 204 |
@@ -181,11 +182,19 @@ and the list), and gorge and Forge play the same substituted pods for a like-for
     120 s per Forge run (6-9 games each). dirac's row stalled 9 of 2,829 games at a declared capacity (board and free-object tables); no
     gorge or Forge game stalled or failed. Forge's driver is `forge.oracle.GameReplay` at the fork's `2323286a00`, the first with Commander pods.
 
+    ¹ The `hbot` row (`dpod -policy hbot`: dirac's native heuristic bot on all four seats) was measured in a separate run on
+    2026-11-28 at `8e32c4738d`, same harness and method (three reps, 20 CPU-s each, pinned to cores 8, 10 and 12), on a busier box:
+    the 1-minute load was 41-45, over 25, and the cores' SMT siblings were busy, so its numbers are slower than the 2026-11-25 rows
+    above would be. In that same run dirac's random row was 27.8 games/core-s, 646 µs/turn and 92.0 µs/decision (47.2, 387 and 54.9
+    above), so compare hbot with that: about 1.4 times the games per core-second of random (its games are shorter, 39 turns against 56),
+    at about 1.05 times the cost per turn. hbot stalled 78 of 2,305 games at a declared capacity (random: 36 of 1,687 in that run);
+    none failed.
+
 ## What the comparison doesn't show
 
 - **Card coverage differs.** gorge's is on [Card support](../support/sets.md) (generated), dirac's on its [supported cards](../architecture/dirac/index.md#what-it-supports),
   and mtg-kernel plays a few hundred cards. A faster engine that plays fewer cards isn't doing the same job.
-- **Dates differ.** The mtg-kernel rows are from 2026-10-20 (commit in Provenance); every other row is from one run on 2026-11-25.
+- **Dates differ.** The mtg-kernel rows are from 2026-10-20 (commit in Provenance); every other row is from one run on 2026-11-25 but the four-seat dirac `hbot` pod row (2026-11-28; see its note).
 - **Load is real.** The box is shared: its own background work was stopped for the run, but CI-gate test runs kept going beside it, at
   a 1-minute load average of 8-40, sometimes on the other hardware thread of a bench core (which the harness's per-core contention figure
   doesn't see). Every engine ran under it: gorge's rows are 8-16% and dirac's about 36% under their quieter 2026-11-05 values.
