@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/rules/chars"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -59,7 +60,7 @@ func (e *Engine) mayHaveDerivedKeywordAnyH(id state.ObjID, heads ...kwHead) bool
 	// The printed keyword lines through the face's interned head bitset
 	// (cards.Face.KeywordLinesHaveHead: the EqualFold answer per head).
 	for _, h := range heads {
-		if h.S != "" && f.KeywordLinesHaveHead(h.S, h.ID) {
+		if h.S != "" && (f.KeywordLinesHaveHead(h.S, h.ID) || chars.UnderPrintsHead(o, h.S, h.ID)) {
 			return true
 		}
 	}

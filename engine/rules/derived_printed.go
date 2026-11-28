@@ -356,10 +356,11 @@ func (e *Engine) printedReach(id state.ObjID) (*state.Object, *cards.Face) {
 // printedKeywords is chars.BaseKeywords for an object that adds nothing to
 // its face's printed list: that list itself, capped, or a non-nil empty list
 // (the derivation's bound empty answer). own is false when the object
-// carries an intrinsic, marker-counter or status keyword (a face-down cloak
-// never reaches here).
+// carries an intrinsic, marker-counter or status keyword, or is a merged
+// permanent whose under cards add theirs (a face-down cloak never reaches
+// here).
 func printedKeywords(o *state.Object, f *cards.Face) (kw []string, own bool) {
-	if len(o.IntrinsicKeywords) != 0 || o.Suspected || o.SuspendGranted {
+	if len(o.IntrinsicKeywords) != 0 || o.Suspected || o.SuspendGranted || len(o.MergedCards) != 0 {
 		return nil, false
 	}
 	for i := range o.Counters {

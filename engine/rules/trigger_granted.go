@@ -16,6 +16,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/chars"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -483,10 +484,7 @@ func (e *Engine) checkGrantedDethroneTriggers(observer *Engine, id state.ObjID, 
 	if ev.Kind != events.DeclareAttackers || !slices.Contains(ev.IDs, id) {
 		return
 	}
-	if e.hasKeywordH(id, kwhDethrone) && f.HasKeywordRef(kwRefDethrone) {
-		return
-	}
-	if !e.hasKeywordH(id, kwhDethrone) || f.HasKeywordRef(kwRefDethrone) {
+	if !e.hasKeywordH(id, kwhDethrone) || f.HasKeywordRef(kwRefDethrone) || grantedPileInstances(observer, id, o, "Dethrone") <= 0 {
 		return
 	}
 	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
@@ -532,7 +530,7 @@ func (e *Engine) checkGrantedTrainingTriggers(observer *Engine, id state.ObjID, 
 	if ev.Kind != events.DeclareAttackers || !slices.Contains(ev.IDs, id) {
 		return
 	}
-	if !e.hasKeywordH(id, kwhTraining) || f.HasKeywordRef(kwRefTraining) {
+	if !e.hasKeywordH(id, kwhTraining) || f.HasKeywordRef(kwRefTraining) || grantedPileInstances(observer, id, o, "Training") <= 0 {
 		return
 	}
 	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
@@ -625,10 +623,11 @@ func (e *Engine) checkGrantedAttackKeywordTriggers(observer *Engine, id state.Ob
 	// Printed ownership is a multiset: each printed K:Firebending line is
 	// queued by the printed expansion, so it consumes one equal derived entry;
 	// every other derived entry is a granted instance (CR 113.2c: each is its
-	// own ability). A face-down object has no printed face (CR 708.8).
+	// own ability). A face-down object has no printed face (CR 708.8), and a
+	// pile that loses its abilities has no line beneath the top (CR 613.1f).
 	var printedLeft []string
 	if !e.faceDownPrintedHides(o) {
-		for _, k := range f.Keywords {
+		for _, k := range append(slices.Clip(f.Keywords), underPrintedKeywords(observer, o)...) {
 			if cards.KeywordHead(k) == "Firebending" {
 				printedLeft = append(printedLeft, k)
 			}
@@ -869,12 +868,18 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 			printed[strings.ToLower(k)] = true
 		}
 	}
+	underLeft := underPrintedKeywords(observer, o)
 	for _, k := range observer.Derived(id).Keywords {
 		if printed[strings.ToLower(k)] {
 			continue
 		}
 		param := ""
 		if head := cards.KeywordHead(k); !strings.EqualFold(head, "Ward") {
+			continue
+		} else if left, ok := chars.TakeKeywordLine(underLeft, k); ok {
+			// A card beneath the top prints this line: its own trigger
+			// queues one instance, so it accounts for one equal entry.
+			underLeft = left
 			continue
 		} else if j := strings.IndexByte(k, ':'); j >= 0 {
 			param = strings.TrimSpace(k[j+1:])
@@ -1571,13 +1576,21 @@ func (e *Engine) grantedCumulativeCosts(id state.ObjID, f *cards.Face) []string 
 		}
 		return nil
 	}
+	// Printed ownership: a top-face line accounts for every equal derived
+	// entry (a top face printing the cost and an identical grant is one
+	// trigger), a line beneath the top for one entry each (CR 113.2c). A face
+	// down object has no printed face (CR 708.8).
 	var printed map[string]bool
-	for _, k := range f.Keywords {
-		if strings.EqualFold(cards.KeywordHead(k), "Cumulative upkeep") {
-			if printed == nil {
-				printed = map[string]bool{}
+	o := e.G.Obj(id)
+	underLeft := underPrintedKeywords(e, o)
+	if !e.faceDownPrintedHides(o) {
+		for _, k := range f.Keywords {
+			if strings.EqualFold(cards.KeywordHead(k), "Cumulative upkeep") {
+				if printed == nil {
+					printed = map[string]bool{}
+				}
+				printed[strings.ToLower(k)] = true
 			}
-			printed[strings.ToLower(k)] = true
 		}
 	}
 	var out []string
@@ -1586,6 +1599,10 @@ func (e *Engine) grantedCumulativeCosts(id state.ObjID, f *cards.Face) []string 
 			continue
 		}
 		if printed[strings.ToLower(k)] {
+			continue
+		}
+		if left, ok := chars.TakeKeywordLine(underLeft, k); ok {
+			underLeft = left
 			continue
 		}
 		param := ""
