@@ -2246,6 +2246,7 @@ type genState struct {
 	availX  uint16 // transient availFor mode while scriptOffers re-walks priority (script_gen.go)
 	noGrant bool   // transient: an activated ability's prefix search prices without granted mana (its grant prefix is its own search; script_gen.go)
 	sacOut  bool   // transient: the surge probe's census holds the sacrifice-only sources out (kw_surge.go; read through sacOnlyLive, never by writing the shared prep)
+	tapXRep bool   // transient: the gaps walk counts a repeatable tap-another source once per activation its untapped candidates pay (scriptOffers' bounded walk, mana_tapxbound.go)
 	roleOut uint8  // a Role token may be on the battlefield: the SBA scans for CR 704.5z (static_roletokens.go)
 	digLo   uint8  // a DuDugMark DigUntil's first exile index (act_discoverbottom.go; the padding before excess)
 	// raiseO / raiseB: a may-play surcharge being offered / owed by the cast

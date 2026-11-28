@@ -548,6 +548,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		tx: tx, life: life, gaps: &gaps,
 		twoLive: twoLive, repeatLive: repeatLive,
 	}
+	var bound Decision
+	rt.bound = s.tapXBoundWalk(k, p, &rt, sacAny || sacOpen || sacRepeat, &bound)
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
 		if !s.gapsOrBoundPlay(k, p, boundLive, &gaps, a) && !twoLive && !repeatLive && !((caAny || raBoard) && s.reflAmtBoundPlay(k, p, a)) && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
@@ -587,6 +589,7 @@ type scriptRoute struct {
 	dh, ca, mix, twoLive, repeatLive                   bool
 	caM, filt, tapsDef, restr, anyR, anyDiff, tx, life slotMask
 	gaps                                               *Decision
+	bound                                              *Decision // tapXBoundWalk's plays, nil off its boards
 }
 
 // scriptRouteDrop runs scriptOffers' search-route chain for one candidate
@@ -594,6 +597,9 @@ type scriptRoute struct {
 // the search prices past is dropped. It reports the drop; the latched stalls
 // it declares are the searches', which declare nothing themselves.
 func (s *State) scriptRouteDrop(k *prep, rt *scriptRoute, a Action, p uint8) bool {
+	if rt.bound != nil && !hasOption(rt.bound, a) {
+		return true // gorge's bounded proof skips the search (mana_tapxbound.go)
+	}
 	if rt.dh {
 		if !s.dhScript(k, a, p, false) {
 			return true // no script: the discarded hand held the play, or three mana of one colour do not pay it (mana_discardhand.go)
