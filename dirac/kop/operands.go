@@ -84,6 +84,13 @@ const BecomeCopyGrave = 1 << 2
 // untilEOT, EndOfTurnCleanup's clone sweep.
 const BecomeCopyEOT = 1 << 3
 
+// BecomeCopyTapped is OpBecomeCopy's IntoPlayTapped$ True bit (Vesuva: "you
+// may have it enter tapped as a copy of any land on the battlefield"): an
+// entry that elects a copy enters tapped; one that enters as itself does not.
+// Gorge: effects/clone.go effClone's CloneEnter.ETB IntoPlayTappedTrue tap,
+// after the decline's early return.
+const BecomeCopyTapped = 1 << 4
+
 // MayGuardCloneCopy: the OpMayAsk guard of an Optional$ Clone: the next op is
 // an ExtCloneCopy that has a live template and at least one becomer (gorge
 // effClone's pairs, computed before the may-copy election).
