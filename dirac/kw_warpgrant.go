@@ -63,7 +63,9 @@ func (s *State) warpInstances(k *prep, p uint8, o Obj) warpInsts {
 			all.n++
 		}
 	}
-	if all.n < 2 {
+	if all.n < 2 || cd.HasWarp && cd.WarpPay.Flags != 0 {
+		// a cost with a non-mana part neither dominates nor is dominated
+		// (gorge warpCostCovers)
 		return all
 	}
 	var out warpInsts

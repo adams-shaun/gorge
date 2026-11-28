@@ -856,6 +856,19 @@ func (cb *cardBuilder) record() error {
 		if d.WarpCost, err = manaCostOf(*c.Warp); err != nil {
 			return err
 		}
+		d.WarpGrave = c.WarpGrave
+		if c.WarpPay != nil {
+			if c.SpellCost != nil || c.KickerCost != nil || c.OptCost != nil || c.Repeated != nil {
+				// one pick cost per cast (dirac/cast.go buildPickCost returns
+				// the warp life part first): a spell additional cost, a
+				// kicker/repeated pick part or an OptionalCost beside it is
+				// not composed
+				return fmt.Errorf("warp life part beside another pick cost")
+			}
+			if d.WarpPay, err = cb.cost(*c.WarpPay); err != nil {
+				return err
+			}
+		}
 	}
 	if c.Impending != nil {
 		// CR 702.176a (kernel kw_impending.go)

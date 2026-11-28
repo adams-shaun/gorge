@@ -1940,6 +1940,10 @@ func (lc *lowerCtx) lowerKeywords() {
 			// pays the mana cost. An {X} in the warp cost is announced like
 			// a printed one (CR 601.2b): the cast's X ask prices the
 			// replaced cost (kernel cast.go buildCostPreRaw).
+			if strings.Contains(param, "<") {
+				lc.warpPayCost(node, param) // lower_warppay.go
+				continue
+			}
 			mc, err := parseManaCost(param)
 			if err != nil || param == "" || strings.Contains(param, ":") || mc.XX || mc.XXX {
 				lc.refuseNode(node, "warp cost %q", param)

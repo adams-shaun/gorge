@@ -581,6 +581,14 @@ type CardDef struct {
 	HasWarp bool
 	// WarpCost is the printed warp cost (HasWarp).
 	WarpCost ManaCost
+	// WarpPay is the printed warp cost's non-mana part, a fixed PayLife<N>
+	// (Timeline Culler's "{B}, Pay 2 life"; CardDef.WarpCost holds the mana).
+	// The warp cast pays it through the cast's pick stage; Flags 0 = none.
+	WarpPay Cost
+	// WarpGrave: the card's own Continuous MayPlay$ True static with
+	// ValidSA$ Spell.Warp over the graveyard (Timeline Culler) opens the
+	// warp cast from its owner's graveyard (dirac/kw_warp.go offerWarpGrave).
+	WarpGrave bool
 	// Impending is printed K:Impending:N:cost's N (CR 702.176a; 0 = none):
 	// the hand offers the "impended" cast at ImpendingCost; cast that way
 	// the permanent enters with N time counters and is not a creature while
