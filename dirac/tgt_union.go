@@ -22,9 +22,15 @@ func unionMask(r kop.Ref) uint8 {
 		return 6
 	case kop.RefTargets0123:
 		return 15
+	case kop.RefSet:
+		return setUnionMark // not a slot union: execGen hands it to execSet (set_eval.go)
 	}
 	return 0
 }
+
+// setUnionMark is unionMask's answer for a RefSet subject: no target slot's
+// bit, so tableUnion's one prep bit gates the set arm too.
+const setUnionMark = 0x80
 
 // tableUnion reports whether some program's subject is a union ref.
 func tableUnion(t *kop.Table) bool {
