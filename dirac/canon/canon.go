@@ -57,6 +57,7 @@ const (
 	ActCastAirbend                    // src = card: an airbent card cast from exile for {2} (CR 701.65a; gorge's cast Mode "airbend_cast"; castModes and the face routes are full)
 	ActCastKickedAlt                  // src = card, mode = sel | alt<<4: the two-alternative Kicker's per-alternative cast, sel 1/2/3 (CR 702.33b; gorge's cast Mode "kicked1"/"kicked2"/"kickedboth"; castModes is full)
 	ActChoose        CanonKind = 32   // + choose kind: a KChoose option
+	ActNone          CanonKind = 0xFF // no canonical action: a kernel action Translator.Action cannot translate, and the adapter's concede entry
 )
 
 // Pack builds a Canon.
@@ -211,8 +212,10 @@ var ChooseKinds = []string{
 	"readahead",      // CR 702.155b: gorge readAheadOptions' as-enters chapter pick (Kind "readahead", Obj the Saga, the chapter on Amount; dirac ChGenReadAhead; kw_readahead.go)
 }
 
-// ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.
-const ChooseOther = 127
+// ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks. Its
+// action kind is ActNone-1, the last kind byte below that sentinel, so no listed
+// kind reaches it: ChooseKinds stays shorter than this.
+const ChooseOther = 222
 
 func ChooseCode(kind string) (uint8, bool) {
 	for i, k := range ChooseKinds {
