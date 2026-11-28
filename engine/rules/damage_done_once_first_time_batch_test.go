@@ -16,9 +16,9 @@ func TestDamageDoneOnceFirstTimeSumsTheSimultaneousBatch(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	src := "Name:First-Hit Counter\nManaCost:1 G\nTypes:Creature\nPT:2/9\n" +
-		"T:Mode$ DamageDoneOnce | ValidTarget$ Card.Self | FirstTime$ True | TriggerZones$ Battlefield | Execute$ TrigPump\n" +
-		"SVar:TrigPump:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ X\n" +
-		"SVar:X:TriggerCount$DamageAmount\nOracle:x\n"
+		"T:Mode$ DamageDoneOnce | ValidTarget$ Card.Self | FirstTime$ True | TriggerZones$ Battlefield | Execute$ GrowByHits\n" +
+		"SVar:GrowByHits:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ HitTotal\n" +
+		"SVar:HitTotal:TriggerCount$DamageAmount\nOracle:x\n"
 	e, cfg := combatTriggerBoard(t, reg, nil, []string{src}, nil, nil)
 	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 2})
 	e.emit(events.Event{Kind: events.StepChange, Step: state.StepMain1})
