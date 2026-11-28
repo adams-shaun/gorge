@@ -14,6 +14,7 @@ import (
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/host/httpapi"
 	"github.com/adams-shaun/gorge/server/manabrew"
+	"github.com/adams-shaun/gorge/server/protocol"
 
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
@@ -114,46 +115,48 @@ const minConstructedDeckCards = 40
 // finds it fit for the table's format: every card resolves, the engine can
 // play every card, and the deck is legal (Commander construction for a
 // commander table; no commander and a legal size for a constructed one).
-// The client's own claims -- its format field, its validity -- decide nothing.
-func (d *deckImports) check(format host.Format, sd httpapi.SeatDeck) (host.Deck, error) {
+// With sd.Substitute it first replaces up to maxSubstituted unsupported cards
+// with basics and reports each swap. The client's own claims -- its format
+// field, its validity -- decide nothing.
+func (d *deckImports) check(format host.Format, sd httpapi.SeatDeck) (host.Deck, protocol.DeckReport, error) {
 	if sd.Text != "" {
-		return d.checkText(format, sd.Seat, sd.Text)
+		return d.checkText(format, sd.Seat, sd.Text, sd.Substitute)
 	}
 	var md mb.Deck
 	if err := json.Unmarshal(sd.Deck, &md); err != nil {
-		return host.Deck{}, fmt.Errorf("seat %d deck is not a ManaBrew deck: %w", sd.Seat, err)
+		return host.Deck{}, protocol.DeckReport{}, fmt.Errorf("seat %d deck is not a ManaBrew deck: %w", sd.Seat, err)
 	}
 	label := fmt.Sprintf("seat %d deck %q", sd.Seat, md.Name)
 	if err := deckFormatMatches(format, md.Format); err != nil {
-		return host.Deck{}, fmt.Errorf("%s: %w", label, err)
+		return host.Deck{}, protocol.DeckReport{}, fmt.Errorf("%s: %w", label, err)
 	}
 	if len(md.Cards) > maxImportedDeckCards {
-		return host.Deck{}, fmt.Errorf("%s has %d cards, more than the %d a table seats", label, len(md.Cards), maxImportedDeckCards)
+		return host.Deck{}, protocol.DeckReport{}, fmt.Errorf("%s has %d cards, more than the %d a table seats", label, len(md.Cards), maxImportedDeckCards)
 	}
 	f, rep, _ := manabrew.ImportDeck(d.reg, md, d.supported)
-	return d.checkFile(label, format, f, rep.Unresolved, rep.Unsupported)
+	return d.checkFile(label, format, f, rep.Unresolved, rep.Unsupported, sd.Substitute)
 }
 
 // checkText parses one seat's plain-text decklist and checks the deck it
 // names exactly as a ManaBrew one. A line the parser cannot read is refused
 // naming the line; a list past maxImportedDeckCards copies is refused before
 // any card is resolved, so a huge count never reaches Resolve.
-func (d *deckImports) checkText(format host.Format, seat int, text string) (host.Deck, error) {
+func (d *deckImports) checkText(format host.Format, seat int, text string, consent bool) (host.Deck, protocol.DeckReport, error) {
 	label := fmt.Sprintf("seat %d deck", seat)
 	tl, err := deck.ParseText([]byte(text))
 	if err != nil {
-		return host.Deck{}, fmt.Errorf("%s: %w", label, err)
+		return host.Deck{}, protocol.DeckReport{}, fmt.Errorf("%s: %w", label, err)
 	}
 	total := 0
 	for _, e := range tl.Cards {
 		if e.Count > maxImportedDeckCards || total+e.Count > maxImportedDeckCards {
-			return host.Deck{}, fmt.Errorf("%s has more than the %d cards a table seats", label, maxImportedDeckCards)
+			return host.Deck{}, protocol.DeckReport{}, fmt.Errorf("%s has more than the %d cards a table seats", label, maxImportedDeckCards)
 		}
 		total += e.Count
 	}
 	f := tl.File(label)
 	unresolved, unsupported := d.census(f)
-	return d.checkFile(label, format, f, unresolved, unsupported)
+	return d.checkFile(label, format, f, unresolved, unsupported, consent)
 }
 
 // census looks up every card f names -- main deck, sideboard and
@@ -196,22 +199,35 @@ func frontFaceName(c *cards.Card, name string) string {
 	return c.Faces[0].Name
 }
 
-// checkFile reports on f (and logs its demand), then refuses it with a
+// checkFile reports on f (and logs its demand), substitutes the unsupported
+// cards when the seat consented, then refuses it with a
 // httpapi.DeckRefused carrying that report, naming the cards, unless every card resolved and the
 // engine plays every card, then checks it for the table's format and
 // resolves it into the deck the table seats. Both the ManaBrew and the text
 // path end here.
-func (d *deckImports) checkFile(label string, format host.Format, f deck.File, unresolved []string, unsupported map[string][]string) (host.Deck, error) {
-	rep := d.report(format, f.Name, f, unresolved, unsupported, d.engine)
+func (d *deckImports) checkFile(label string, format host.Format, f deck.File, unresolved []string, unsupported map[string][]string, consent bool) (host.Deck, protocol.DeckReport, error) {
+	orig := f
+	var (
+		substituted []protocol.DeckSubstitution
+		problem     string
+	)
+	if consent && len(unresolved) == 0 {
+		f, substituted, problem = substitute(d.reg, f, unsupported)
+	}
+	rep := d.report(format, f.Name, f, orig, unresolved, unsupported, d.engine, substituted)
+	if problem != "" {
+		rep.Problems = append(rep.Problems, problem)
+		rep.Legal, rep.Playable = false, false
+	}
 	d.demand.record(d.engine, rep)
-	refuse := func(msg string) (host.Deck, error) {
-		return host.Deck{}, httpapi.DeckRefused{Report: rep, Msg: msg}
+	refuse := func(msg string) (host.Deck, protocol.DeckReport, error) {
+		return host.Deck{}, rep, httpapi.DeckRefused{Report: rep, Msg: msg}
 	}
 	var why []string
 	if len(unresolved) > 0 {
 		why = append(why, fmt.Sprintf("cards not in the card pool: %s", capNames(unresolved)))
 	}
-	if len(unsupported) > 0 {
+	if len(unsupported) > 0 && len(substituted) == 0 {
 		names := make([]string, 0, len(unsupported))
 		for n := range unsupported {
 			names = append(names, n)
@@ -223,6 +239,9 @@ func (d *deckImports) checkFile(label string, format host.Format, f deck.File, u
 		}
 		why = append(why, fmt.Sprintf("cards the engine cannot play yet: %s", capNames(parts)))
 	}
+	if problem != "" {
+		why = append(why, problem)
+	}
 	if len(why) > 0 {
 		return refuse(fmt.Sprintf("%s: %s", label, strings.Join(why, "; ")))
 	}
@@ -231,17 +250,17 @@ func (d *deckImports) checkFile(label string, format host.Format, f deck.File, u
 	}
 	cs, err := f.Resolve(d.reg)
 	if err != nil {
-		return host.Deck{}, fmt.Errorf("%s: %w", label, err)
+		return host.Deck{}, protocol.DeckReport{}, fmt.Errorf("%s: %w", label, err)
 	}
 	sb, err := f.ResolveSideboard(d.reg)
 	if err != nil {
-		return host.Deck{}, fmt.Errorf("%s: %w", label, err)
+		return host.Deck{}, protocol.DeckReport{}, fmt.Errorf("%s: %w", label, err)
 	}
 	out := host.Deck{Name: f.Name, Cards: cs, Sideboard: sb, Archetype: f.Archetype}
 	if len(f.CommanderNames()) > 0 {
 		out.Commanders = f.CommanderIndices()
 	}
-	return out, nil
+	return out, rep, nil
 }
 
 // deckFormatMatches compares a submitted deck's declared format to the
@@ -324,20 +343,25 @@ func checkReservedPool(req httpapi.CreateGameOptions, policy string, hasPool boo
 	return nil
 }
 
-// importSeatDecks checks every submitted deck and returns them by seat.
-func (c config) importSeatDecks(req httpapi.CreateGameOptions) (map[int]host.Deck, error) {
+// importSeatDecks checks every submitted deck and returns them by seat,
+// beside one report per submitted seat in seat order.
+func (c config) importSeatDecks(req httpapi.CreateGameOptions) (map[int]host.Deck, []protocol.DeckReport, error) {
 	if len(req.Decks) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
+	seats := append([]httpapi.SeatDeck{}, req.Decks...)
+	sort.Slice(seats, func(i, j int) bool { return seats[i].Seat < seats[j].Seat })
 	out := make(map[int]host.Deck, len(req.Decks))
-	for _, sd := range req.Decks {
-		d, err := c.imports.check(req.Format, sd)
+	reports := make([]protocol.DeckReport, 0, len(req.Decks))
+	for _, sd := range seats {
+		d, rep, err := c.imports.check(req.Format, sd)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		out[sd.Seat] = d
+		reports = append(reports, rep)
 	}
-	return out, nil
+	return out, reports, nil
 }
 
 // podDecks assigns a deck id to every seat: a submitted deck gets a fresh

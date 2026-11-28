@@ -534,6 +534,9 @@ type SeatDeck struct {
 	Seat int             `json:"seat"`
 	Deck json.RawMessage `json:"deck,omitempty"`
 	Text string          `json:"text,omitempty"`
+	// Substitute consents to replacing each unsupported card (at most three)
+	// with a basic land of the deck's colour identity before it is judged.
+	Substitute bool `json:"substitute,omitempty"`
 }
 
 // maxDeckTextBytes bounds one seat's plain-text decklist.
@@ -596,6 +599,9 @@ type CreateGameResponse struct {
 	// one entry per human, the first repeating Seat/Token/Join. A pod's other
 	// humans each take their own entry.
 	Seats []SeatGrant `json:"seats,omitempty"`
+	// Decks is one report per submitted seat, in seat order: what the server
+	// found and, when the seat consented, every substitution it made.
+	Decks []protocol.DeckReport `json:"decks,omitempty"`
 }
 
 // validatePodRequest checks the seats/humans/decks shape of a create-game
@@ -704,8 +710,9 @@ func (h *handler) games(w http.ResponseWriter, r *http.Request) {
 
 // DeckCheckRequest is POST /api/decks/check's body: one deck, as ManaBrew
 // deck JSON in Deck or a plain-text decklist in Text (exactly one), checked
-// for Format ("commander" when omitted, or "constructed"). Substitute is
-// accepted and ignored for now.
+// for Format ("commander" when omitted, or "constructed"). Substitute asks
+// the server to replace up to three unsupported cards with basic lands of the
+// deck's colour identity and list each swap.
 type DeckCheckRequest struct {
 	Format     string          `json:"format,omitempty"`
 	Deck       json.RawMessage `json:"deck,omitempty"`
