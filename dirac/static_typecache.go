@@ -110,14 +110,6 @@ func (s *State) tyCacheRelease() {
 	}
 }
 
-// typesGen is sl's types, through the cache where the table has one.
-func (s *State) typesGen(k *prep, sl Slot) kop.TypeMask {
-	if k.tyCache {
-		return s.typesCached(k, sl)
-	}
-	return s.typesCalc(k, sl)
-}
-
 func (s *State) typesCached(k *prep, sl Slot) kop.TypeMask {
 	p := s.pool
 	if p == nil {
