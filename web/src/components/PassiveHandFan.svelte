@@ -146,10 +146,18 @@
     height: calc(var(--card-w) * 88 / 63);
     flex: none;
   }
+  /* A face is a CARD, so its box is the card's shape by arithmetic: 63/88, the
+     same expression the fan's height uses, pinned on both axes rather than
+     left to the box's content, and the ratio stays declared so the shape
+     survives a caller that sets only one axis. A content-sized box grew by
+     the font's descender under the inline card image: 2px with one fallback
+     font, 3px on a GitHub runner's, 10% of a focus side strip's 19x27px face
+     (SpectatorHands.geometry.test.ts's focus8 case). */
   .card {
     position: absolute;
     top: 0;
     width: var(--card-w);
+    height: calc(var(--card-w) * 88 / 63);
     aspect-ratio: 63 / 88;
   }
   /* A hovered or focused face comes to the FRONT of the neighbours that
