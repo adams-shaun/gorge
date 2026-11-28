@@ -182,6 +182,12 @@ func prepQuiet(t *kop.Table, k *prep) {
 		g.anyCondSplit || g.anyEscapeGrant || tableHasStatic(t, kop.StatRetraceGrant)) || k.anyCyclingGrant {
 		k.quietOff = true
 	}
+	// An Equip or loyalty ability a static lets its controller activate at instant speed (StatEquipFlash,
+	// StatLoyaltyFlash): the proof called such a seat quiet while the walk offered the ability
+	// (TestEquipFlashLockstep, TestLoyaltyFlashLockstep, 11-28), so these tables run the walk.
+	if g != nil && g.uses.has(useEquipFlash) || tableHasStatic(t, kop.StatLoyaltyFlash) {
+		k.quietOff = true
+	}
 	tf := quietTableFlags{equipFlash: g != nil && g.uses.has(useEquipFlash), loyFlash: tableHasStatic(t, kop.StatLoyaltyFlash)}
 	for i := range t.Cards {
 		qf := quietFact{bfAny: quietNone, bfTap: quietNone, hand: quietNone, grAny: quietNone, grTap: quietNone}
