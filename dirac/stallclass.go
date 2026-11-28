@@ -101,6 +101,7 @@ var stallCapacityReasons = [...]uint8{
 	StallConvokedSet, // a seventeenth convoked set held at once, or a seventeenth convoked creature on one cast (kw_convokelist.go)
 	StallPayLife,     // an as-enters pay-any-amount-of-life range past the action's mode byte (repl_paylife.go)
 	StallToxicGrant,  // an until-end-of-turn toxic grant past perm.spare's three bits (seven), or made while the permanent has lost its abilities (kw_toxicgrant.go)
+	StallBandCap,     // a sixteenth simultaneous attacking band: perm.atkPl's high nibble holds maxBands ids (combat_band.go); a capacity, not the old unmodelled formation
 }
 
 var stallUnmodelledReasons = [...]uint8{
@@ -133,7 +134,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallRadMill,           // a rad drain's mill whose graveyard move competes between replacements: gorge asks the order mid-drain (act_radiation.go)
 	StallZeroAltShared,     // a {0} may-play alternative beside a free, pay-life or otherwise priced permission, or a second one: two of gorge's casts would share one mode (cast_mayzeroalt.go)
 	StallEmbAltShared,      // a second Effect-delivered alternative-cost emblem beside the first, the card's own alternative cost, or a free may-play admission: two of gorge's casts would share one canon code (cast_embaltcost.go)
-	StallBand,              // a band declaration answered with a candidate: gorge forms the band (CR 702.22), the kernel poses the ask and mirrors only the decline (combat_band.go)
+	StallBand,              // no longer raised: a band declaration's accepted candidate now forms the band (CR 702.22d-k, combat_band.go); the value stays for old recordings
 	StallDredge,            // a draw-replacement body (repl_draw.go) or another unresumable draw path meets a dredge candidate: gorge asks, the kernel cannot suspend there (kw_dredge.go)
 	StallPrevScopeCopy,     // a filtered scoped prevention resolving from a copy of its card: the record cannot find its filters again from the copier's object (repl_prevscopefilter.go)
 	StallGainsOf,           // a gained (GainsAbilitiesOf$) limited, once-each-turn, loyalty, exhaust, host-cost or off-battlefield ability, or one past index 63 (static_gainsof.go)

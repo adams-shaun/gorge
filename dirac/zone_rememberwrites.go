@@ -68,7 +68,8 @@ func (s *State) surveilRememberKept(top int) {
 
 // sacAllRemember is leaveAll for a SacrificeAll with RememberSacrificed$:
 // each sacrificed permanent joins the remembered set in gorge's victim
-// order (seat 0's battlefield list, then seat 1's).
+// order (seat 0's battlefield list, then seat 1's), with the controller it
+// had before the sweep (CR 608.2h; gorge captureSacrificed, as sacRemember).
 //
 //go:noinline
 func (s *State) sacAllRemember(k *prep, hit slotMask) {
@@ -76,7 +77,18 @@ func (s *State) sacAllRemember(k *prep, hit slotMask) {
 		s.leaveAll(k, hit, kop.ZoneGraveyard)
 		return
 	}
+	var objs [MaxPerm]Obj
+	var ctrls [MaxPerm]uint8
+	n := 0
+	for m := hit; m.any(); m = m.rest() {
+		p := &s.perms[m.first()]
+		objs[n], ctrls[n] = p.obj, p.ctrl
+		n++
+	}
 	s.rememberLeaveAll(k, hit, kop.ZoneGraveyard)
+	for i := 0; i < n; i++ {
+		s.remCtlNote(objs[i], ctrls[i]) // act_repeatremembered.go
+	}
 }
 
 // an ImmediateTrigger's RememberObjects$ Targeted
@@ -164,7 +176,7 @@ func (s *State) reflexBiteGone(k *prep, in *kop.Instr) bool {
 		return true
 	}
 	o := e.trigObj
-	s.dmgSrcObject(k, s.perms[b].obj, o, NoSlot, l.kw, l.ctrl, k.t.Cards[s.objs[o].card].Infect, n)
+	s.dmgSrcObject(k, s.perms[b].obj, o, NoSlot, l.kw, l.ctrl, l.bits&lkiInfect != 0, n)
 	return true
 }
 

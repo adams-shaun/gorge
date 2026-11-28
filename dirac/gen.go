@@ -370,6 +370,7 @@ type genPrep struct {
 	anyAttackedObj  bool           // the table gives mechAttackedObj an arena mask: finishAttacks marks the declared attackers
 	anySuspect      bool           // the table gives mechSuspected an arena mask (act_suspect.go)
 	anyRemEach      bool           // some OpRepeatEach is over the remembered set (kop.RepeatRemembered): each remembered object's last controller has a cold slot (act_repeatremembered.go)
+	anyRemCtl       bool           // some program reads RefOppNonRemCtrl or is a remembering SacrificeAll, or a remembering sacrifice sits beside a reader (tableReadsRemCtl): each remembered object's last controller has a cold slot (act_repeatremembered.go)
 	anyRemSearcher  bool           // some program is ExtRememberSearcher: the searcher bookkeeping has a cold slot so a declined search takes its count back (zone_remembersearcher.go)
 	anySacSub       bool           // some ExRefCount is a Sacrificed$Valid type read (N 1): snapLKI captures the subtype set (value_countheads.go, zone_lki.go)
 	ix              [numMech]uint8 // mechanic -> index in State's ms or mo, by its width; arenaNone (0xFF) when the table does not use it (arenaAssign; arena.go)
@@ -1151,7 +1152,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.partyRole = partyRoles(t)
 	g.outlawSub = outlawSubs(t) // filter_valueheads.go
 	g.anyRemSac = tableRemembersOp(t, kop.OpSacrifice) || tableRemembersIfPaidSac(t)
-	g.anyRemLKIPick = tableReadsRemLKIPT(t) // the battle-link pick's writer gate (zone_rememberlki.go)
+	g.anyRemCtl = g.anyRemSac && tableReadsRemCtl(t) // prepProgOps adds its own readers
+	g.anyRemLKIPick = tableReadsRemLKIPT(t)          // the battle-link pick's writer gate (zone_rememberlki.go)
 	g.anyUnion = tableUnion(t)
 	g.anyLinkRet = tableLinkRet(t)
 	g.anyLinkCtr = tableLinkCtr(t)

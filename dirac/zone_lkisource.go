@@ -100,6 +100,27 @@ func (s *State) srcDepartRec(e *stackEntry) *lkiRec {
 	return nil
 }
 
+// srcLastRec is the last known information of ability e's source once it has
+// left (CR 608.2h), or nil: the departure snapshot when there is one, else
+// the entry's own snapshot when it names the source (a dies trigger, whose
+// srcVer is the new object's). A self trigger takes its own as it is queued,
+// so that one can be older than the departure and never overrides it. A spell
+// has none.
+func (s *State) srcLastRec(e *stackEntry) *lkiRec {
+	if e.kind == seSpell {
+		return nil
+	}
+	if r := s.srcDepartRec(e); r != nil {
+		return r
+	}
+	if e.li != 0 {
+		if r := s.lk(e.li); r.obj == e.obj {
+			return r
+		}
+	}
+	return nil
+}
+
 // srcDepartRecFresh is srcDepartRec without the hold requirement: a departure
 // snapshot taken since the last sweep still names its source. Only a snapLKI
 // can reuse a ref-0 pool slot, and the sweep it runs first re-holds a

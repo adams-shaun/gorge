@@ -1349,6 +1349,72 @@ func (s *State) slotPlayers(k *prep, slot uint8) (ps seatSeq, over bool) {
 	return ps, false
 }
 
+// tgtControllers is RefTgtControllers: the controllers of every target of the
+// resolving entry, every slot and every multi-object extra, a player target
+// naming that player itself, each seat once, in gorge's AliveFrom(controller)
+// order (repeatPlayersTargeted then repeatPlayers' AliveFrom walk). A target
+// that left the battlefield reads its live controller, gorge PlayerOf's
+// Object.Controller (Move resets it to the owner).
+func (s *State) tgtControllers(k *prep) seatSeq {
+	e := &s.res.e
+	var set uint8
+	var codes [maxXTgt + 1]TCode
+	for slot := uint8(0); slot < e.nt; slot++ {
+		m := s.divTargets(k, e, slot, &codes)
+		for i := 0; i < m; i++ {
+			c := codes[i]
+			if c == NoTarget {
+				continue
+			}
+			p := uint8(255)
+			switch {
+			case isPlayerTarget(c):
+				p = CodeSeat(c)
+			case isObjTarget(c):
+				p = s.ctrlOfObj(Obj(c))
+			default:
+				// A spell/ability target (StackTarget0.. / StackTargetGone)
+				// names no controller here: the lowering refuses a stack-slot
+				// target slot for this selector (lower_repeatselectors.go), so
+				// only a malformed table reaches this.
+				continue
+			}
+			if p != 255 {
+				set |= 1 << SeatIx(p)
+			}
+		}
+	}
+	var out seatSeq
+	q := s.aliveFrom(e.ctrl)
+	for i := uint8(0); i < q.n; i++ {
+		if set&(1<<q.s[i]) != 0 {
+			out.add(q.s[i])
+		}
+	}
+	return out
+}
+
+// tgtOfEach is RefTgtOfEach: the resolving entry's target controlled by the
+// player the enclosing OpRepeatEachPlayer binds. Only a different-controllers
+// target slot is lowered, so at most one target belongs to that seat.
+func (s *State) tgtOfEach(k *prep) Obj {
+	e := &s.res.e
+	var codes [maxXTgt + 1]TCode
+	for slot := uint8(0); slot < e.nt; slot++ {
+		m := s.divTargets(k, e, slot, &codes)
+		for i := 0; i < m; i++ {
+			c := codes[i]
+			if !isObjTarget(c) {
+				continue // none, a player or a stack code: no object to match (as tgtControllers above)
+			}
+			if o := Obj(c); s.ctrlOfObj(o) == s.g.eachPl {
+				return o
+			}
+		}
+	}
+	return NoObj
+}
+
 // eachPlayers expands an each-player ref into APNAP order (255 = none).
 func (s *State) eachPlayers(k *prep, r kop.Ref) seatSeq {
 	switch r {
@@ -1363,6 +1429,8 @@ func (s *State) eachPlayers(k *prep, r kop.Ref) seatSeq {
 		return s.oppsFrom(s.res.e.ctrl)
 	case kop.RefOppNonRemCtrl:
 		return s.oppsNonRemCtrl() // filter_defined.go
+	case kop.RefTgtControllers:
+		return s.tgtControllers(k) // the card-target half of RepeatPlayers$ TargetedController
 	case kop.RefSrcOwner:
 		return seatOne(s.srcOwner())
 	case kop.RefPromised:

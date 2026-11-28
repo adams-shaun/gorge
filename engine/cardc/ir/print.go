@@ -215,6 +215,8 @@ func prRef(p *printer, n *Ref) {
 	p.kenum("receipt", n.Receipt != 0, n.Receipt.String())
 	knodes(p, "union", n.Union, prRef)
 	p.kenum("memory", n.Kind != RefMemory && n.Memory != 0, n.Memory.String())
+	p.kenum("role", n.Role != 0, n.Role.String())
+	p.kflag("lki", n.LKI)
 	p.end()
 }
 

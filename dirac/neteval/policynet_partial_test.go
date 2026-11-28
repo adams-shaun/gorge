@@ -122,6 +122,7 @@ func TestScorePartialIsExact(t *testing.T) {
 				// one scratch across states: a partial left over from the
 				// previous decision differs from scoreRef
 				p.trunk(&st)
+				p.partial()
 				for j := range opts {
 					got, want := p.score(&opts[j]), scoreRef(p, &opts[j])
 					if math.Float32bits(got) != math.Float32bits(want) {

@@ -27,14 +27,9 @@ func (s *State) castGateAffordable(k *prep, p uint8, c CardID, o Obj, cost *kop.
 	if k.gen != nil && k.gen.uses.has(useSacOtherPlan) && s.g.availX&(availGaps|availAny) == 0 {
 		// a cast's plan prices the planned other-sacrifice source (mana_othersac.go);
 		// the census copy keeps it out of the activated-ability offers
-		// The census units are an upper bound (a victim per step is the planner's
-		// to name, planSacGate): a cast only they pay is offered when its plan
-		// exists.
 		var withSac = *cav
 		s.addOtherSacCensusAvail(k, p, &withSac)
-		if cost == nil || cav.affords(cost, pipMaskOf(cost), 0) || !withSac.affords(cost, pipMaskOf(cost), 0) || s.otherSacCastPlans(k, p, o, cost) {
-			cav = &withSac
-		}
+		cav = &withSac
 	}
 	if s.phyCastGateAffords(k, p, cav, cost) {
 		return true
@@ -2808,6 +2803,10 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			continue
 		}
 		markCensusAbDone(pc, sl, &done)
+		// any view of a reflected Amount$ source: a granted ability adds to the
+		// object's abilities, so the printed reflected one stays activatable too
+		// (CR 113.10); a no-op for any other source
+		s.reflAmtPotential(k, sl, pc, &done, fold)
 		s.grantGapGain(k, sl, pc, d, &cen)
 		// the printed ability's own activation pain: when it reaches the
 		// life its production is no census unit, the fold keeps it (a

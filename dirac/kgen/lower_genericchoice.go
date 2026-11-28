@@ -70,6 +70,42 @@ func (lc *lowerCtx) genericChoiceTargeted(ps *params) error {
 	return nil
 }
 
+// genericChoiceEach lowers a GenericChoice whose chooser is the player the
+// enclosing RepeatEachPlayer loop binds (Defined$ Remembered, no TempRemember$
+// Chooser): the repeated player answers one branch, as in villainousChoice but
+// without a nested loop. ShowChoice$ is presentation only (gorge
+// genericChoicePresentationKeys); every random/restricted shape refuses.
+// Disorienting Choice's DBChoice.
+func (lc *lowerCtx) genericChoiceEach(ps *params) error {
+	for _, k := range []string{"AtRandom", "Random", "ChoiceRestriction", "NumRandomChoices", "FallbackAbility"} {
+		if _, ok := ps.get(k); ok {
+			return refuse("GenericChoice of the repeated player with %s$", k)
+		}
+	}
+	ps.consume("ShowChoice") // who is told the options only
+	choices := strings.Split(ps.str("Choices"), ",")
+	if len(choices) < 1 {
+		return refuse("GenericChoice with %d choices", len(choices))
+	}
+	for _, name := range choices {
+		if cards.ResolveSVar(lc.face.SVars, strings.TrimSpace(name)) == nil {
+			return refuse("GenericChoice branch %q", name)
+		}
+	}
+	at := len(lc.ab.Prog)
+	lc.emit(lInstr{Op: "GenericChoice", Obj: lRef{Kind: rEach}, A: cst(len(choices))})
+	for i, name := range choices {
+		bat := len(lc.ab.Prog)
+		lc.emit(lInstr{Op: "Branch", C: i})
+		if err := lc.chain(cards.ResolveSVar(lc.face.SVars, strings.TrimSpace(name)), nil); err != nil {
+			return err
+		}
+		lc.ab.Prog[bat].Skip = len(lc.ab.Prog) - bat - 1
+	}
+	lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
+	return nil
+}
+
 // genericChoiceYou lowers a GenericChoice the controller answers (Defined$
 // You or absent: gorge charmGenericPlayers declines it and effCharm asks
 // the controller one mode). Every one, a triggered ability's included, is

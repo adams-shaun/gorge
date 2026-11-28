@@ -39,6 +39,7 @@ func (b *trigBoard) Facts() trigmatch.Facts {
 	return trigmatch.Facts{
 		Damaging:               b.damaging,
 		CombatDamaging:         b.combatDamaging,
+		DamageBatchStart:       b.damageBatchStart,
 		DmgSrcOverride:         b.dmgSrcOverride,
 		FightDamaging:          b.dmgFlags&effects.DamageFight != 0,
 		DeclaredAttackers:      b.declaredAttackers,

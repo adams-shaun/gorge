@@ -14,6 +14,11 @@ import (
 // it set.
 var DebugOppNonRemFirstOnly bool
 
+// DebugOppNonRemLive is a test hook: oppsNonRemCtrl reads each remembered
+// object's live controller (the pre-fix gorge read) instead of its LKI
+// capture. The stolen-sacrifice fixture must diverge with it set.
+var DebugOppNonRemLive bool
+
 // oppsNonRemCtrl is RefOppNonRemCtrl: the controller's opponents in gorge's
 // order (AliveFrom the controller), less every remembered object's controller
 // (its LKI capture once it left the battlefield, else the live one). Every
@@ -29,8 +34,14 @@ func (s *State) oppsNonRemCtrl() seatSeq {
 	for i := uint8(0); i < s.g.nrem; i++ {
 		o := s.g.rem[i]
 		c := uint8(0)
-		if l := s.remLKIRec(o); l != nil {
-			c = l.ctrl
+		if !DebugOppNonRemLive {
+			if ctrl, ok := s.remCtl(o); ok {
+				c = ctrl
+			} else if l := s.remLKIRec(o); l != nil {
+				c = l.ctrl
+			} else {
+				c = s.ctrlOfObj(o)
+			}
 		} else {
 			c = s.ctrlOfObj(o)
 		}

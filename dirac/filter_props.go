@@ -359,20 +359,18 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 	switch fl.PredN & 0xff {
 	case kop.W7WithWarp:
 		// gorge withWarp on a battlefield object reads the derived keyword
-		// list: printed Warp, none while face down (CR 708.2) or after a
-		// lose-all-abilities effect (the kw gate, chars.go)
-		c := s.cardAt(sl)
-		ans = c != kop.NoCard && k.t.Cards[c].HasWarp && !s.genLost(k, sl)
+		// list: Warp printed by a card of the pile (CR 702.140e), none while
+		// face down (CR 708.2) or after a lose-all-abilities effect (the kw
+		// gate, chars.go)
+		ans = s.pilePrints(k, sl, printsWarp) && !s.genLost(k, sl)
 	case kop.W7WithDisguise, kop.W7FaceUpDisguise:
-		// gorge withDisguise on a battlefield object: the printed keyword,
-		// none while face down or after a lose-all-abilities effect
-		c := s.cardAt(sl)
-		ans = c != kop.NoCard && k.t.Cards[c].MorphFamily == kop.MorphDisguise && !s.genLost(k, sl)
+		// gorge withDisguise on a battlefield object: the same read for
+		// Disguise
+		ans = s.pilePrints(k, sl, printsDisguise) && !s.genLost(k, sl)
 	case kop.W7WithFlashback:
-		// gorge withFlashback on a battlefield object: the printed keyword,
-		// none while face down or after a lose-all-abilities effect
-		c := s.cardAt(sl)
-		ans = c != kop.NoCard && k.t.Cards[c].Keywords&kop.KwFlashback != 0 && !s.genLost(k, sl)
+		// gorge withFlashback on a battlefield object: the same read for
+		// Flashback
+		ans = s.pilePrints(k, sl, printsFlashback) && !s.genLost(k, sl)
 	case kop.W7WithInfect:
 		// gorge withInfect on a battlefield object: the printed keyword,
 		// none while face down or after a lose-all-abilities effect (genLost,
@@ -467,11 +465,11 @@ func (s *State) snowWordPerm(k *prep, fl *kop.Filter, sl Slot) bool {
 		return s.lacksFlankingPerm(k, sl) // filter_flanking.go
 	}
 	if n == kop.W7WithDevoid {
-		// gorge withDevoid on a battlefield object: the printed keyword, none
-		// while face down or after a lose-all-abilities effect (genLost, the
-		// one-shot records and an attached lose-all static)
-		c := s.cardAt(sl)
-		return c != kop.NoCard && k.t.Cards[c].Devoid && !s.genLost(k, sl)
+		// gorge withDevoid on a battlefield object: the keyword printed by a
+		// card of the pile (CR 702.140e), none while face down or after a
+		// lose-all-abilities effect (genLost, the one-shot records and an
+		// attached lose-all static)
+		return s.pilePrints(k, sl, printsDevoid) && !s.genLost(k, sl)
 	}
 	if n != kop.W7Snow && n != kop.W7NonSnow {
 		return false
@@ -483,6 +481,12 @@ func (s *State) snowWordPerm(k *prep, fl *kop.Filter, sl Slot) bool {
 	}
 	return snow != DebugSnowWordFlip
 }
+
+// The printed records the pile-wide words read (pilePrints).
+func printsWarp(cd *kop.CardDef) bool      { return cd.HasWarp }
+func printsDisguise(cd *kop.CardDef) bool  { return cd.MorphFamily == kop.MorphDisguise }
+func printsFlashback(cd *kop.CardDef) bool { return cd.Keywords&kop.KwFlashback != 0 }
+func printsDevoid(cd *kop.CardDef) bool    { return cd.Devoid }
 
 // wordCard3 is the sub-kinds on a card off the battlefield (fd: face down): withWarp reads
 // the printed keyword in any zone, face down or not (gorge objectHasKeyword

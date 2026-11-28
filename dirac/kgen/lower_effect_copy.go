@@ -109,34 +109,22 @@ func (lc *lowerCtx) repeat(ps *params) error {
 		// The check gate is built after the body: Tainted Pact's body Dig
 		// opens the imprinted set its Count$ValidHand Card.IsImprinted gate
 		// reads (lower_imprintzone.go's gate requires the writer lower first).
-		gate := lc.face.SVars[check]
-		if head, rest, _ := strings.Cut(strings.TrimSpace(gate), "$"); head == "Remembered" && strings.HasPrefix(rest, "Valid ") {
-			f, err := lc.filter(strings.TrimPrefix(rest, "Valid "))
-			if err != nil {
-				return err
-			}
-			c := lCond{Kind: cRefMatches, Ref: lRef{Kind: rRemembered}, F: f, Op: opGE, A: cst(1)}
-			if svarCmp != "" {
-				if c.Op, c.A, err = lc.cmpSpec(svarCmp); err != nil {
-					return err
-				}
-			}
-			conds = append(conds, c)
-		} else {
-			// an arbitrary level-count gate (Tainted Pact's TaintedCheck:
-			// Count$ValidHand Card.IsImprinted)
-			v, err := lc.value(check)
-			if err != nil {
-				return err
-			}
-			c := lCond{Kind: cValue, A: v, Op: opGE, B: cst(1)}
-			if svarCmp != "" {
-				if c.Op, c.B, err = lc.cmpSpec(svarCmp); err != nil {
-					return err
-				}
-			}
-			conds = append(conds, c)
+		// An arbitrary level-count gate (Tainted Pact's TaintedCheck:
+		// Count$ValidHand Card.IsImprinted). Grindstone's Remembered$Valid is
+		// one too: a value count, as gorge evaluates the SVar (the card where
+		// it lies), never a condition's cRefMatches read, which takes a
+		// remembered card's last controller.
+		v, err := lc.value(check)
+		if err != nil {
+			return err
 		}
+		c := lCond{Kind: cValue, A: v, Op: opGE, B: cst(1)}
+		if svarCmp != "" {
+			if c.Op, c.B, err = lc.cmpSpec(svarCmp); err != nil {
+				return err
+			}
+		}
+		conds = append(conds, c)
 	}
 	if guard {
 		// a StoreSVar$ in the body writes the gate SVar true when the

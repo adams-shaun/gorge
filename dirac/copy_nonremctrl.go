@@ -40,6 +40,8 @@ func (s *State) nonRemExcl(in *kop.Instr) uint8 {
 		ctrl = s.perms[s.objs[o].slot].ctrl
 	} else if l := s.movedTargetLKIRec(o); l != nil {
 		ctrl = l.ctrl
+	} else if c, ok := s.remCtl(o); ok {
+		ctrl = c // act_repeatremembered.go
 	} else if l := s.remLKIRec(o); l != nil {
 		ctrl = l.ctrl
 	}

@@ -56,6 +56,7 @@ func (s *State) forgetOtherMove(k *prep, in *kop.Instr) bool {
 					// An Aura's host ask (CR 303.4f): the answer reads the returning Aura
 					// through the ref, so the set holds it again (the move re-adds it, deduped).
 					s.g.rem[0], s.g.nrem = o, 1
+					s.remCtlClear(0) // the slot's capture was another object's
 				}
 				return true // known: a CR 508.4 defender ask here drops the later remembered objects (nrem is zeroed)
 			}
@@ -118,9 +119,93 @@ func (s *State) matchRemLKI(k *prep, f kop.FilterID, o Obj, ctx evalCtx) (m int,
 	return 0, true
 }
 
+// matchRemOverride is countRefMatchesN's read of one remembered object o
+// where that read differs from the plain live one: a condition gate's captured
+// last controller (matchRemGate), else the source off the battlefield
+// (matchRemSource), else a captured controller (matchRemLKI). ok is false
+// when o is read live.
+//
+//go:noinline
+func (s *State) matchRemOverride(k *prep, f kop.FilterID, o Obj, ctx evalCtx, gate bool) (m int, ok bool) {
+	if gate {
+		if m, ok = s.matchRemGate(k, f, o, ctx); ok {
+			return m, true
+		}
+	}
+	if o == ctx.src && o != NoObj && s.objs[o].zone != kop.ZoneBattlefield {
+		return s.matchRemSource(k, f, o, ctx), true
+	}
+	if s.g.tli&tliRemLKI != 0 {
+		return s.matchRemLKI(k, f, o, ctx)
+	}
+	return 0, false
+}
+
+// DebugRemGateOwner is TestStolenSacrificeRememberedControllerLockstep's
+// mutation: a condition gate ignores the captured controller. Tests only.
+var DebugRemGateOwner bool
+
+// matchRemGate is a ConditionDefined$ Remembered gate's read of remembered
+// object o off the battlefield with a captured last controller, from a
+// RememberLKI$ move or a RememberSacrificed$ sacrifice (gorge conditions.go
+// rememberedControllerLKI, CR 608.2h): the controller predicates take the
+// capture, the ownership predicates the owner (matchRemAlt), and the source
+// itself fails an Other alternative (matchRemSource). ok is false when no
+// capture covers o. Value counts do not come here: gorge's
+// Remembered$Valid reads a sacrificed card where it lies.
+//
+//go:noinline
+func (s *State) matchRemGate(k *prep, f kop.FilterID, o Obj, ctx evalCtx) (m int, ok bool) {
+	ctrl, ok := s.remCtl(o) // act_repeatremembered.go
+	if !ok || DebugRemGateOwner {
+		return 0, false
+	}
+	if f == 0 {
+		return 1, true
+	}
+	for ; f != 0; f = k.t.Filters[f].Or {
+		fl := &k.t.Filters[f]
+		if o == ctx.src && fl.Flags&kop.FOther != 0 {
+			continue
+		}
+		if s.matchRemAlt(k, fl, o, ctrl, ctx) {
+			return 1, true
+		}
+	}
+	return 0, true
+}
+
+// matchRemAlt matches matchRemGate's one alternative fl against remembered
+// card o, last controlled by ctrl. The card matchers take one seat, so an
+// ownership predicate beside a controller one is tested against the owner
+// first (CR 108.3). A table with a chosen-type card target reads the source's
+// choice, as refCardMatch does.
+func (s *State) matchRemAlt(k *prep, fl *kop.Filter, o Obj, ctrl uint8, ctx evalCtx) bool {
+	c, owner := s.objs[o].card, s.objs[o].owner()
+	cp := *fl
+	who := ctrl
+	switch {
+	case cp.Owner != 0 && cp.Ctrl == 0:
+		who = owner
+	case cp.Owner != 0:
+		own := kop.Filter{Owner: cp.Owner}
+		if !s.matchCardOne(k, &own, c, owner, ctx.ctrl, o) {
+			return false
+		}
+		cp.Owner = 0
+	}
+	if k.gen.chosenCardTgt && !DebugRefChosenResOnly {
+		if ch := s.srcChosen(ctx.srcSl, ctx.src); s.srcChoiceReads(ch, ctx.srcSl) {
+			return s.matchSrcAlt(k, &cp, ch, c, who, ctx.ctrl, o, NoObj)
+		}
+	}
+	return s.matchCardOne(k, &cp, c, who, ctx.ctrl, o)
+}
+
 // remController is RefRememberedController: the first remembered object's
-// controller, its RememberLKI$ capture once it left the battlefield (gorge
-// rememberedControllersLKI), 255 with nothing remembered.
+// controller, its captured last one once it left the battlefield (gorge
+// rememberedControllersLKI: a RememberLKI$ move or a RememberSacrificed$
+// sacrifice), 255 with nothing remembered.
 //
 //go:noinline
 func (s *State) remController() uint8 {
@@ -128,6 +213,9 @@ func (s *State) remController() uint8 {
 		return 255
 	}
 	o := s.g.rem[0]
+	if c, ok := s.remCtl(o); ok {
+		return c
+	}
 	if l := s.remLKIRec(o); l != nil {
 		return l.ctrl
 	}
