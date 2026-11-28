@@ -216,8 +216,8 @@ const fourSeatDecorum = `{"name":"cr800-4m","format":"constructed","players":4,"
 // that turn is 8 (p2 takes 6, p3 takes 7), not 9. The turn-5 expect pins
 // the other half: the goad is still required before that boundary (a goad
 // dropped at p2's turn 3, the first turn "after" the departed seat, would
-// fail it), and events.expireDepartedGoads expires it at the advance that
-// walks over p1's seat.
+// fail it), and events.expireDepartedGoads expires it when the ordinary turn
+// rotation passes p1's seat.
 func TestCR800_4mDurationEndsAtTheDepartedPlayersNextTurn(t *testing.T) {
 	run := runFourSeat(t, strings.Replace(fourSeatDecorum, "%s",
 		`,{"op":"pass_to","seat":0,"step":"declare-attackers","active":"p0","expect":[{"attack_required":{"attacker":"p0:Grizzly Bears"}}]}`, 1))
