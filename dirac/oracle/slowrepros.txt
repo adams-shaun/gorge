@@ -9,19 +9,49 @@
 # leaf seconds / 4.57, the ci-shard-seconds.txt scale: 10.1-24.7 s) joined, each a plain lane's largest cost.
 # The same day, every sliced replay test ci-shard-seconds.txt weighs at >= 10 s (12.2-44.5) joined: the
 # wall this list keeps, read from the cost table instead of a full replay.
+# 2026-11-27 (fifth): the 27 sliced replay tests the fifth ci-shard-seconds.txt refresh weighs at >= 10 s, or
+# that took over 10 s at 4 cores in its idle `make test-one` (Kor Haven 100.3 s, Iron Fist 59.8 s, Orzhova
+# typed-artifact tally 59.2 s), joined by the rule above.
 TestMBCAboshanSDesireReprosLockstep
+TestMBCBashToBitsReprosLockstep
+TestMBCBatrocTheLeaperReprosLockstep
+TestMBCBestialMenaceReprosLockstep
+TestMBCBlisterspitGremlinReprosLockstep
 TestMBCBloodAgeGeneralReprosLockstep
+TestMBCBlueSunSZenithReprosLockstep
 TestMBCCauldronSGiftReprosLockstep
+TestMBCDauthiEmbraceReprosLockstep
+TestMBCDismemberReprosLockstep
+TestMBCElectricEelFeeOrderAbilityReprosLockstep
+TestMBCFeedbackReprosLockstep
 TestMBCGeneralTazriReprosLockstep
 TestMBCGnottvoldSlumbermoundReprosLockstep
 TestMBCGoliathMassManipulatorReprosLockstep
+TestMBCHalvarGodOfBattleReprosLockstep
+TestMBCIronFistHeroForHireReprosLockstep
 TestMBCKamahlFistOfKrosaReprosLockstep
+TestMBCKorHavenReprosLockstep
 TestMBCLavaStormReprosLockstep
+TestMBCOAkaTravelingMerchantReprosLockstep
+TestMBCOrzhovaTypedArtifactTallyReprosLockstep
+TestMBCPathToTheWorldTreeReprosLockstep
+TestMBCPucaSCovenantReprosLockstep
 TestMBCRudeAwakeningEntwineReprosLockstep
 TestMBCScorchRiderReprosLockstep
 TestMBCScryingSheetsReprosLockstep
+TestMBCSlitherwispReprosLockstep
 TestMBCStarfleetAcademyReprosLockstep
+TestMBCSternProctorReprosLockstep
+TestMBCSurtlandFrostpyreReprosLockstep
 TestMBCSvogthosReproReplaysClean
+TestMBCTramwayStationReprosLockstep
+TestMBCTrapjawKelpieReprosLockstep
+TestMBCVaultOfTheArchangelOfferReprosLockstep
+TestMBCVictorySHeraldReprosLockstep
+TestMBCWakerootElementalRefusalReprosLockstep
+TestMBCWardscaleCrocodileReprosLockstep
+TestMBCWildHungerSearchWalkWithholdsReprosLockstep
+TestMBPhasedReprosLockstep
 TestStdMetaReprosLockstep
 TestStorageLandCastAutopayReprosLockstep
 TestWorldTreeSearchReprosLockstep
