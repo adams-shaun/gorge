@@ -44,6 +44,14 @@ var searchMirrorKnown = map[string]searchMirrorClass{
 	"ordinal": {cause: "gorge answers decisions beneath the canonical surface that SeqNo never counts (OrdinalCheck holds the gap to those)"},
 }
 
+// searchMirrorVisitFloor is the least percentage, over all pods together, of
+// the compared decisions with equal candidate lists that must also agree in
+// visits on every candidate, so the tolerated "visits" class cannot grow to
+// swallow the comparison. 155 of 190 agreed when it was set; the floor holds
+// with all of any one pod's agreement lost (at worst 138 of 190), so it does
+// not rest on one pod's game.
+const searchMirrorVisitFloor = 70
+
 // searchMirrorClass is one searchMirrorKnown row.
 type searchMirrorClass struct {
 	cause string
@@ -56,11 +64,14 @@ type searchMirrorClass struct {
 // at every searched decision of each pod's first 10 turns, asks both searches
 // the same position: bots/azmcts on the gorge side (an honest-root redeal from
 // that seat's feed) and dirac/search on the kernel side, sims 8, heuristic
-// leaf, seat seeds 11, 22, 33 and 44. It compares the candidate lists, the
-// root worlds' hidden zones, the chosen candidate and the visits per
-// candidate, and fails at the first difference searchMirrorKnown does not
-// name, and when a structural row shows nowhere. The searches do not mirror
-// yet: the table is what is left.
+// leaf, seat seeds 11, 22, 33 and 44. It fails at the first compared decision
+// whose two searches ran on different per-decision seeds or spent different
+// visit totals. It compares the candidate lists, the root worlds' hidden
+// zones, the chosen candidate and the visits per candidate, and fails at the
+// first difference searchMirrorKnown does not name, when a structural row shows
+// nowhere, and when visits agree at fewer decisions than
+// searchMirrorVisitFloor. The searches do not mirror yet: the table is what is
+// left.
 func TestSearchMirrorsAzmctsFourSeat(t *testing.T) {
 	cardsDir, err := cardset.CorpusDir()
 	if err != nil {
@@ -100,6 +111,7 @@ func TestSearchMirrorsAzmctsFourSeat(t *testing.T) {
 
 	seen := map[string]int{}
 	compared, worlds := 0, 0
+	equal, agreed := 0, 0
 	for pod := range searchMirrorPods {
 		p := oracle.PodAt(decks, pod, 1, 4)
 		m, tbl, err := oracle.SetMatchupN(set, c, p.Decks(), 0)
@@ -125,6 +137,11 @@ func TestSearchMirrorsAzmctsFourSeat(t *testing.T) {
 		}
 		compared += res.Compared
 		worlds += res.Worlds
+		equal += res.Equal
+		agreed += res.Agreed
+		if res.Compared != 0 {
+			t.Logf("pod %d: %d compared, visits agree at %d of %d equal candidate lists", pod, res.Compared, res.Agreed, res.Equal)
+		}
 	}
 
 	candidates := 0
@@ -140,6 +157,10 @@ func TestSearchMirrorsAzmctsFourSeat(t *testing.T) {
 	}
 	if worlds != compared {
 		t.Fatalf("%d root worlds compared at %d searched decisions", worlds, compared)
+	}
+	t.Logf("visits agree at %d of %d equal candidate lists (floor %d%%)", agreed, equal, searchMirrorVisitFloor)
+	if equal == 0 || agreed*100 < equal*searchMirrorVisitFloor {
+		t.Errorf("visits agree at %d of %d equal candidate lists, under the %d%% floor", agreed, equal, searchMirrorVisitFloor)
 	}
 	for _, class := range slices.Sorted(maps.Keys(searchMirrorKnown)) {
 		k := searchMirrorKnown[class]

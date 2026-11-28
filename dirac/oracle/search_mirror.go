@@ -25,20 +25,16 @@ import (
 
 // search_mirror.go plays one lockstep game with dirac/search choosing every
 // seat (WithSearchSeats' policy shape), and at the first canonical pick of
-// every gorge decision asks bots/azmcts the same position too: an honest
-// redeal built from the seat's feed (searchseat.HonestRoot) rooted on the
-// live gorge decision, then azmcts.Search with the per-decision seed it
-// shares with the kernel. Each difference is recorded, in game order, under a
-// class: the candidate lists (mapped to canonical actions), the hidden zones
-// of the two root worlds, the chosen candidate and the visits per candidate.
-// The harness stops at none of them: the caller decides which classes it
-// tolerates.
-//
-// The gorge search is a flat Search, not Seat.DecideSearch: DecideSearch
-// returns only the played intent, while the harness needs the whole
-// candidate list (Result.Candidates). The options are the ones DecideSearch
-// builds for this config: DecisionSeed on Decision.Ordinal, no root noise,
-// no move sampling, the heuristic leaf (net nil).
+// every gorge decision asks bots/azmcts the same position too:
+// azmcts.Seat.DecideSearch on the live gorge decision, rooted on an honest
+// redeal built from the seat's feed (searchseat.HonestRoot). The seed, the
+// options, the worlds and the candidates of that search are the production
+// seat's, read through its search tap. Each difference is recorded, in game
+// order, under a class: the candidate lists (mapped to canonical actions), the
+// hidden zones of the two root worlds, the chosen candidate and the visits per
+// candidate. The harness stops at none of those: the caller decides which
+// classes it tolerates. Two searches that ran on different per-decision seeds,
+// or spent different visit totals, are no class: they fail the run.
 
 // searchMirrorSims is the simulation budget the mirror is measured at.
 const searchMirrorSims = 8
@@ -69,6 +65,11 @@ const (
 	// candidate or different visits on a candidate.
 	MirrorChoice = "choice"
 	MirrorVisits = "visits"
+	// MirrorSeed and MirrorVisitTotal break the run (SearchMirrorPod's
+	// error): the two searches of a compared decision ran on different
+	// per-decision seeds, or their visits do not sum to the same budget.
+	MirrorSeed       = "seed"
+	MirrorVisitTotal = "visit-total"
 )
 
 // SearchMirrorMismatch is one difference between the two searches.
@@ -120,6 +121,9 @@ type SearchMirrorResult struct {
 	// compared among them; Refused honest roots or redeals the gorge source
 	// refused.
 	Compared, Worlds, Refused int
+	// Equal counts the compared decisions whose candidate lists are equal, and
+	// Agreed those among them with equal visits on every candidate.
+	Equal, Agreed int
 	// Kinds names the kind of every compared decision, in order.
 	Kinds []string
 }
@@ -147,10 +151,15 @@ func SearchMirrorPod(m *Matchup, tbl *kop.Table, set cardset.Set, seed uint64, s
 		return SearchMirrorResult{}, err
 	}
 	res := Lockstep(m, seed, k, pol, rc)
-	return SearchMirrorResult{
+	out := SearchMirrorResult{
 		Res: res, Mismatches: pol.mismatches,
 		Compared: pol.compared, Worlds: pol.worlds, Refused: pol.refused, Kinds: pol.kinds,
-	}, nil
+		Equal: pol.equal, Agreed: pol.agreed,
+	}
+	if pol.broken != nil {
+		return out, fmt.Errorf("search mirror: %s", pol.broken)
+	}
+	return out, nil
 }
 
 type searchMirrorPol struct {
@@ -175,7 +184,10 @@ type searchMirrorPol struct {
 	worlds     int
 	kinds      []string
 	refused    int
+	equal      int
+	agreed     int
 	mismatches []SearchMirrorMismatch
+	broken     *SearchMirrorMismatch // the first seed or visit-total parting
 }
 
 func newSearchMirrorPol(k *realSide, set cardset.Set, seatSeeds [MaxSeats]uint64, rc rules.Config) (*searchMirrorPol, error) {
@@ -270,16 +282,12 @@ func (p *searchMirrorPol) ask(c *PickCtx, gd *decision.Decision) {
 			fmt.Sprintf("gorge Ordinal %d, kernel SeqNo %d", gd.Ordinal, r.s.SeqNo()))
 		return
 	}
-	bot, err := p.gorgeBot(c, gd)
+	run, err := p.gorgeSearch(c, gd)
 	if err != nil {
 		p.refused++
 		return
 	}
-	gres, root, err := p.gorgeSearch(c, gd, bot, p.seatCfg.Search.Limit)
-	if err != nil {
-		p.refused++
-		return
-	}
+	gres := run.res
 	gs, ks := gres.Stats.Searched != 0, kres.Stats.Searched != 0
 	if !gs && !ks {
 		return
@@ -300,8 +308,37 @@ func (p *searchMirrorPol) ask(c *PickCtx, gd *decision.Decision) {
 	}
 	p.compared++
 	p.kinds = append(p.kinds, string(gd.Kind))
-	p.compareWorlds(c, gd, root)
-	p.compareResults(c, gd, bot, gres, kres)
+	p.holdSearches(c, gd, &run, kres)
+	p.compareWorlds(c, gd, run.zones)
+	p.compareResults(c, gd, &run, kres)
+}
+
+// holdSearches breaks the run at the first compared decision whose two
+// searches did not run on one per-decision seed, or did not spend the same
+// visits. No difference between the engines' worlds or enumerators explains
+// either, so no class tolerates it.
+func (p *searchMirrorPol) holdSearches(c *PickCtx, gd *decision.Decision, run *gorgeRun, kres *search.Result) {
+	if p.broken != nil {
+		return
+	}
+	var gn, kn int
+	for _, v := range run.res.Visits {
+		gn += v
+	}
+	for _, v := range kres.Visits[:kres.N] {
+		kn += int(v)
+	}
+	var what, detail string
+	switch kseed := p.ksrch[int(gd.Player)].LastSeed(); {
+	case run.opts.Seed != kseed:
+		what, detail = MirrorSeed, fmt.Sprintf("gorge searched on seed %#x, kernel on %#x", run.opts.Seed, kseed)
+	case gn != kn || kn == 0:
+		what, detail = MirrorVisitTotal, fmt.Sprintf("gorge spent %d visits, kernel %d", gn, kn)
+	default:
+		return
+	}
+	m := mirrorMismatch(c, gd, what, "", nil, nil, detail)
+	p.broken = &m
 }
 
 // compareWorlds holds the hidden zones gorge's honest root was dealt (root)
@@ -328,8 +365,8 @@ func (p *searchMirrorPol) compareWorlds(c *PickCtx, gd *decision.Decision, root 
 
 // compareResults records how the two searches' candidates differ, or, over
 // equal candidate lists, how their choice and visits do.
-func (p *searchMirrorPol) compareResults(c *PickCtx, gd *decision.Decision, bot decision.Intent, gres azmcts.Result, kres *search.Result) {
-	gc, gv, gchoice, gok := p.gorgeCands(c, gd, gres)
+func (p *searchMirrorPol) compareResults(c *PickCtx, gd *decision.Decision, run *gorgeRun, kres *search.Result) {
+	gc, gv, gchoice, gok := p.gorgeCands(c, gd, run.res)
 	kc, kv, kchoice, kok := p.kernelCands(p.ksrch[int(gd.Player)], kres)
 	if !gok || !kok {
 		p.record(c, gd, MirrorCandidates, "unmapped", gc, kc, "a candidate has no canonical action")
@@ -342,7 +379,7 @@ func (p *searchMirrorPol) compareResults(c *PickCtx, gd *decision.Decision, bot 
 		case multiSelect(gd, gc, kc):
 			shape = "multi-select"
 		case shape == "differ" && len(gc) == limit && len(kc) == limit:
-			shape, detail = p.uncut(c, gd, bot)
+			shape, detail = p.uncut(c, gd, run)
 		}
 		p.record(c, gd, MirrorCandidates, shape, gc, kc, detail)
 		return
@@ -352,14 +389,16 @@ func (p *searchMirrorPol) compareResults(c *PickCtx, gd *decision.Decision, bot 
 		p.record(c, gd, MirrorChoice, "", gc, kc,
 			fmt.Sprintf("choice %s (visits %v) vs %s (visits %v)", candName(gc, gchoice), gv, candName(kc, kchoice), kv))
 	}
+	p.equal++
 	gm, km := candMap(gc, gv), candMap(kc, kv)
 	for _, k := range sortedCandKeys(gm) {
 		if km[k] != gm[k] {
 			p.record(c, gd, MirrorVisits, "", gc, kc,
 				fmt.Sprintf("candidate %s has %d visits, kernel %d", k, gm[k], km[k]))
-			break
+			return
 		}
 	}
+	p.agreed++
 }
 
 // multiSelect reports a multi-select pick the two engines pose differently:
@@ -378,9 +417,13 @@ func multiSelect(gd *decision.Decision, gc, kc [][]Canon) bool {
 // searchMirrorWideLimit, for two full lists that differ: "limit-cut" when the
 // wider lists are equal (only the order under the cut parted them), else the
 // wider lists' own shape, which no cut explains.
-func (p *searchMirrorPol) uncut(c *PickCtx, gd *decision.Decision, bot decision.Intent) (shape, detail string) {
+func (p *searchMirrorPol) uncut(c *PickCtx, gd *decision.Decision, run *gorgeRun) (shape, detail string) {
 	seat := int(gd.Player)
-	gres, _, err := p.gorgeSearch(c, gd, bot, searchMirrorWideLimit)
+	// Sims 0 returns the candidates before any world is dealt.
+	opts, root := run.opts, run.root
+	opts.Limit, opts.Sims = searchMirrorWideLimit, 0
+	root.Observer = searchprobe.NewCollector(gd.Player)
+	gres, err := azmcts.Search(context.Background(), root, nil, nil, opts)
 	if err != nil {
 		return "differ", "gorge could not enumerate again: " + err.Error()
 	}
@@ -400,6 +443,10 @@ func (p *searchMirrorPol) uncut(c *PickCtx, gd *decision.Decision, bot decision.
 }
 
 func (p *searchMirrorPol) record(c *PickCtx, gd *decision.Decision, what, shape string, gc, kc [][]Canon, detail string) {
+	p.mismatches = append(p.mismatches, mirrorMismatch(c, gd, what, shape, gc, kc, detail))
+}
+
+func mirrorMismatch(c *PickCtx, gd *decision.Decision, what, shape string, gc, kc [][]Canon, detail string) SearchMirrorMismatch {
 	m := SearchMirrorMismatch{
 		At: c.Seq, Turn: c.G.E.G.Turn, Kind: string(gd.Kind), Player: uint8(gd.Player),
 		What: what, Shape: shape, Detail: detail,
@@ -410,7 +457,7 @@ func (p *searchMirrorPol) record(c *PickCtx, gd *decision.Decision, what, shape 
 	if kc != nil {
 		m.Kernel = canonLists(kc)
 	}
-	p.mismatches = append(p.mismatches, m)
+	return m
 }
 
 // mirrorZones is each player's hidden cards by name: the hand sorted (its
@@ -523,50 +570,45 @@ func (p *searchMirrorPol) newKSearcher(limit int) *search.Searcher {
 	return search.NewSearcher(o, search.HeuristicLeaf{}, hbot.New(p.facts))
 }
 
-// gorgeBot is the seated bot's answer to gd, the search's candidate 0.
-func (p *searchMirrorPol) gorgeBot(c *PickCtx, gd *decision.Decision) (decision.Intent, error) {
-	e := c.G.E
-	b := botpolicy.BoardFromGameInto(e.G, e, gd.Player, &p.brd)
-	return p.gseats[int(gd.Player)].DecideBoard(context.Background(), b, *gd)
+// gorgeRun is one search a seat's DecideSearch ran, as its tap saw it, and
+// the hidden zones its honest root was dealt.
+type gorgeRun struct {
+	root  azmcts.Root
+	opts  azmcts.Options
+	res   azmcts.Result
+	zones mirrorZones
 }
 
-// gorgeSearch runs azmcts at gd on the honest root built from the seat's
-// feed, with the options Seat.DecideSearch builds for this config at the
-// candidate limit. It also returns the hidden zones that root was dealt, read
-// before the search.
-func (p *searchMirrorPol) gorgeSearch(c *PickCtx, gd *decision.Decision, bot decision.Intent, limit int) (azmcts.Result, mirrorZones, error) {
-	var none mirrorZones
+// gorgeSearch has the seat answer gd as the bench driver does:
+// Seat.DecideSearch on an honest root built from the seat's feed (the root
+// seed wired as testkit/bench wires it). The answer is discarded -- the kernel
+// drives the game -- and the search it ran is read through the seat's tap. The
+// root's zones are read before the search.
+func (p *searchMirrorPol) gorgeSearch(c *PickCtx, gd *decision.Decision) (gorgeRun, error) {
+	var run gorgeRun
 	seat := int(gd.Player)
 	e := c.G.E
-	f := p.feeds[seat]
-	setup := searchseat.SeatSetup(p.setup, p.gseats[seat], gd.Player)
+	s, f := p.gseats[seat], p.feeds[seat]
+	setup := searchseat.SeatSetup(p.setup, s, gd.Player)
 	root, reason := searchseat.HonestRoot(setup, f, e, bots.RootSeed(p.seatSeed[seat], gd.Ordinal))
 	if root == nil {
-		return azmcts.Result{}, none, fmt.Errorf("honest root: %s", reason)
+		return run, fmt.Errorf("honest root: %s", reason)
 	}
-	zones := gorgeZones(root, int(p.k.n))
-	opts := p.seatCfg.Search
-	opts.Seed = azmcts.DecisionSeed(p.seatSeed[seat], gd.Ordinal)
-	opts.Noise, opts.Sample = false, false
-	opts.Limit = limit
-	obs := searchprobe.NewCollector(gd.Player)
-	in := azmcts.RedealInput{Setup: setup}
-	if f != nil && f.Live() && f.Frames() > 0 {
-		in.History = f.History()
-		in.Base = searchprobe.RedealBase{Engine: root, Observer: f.Collector()}
-		if known, kerr := f.Known(); kerr == nil {
-			in.Known = known
-		} else {
-			in.Base = searchprobe.RedealBase{}
-		}
+	run.zones = gorgeZones(root, int(p.k.n))
+	searches := 0
+	s.SetSearchTap(func(r azmcts.Root, o azmcts.Options, res azmcts.Result) {
+		run.root, run.opts, run.res = r, o, res
+		searches++
+	})
+	b := botpolicy.BoardFromGameInto(e.G, e, gd.Player, &p.brd)
+	env := searchseat.Env{Setup: setup, Engine: root, Board: b, Feed: f}
+	if _, err := s.DecideSearch(context.Background(), env, *gd); err != nil {
+		return run, err
 	}
-	src, err := azmcts.NewRedeal(in, obs, opts.Seed, p.seatCfg.Worlds)
-	if err != nil {
-		return azmcts.Result{}, none, err
+	if searches != 1 || run.res.Stats.RedealRefused != 0 {
+		return run, fmt.Errorf("DecideSearch ran %d searches, redeal refused %d", searches, run.res.Stats.RedealRefused)
 	}
-	rootArg := azmcts.Root{Engine: root, Decision: gd, Bot: bot, Observer: obs}
-	res, err := azmcts.Search(context.Background(), rootArg, src, nil, opts)
-	return res, zones, err
+	return run, nil
 }
 
 // gorgeCands maps res.Candidates to canonical action sets, in candidate
