@@ -23,7 +23,9 @@ var cascadeProg = [3]kop.Instr{
 
 // queueCascade queues one cascade trigger per printed Cascade instance of
 // the spell e just cast, after the ordinary cast triggers (gorge
-// queueCascadeTriggers). The trigger carries the spell's paid X, bound while
+// queueCascadeTriggers). It runs only at a cast's commit, so a copy reaching
+// it was cast (a prepared copy, CR 707.12) and cascades like any spell
+// (CR 702.85a). The trigger carries the spell's paid X, bound while
 // the spell is still on the stack: cascade reads the spell's mana value
 // where the spell resolved, not here (cascade; CR 202.3b).
 func (s *State) queueCascade(k *prep, e *stackEntry) {
@@ -39,7 +41,7 @@ func (s *State) queueCascade(k *prep, e *stackEntry) {
 		}
 		n += g
 	}
-	if n == 0 || s.isSpellCopy(e.obj) {
+	if n == 0 {
 		return
 	}
 	mv := int16(int(k.cards[e.card].total) + s.stackXMV(e.obj, k.cards[e.card].cost.X))
