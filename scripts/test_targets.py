@@ -93,7 +93,7 @@ REPRO_TESTS = "^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|" + REPRO
 # The recorded games a precheck leaves to the batch unless their recording changed: the recordings (and the
 # oracle's other per-card replay tests) whose -json Elapsed in a batch run is over the 10 s wall. A listed test
 # with no Repro in its name is not in the batch's replay step: test-smart's census step (OnlyGrows, Census)
-# plays it before the merge, oracle.yml after. A card's own fix PR re-records its game shorter (kfuzz -shrink)
+# plays it before the merge when the diff reaches the package, oracle.yml after. A card's own fix PR re-records its game shorter (kfuzz -shrink)
 # and drops the entry. Read like the fast tier is;
 # outside testdata so a refresh edits no fixture (a changed fixture runs the package whole).
 SLOW_REPROS = "dirac/oracle/slowrepros.txt"
@@ -166,13 +166,13 @@ SLICE_MOD = 6
 # cores) they took 106-161 s each, ~1,090 of the slice's ~3,800 lane-s, while the run's 12-core quota fits ~2,900
 # lane-s in 240 s. The slice plays the shards of its merge base's rotation lane only (shard i when i % ROTATION
 # is crc32(sha) % ROTATION: two of the eight, every pair once over four bases), as it plays a slice of the
-# recordings; a diff that names a shard (a change to the ratchet's test or pin) plays it, test-smart's census
-# step (OnlyGrows) plays all eight before the merge and oracle.yml after it; the batch plays none. The eight
-# refusal shards (REFUSED, entry i in shard i % 8) rotate the same way: in the 6d2f131f6c idle run they were
-# 20% of the slice's core-s (shards 4 and 5 weigh 44 and 53 here). A diff that changes a refusal entry
-# (REFUSED_ENTRIES) keeps all eight; test-smart checks every entry (the narrow census step runs the shards, the
-# gates mode the dirac gate's parent TestRefusedEntriesStillDiverge), and the batch and oracle.yml play all
-# eight shards.
+# recordings; a diff that names a shard (a change to the ratchet's test or pin) plays it. test-smart's census
+# step (OnlyGrows) plays all eight when the diff reaches the package, and oracle.yml after the merge; the batch
+# plays none. The eight refusal shards (REFUSED, entry i in shard i % 8) rotate the same way: in the
+# 6d2f131f6c idle run they were 20% of the slice's core-s (shards 4 and 5 weigh 44 and 53 here). A diff that
+# changes a refusal entry (REFUSED_ENTRIES) keeps all eight; test-smart checks every entry (the narrow census
+# step runs the shards, the gates mode the dirac gate's parent TestRefusedEntriesStillDiverge), and the batch
+# and oracle.yml play all eight shards.
 CMD5_SHARD = re.compile(r"^TestCmd5SliceCleanOnlyGrows([0-9]+)$")
 REFUSED_SHARD = re.compile(r"^TestRefusedEntriesStillDiverge([0-9]+)$")
 ROTATED_SHARDS = (CMD5_SHARD, REFUSED_SHARD)
