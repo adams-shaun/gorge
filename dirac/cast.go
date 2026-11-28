@@ -496,7 +496,7 @@ func (s *State) syncBuild() {
 // these rows. A triggered ability is pushed by takePending before its
 // program starts.
 var buildProgram = [3][]uint8{
-	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsReplicate, bsMulti, bsDefiler, bsSquad, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
+	seSpell:   {bsPush, bsModes, bsMutatePlace, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsReplicate, bsMulti, bsDefiler, bsSquad, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seAbility: {bsPush, bsModes, bsTapCost, bsX, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seTrigger: {bsModes, bsPips, bsTargets, bsDivide, bsPay},
 }
@@ -695,6 +695,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		}
 		if e.mode&modeBestowed != 0 && e.bestowedEntry() {
 			c = cd.BestowCost // the bestow cost (CR 702.103a; kw_bestow.go)
+		}
+		if e.mode&modeMutated != 0 && e.mutatedEntry() {
+			c = cd.MutateCost // the mutate cost, in place of the mana cost (CR 702.140a; kw_mutate.go)
 		}
 		if cd.Mayhem && e.trigPl == trigPlMayhem {
 			c = cd.AltCost // the mayhem cost (CR 702.187a; kw_mayhem.go)
@@ -1343,6 +1346,13 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			addTargetOptions(d, buf[:n], n, t.UpTo && !narrowed)
 			return true
+		case bsMutatePlace:
+			if s.bld().e.mutatedEntry() {
+				s.mutatePlaceOptions(k, d) // the CR 702.140b top/under ask (kw_mutate.go)
+				return true
+			}
+			s.nextStage(k)
+			continue
 		case bsDivide:
 			if s.bld().divLeft == 0 {
 				s.nextStage(k)
@@ -1609,6 +1619,10 @@ func (s *State) applyBuild(k *prep, a Action) {
 		}
 		if s.bld().stage == bsConspire {
 			s.answerConspire(k, a)
+			return
+		}
+		if s.bld().stage == bsMutatePlace {
+			s.answerMutatePlace(k, a) // the placement answer rides the entry's mode (kw_mutate.go)
 			return
 		}
 		if s.bld().stage == bsDefiler {

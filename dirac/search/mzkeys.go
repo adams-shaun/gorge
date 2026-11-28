@@ -22,7 +22,7 @@ import "github.com/adams-shaun/gorge/dirac"
 // altKind reports whether k is one of AltCands' kinds.
 func altKind(k dirac.ActionKind) bool {
 	switch k {
-	case dirac.AkPlot, dirac.AkBestow, dirac.AkSneak, dirac.AkWebSling, dirac.AkUnlock, dirac.AkTurnFaceUp:
+	case dirac.AkPlot, dirac.AkBestow, dirac.AkMutate, dirac.AkSneak, dirac.AkWebSling, dirac.AkUnlock, dirac.AkTurnFaceUp:
 		return true
 	}
 	return false
