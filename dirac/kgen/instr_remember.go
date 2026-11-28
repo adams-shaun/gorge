@@ -79,6 +79,10 @@ func (ic *instrCtx) opRememberAll() error {
 	if in.CS == "ObjOrder" {
 		ki.C = kop.RememberAllObjOrder // lower_attachgroup.go
 	}
+	if in.CS == "Target" {
+		ki.C = kop.RememberAllTarget // lower_remembered.go pumpRememberEachTarget
+		return nil
+	}
 	if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
 		return err
 	}

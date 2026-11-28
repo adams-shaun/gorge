@@ -1,0 +1,7 @@
+family: Ref
+name: RefTgtOfEach
+value: next
+state: code 0
+status: active
+ticket: dk-burn-02-repeat-players
+doc: an object ref: the resolving entry's target controlled by the player the enclosing OpRepeatEachPlayer binds (RefEach, s.g.eachPl). Only a different-controllers target slot (one target per controller) is lowered, so at most one object matches; none when the loop player controls no target (gorge's Targeted.RememberedPlayerCtrl in a RepeatEach body, effects repeatPlayers/player filter: Disorienting Choice's Bookkeeping RememberObjects$).

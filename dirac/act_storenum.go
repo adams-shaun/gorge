@@ -6,14 +6,16 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // resolved amount into Object.RuntimeSVars under the SVar name, last write
 // wins; every reader checks that store before the printed SVar, effects/
 // count.go runtimeSVar; the store is cleared when the object leaves the
-// battlefield, events/apply_zone.go, CR 400.7).
+// battlefield, or leaves the stack for any other zone, events/apply_zone.go,
+// CR 400.7).
 //
 // The number is a record of kind osNum in the object-set store
 // (zone_objsets.go): src the carrier, o the value as an int16, kind's high
 // nibble the SVar's index in Table.SVarNames (at most kop.15). It
-// mirrors gorge's one rule and nothing finer: the number belongs to the object,
-// whatever zone it is in, and only a departure from the battlefield clears it
-// (numClear, from removePerm). So a write after the source has left (a
+// mirrors gorge's two rules and nothing finer: the number belongs to the
+// object, whatever zone it is in, and only a departure from the battlefield
+// (numClear, from removePerm) or from the stack to another zone
+// (numStackExit, from placeFromK) clears it. So a write after the source has left (a
 // stacked ability resolving after its source died) persists on the departed
 // object and is read back by the next ability that resolves, and re-entering
 // the battlefield from another zone clears nothing, exactly as gorge's
@@ -42,7 +44,7 @@ type NumStoreStats struct {
 	Writes    int // records written or overwritten
 	Deletes   int // a write of the printed default dropped its record
 	Dropped   int // a write from a token that had left the battlefield
-	Cleared   int // numbers dropped by a departure from the battlefield
+	Cleared   int // numbers dropped by a departure from the battlefield or the stack
 	Late      int // writes whose source had already left the battlefield (a stacked ability outliving it)
 	Saturated int // a value past int16
 	Reads     int // reads
@@ -166,8 +168,21 @@ func (s *State) storeNumOp(k *prep, in *kop.Instr) (ok, done bool) {
 	return true, true
 }
 
-// numClear drops o's numbers: o has just left the battlefield (CR 400.7; gorge
-// clears Object.RuntimeSVars in the wasBattlefield arm of the zone move).
+// numStackExit drops o's numbers as it leaves the stack for any zone but the
+// battlefield: the card there is a new object (CR 400.7), so the number the
+// spell stored does not follow it (gorge's wasStack clear of
+// Object.RuntimeSVars in the zone move). A permanent spell keeps it onto the
+// battlefield. placeFromK calls it on every move (a move from any other zone
+// does nothing here), so no way off the stack can skip it.
+func (s *State) numStackExit(k *prep, o Obj, from, z kop.Zone) {
+	if from == kop.ZoneStack && z != kop.ZoneBattlefield && len(k.t.SVarNames) != 0 {
+		s.numClear(o)
+	}
+}
+
+// numClear drops o's numbers: o has just left the battlefield, or the stack
+// (numStackExit) (CR 400.7; gorge clears Object.RuntimeSVars in the
+// wasBattlefield and wasStack arms of the zone move).
 func (s *State) numClear(o Obj) {
 	n := s.osDrop(func(r *osRec) bool { return r.src == o && r.osKind() == osNum })
 	if DebugNumStoreStats != nil {

@@ -18,6 +18,14 @@ func (s *State) rememberAll(k *prep, in *kop.Instr) {
 		}
 		return
 	}
+	if in.C&kop.RememberAllTarget != 0 {
+		// Obj names one object (gorge Pump RememberObjects$
+		// Targeted.RememberedPlayerCtrl, the repeated player's target).
+		if o := s.objRefObj(in.Obj); o != NoObj {
+			s.remember(o)
+		}
+		return
+	}
 	src := s.objRef(k, kop.RefSelf)
 	var hit slotMask
 	for m := s.occ; m.any(); m = m.rest() {

@@ -219,6 +219,8 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	ob.slot = NoSlot // off a face-down spell's stack mark (slotFaceDownSpell)
 	s.g.zoneTurn.set(o)
 	if k != nil {
+		// every spell's stack exit (act_storenum.go)
+		s.numStackExit(k, o, from, z)
 		s.clearFB(k, o)     // a new object: a granted flashback ends
 		s.encoreClear(k, o) // a new object: a granted encore ends
 		s.embalmClear(k, o) // a new object: a granted embalm ends
