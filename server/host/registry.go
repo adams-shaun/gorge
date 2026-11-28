@@ -171,12 +171,17 @@ type Options struct {
 	// the values this process was started with.
 	BotConfig map[string]map[string]string
 	// MaxOnDemandTables bounds browser-created private tables retained by a
-	// running process. 0 keeps the historical unlimited behaviour. A limit
-	// refuses a new game instead of deleting a finished table: its private
-	// join URL, feedback capture and replay routes remain valid until the
-	// process restarts, when OnDemand's documented process-scoped cleanup
-	// removes its config.
+	// running process. 0 keeps the historical unlimited behaviour. At the
+	// limit, finished games give way oldest first (lowest g<N>): the oldest
+	// started table whose goroutine has exited is dropped from the registry
+	// (its routes answer ErrNotFound; its files on disk are left alone) and
+	// OnTableRemoved is told. A live game is never removed: with none
+	// finished, the new game is refused.
 	MaxOnDemandTables int
+	// OnTableRemoved, when non-nil, is called with the id of each table the
+	// registry drops (a finished on-demand table reaped at MaxOnDemandTables),
+	// after the removal is saved and with no Registry lock held. nil is none.
+	OnTableRemoved func(TableID)
 
 	// PairedBot, when non-nil, lets a table's human ask this bot to evaluate
 	// the decision in front of them (Registry.Advice). New refuses an entry
@@ -387,29 +392,39 @@ func (r *Registry) AddTable(c TableConfig) error {
 	if err := r.checkPairedBotChoice(&c); err != nil {
 		return err
 	}
+	reaped, err := r.register(c)
+	if reaped != "" && r.opts.OnTableRemoved != nil {
+		r.opts.OnTableRemoved(reaped)
+	}
+	return err
+}
+
+// register is AddTable's locked half. It returns the id of the finished
+// on-demand table it removed to make room under MaxOnDemandTables ("" for
+// none), so AddTable can tell OnTableRemoved once r.mu is released.
+func (r *Registry) register(c TableConfig) (TableID, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.closed {
-		return fmt.Errorf("host: registry is closed")
+		return "", fmt.Errorf("host: registry is closed")
 	}
 	if _, dup := r.tables[c.ID]; dup {
-		return fmt.Errorf("host: table %s already exists", c.ID)
+		return "", fmt.Errorf("host: table %s already exists", c.ID)
 	}
 	// A series table's matches are planned by the embedder's hook, so
 	// a registry built without one can never play the table — refuse at
 	// registration rather than halt the table at its first match.
 	if c.Series && r.opts.Series == nil {
-		return fmt.Errorf("host: table %s: a series table needs Options.Series", c.ID)
+		return "", fmt.Errorf("host: table %s: a series table needs Options.Series", c.ID)
 	}
+	var reap TableID
 	if c.OnDemand && c.Event == "" && r.opts.MaxOnDemandTables > 0 {
-		n := 0
-		for _, t := range r.tables {
-			if t.cfg.OnDemand && t.cfg.Event == "" {
-				n++
-			}
-		}
+		n, oldest := r.onDemandLocked()
 		if n >= r.opts.MaxOnDemandTables {
-			return fmt.Errorf("host: on-demand table limit %d reached", r.opts.MaxOnDemandTables)
+			if oldest == "" {
+				return "", fmt.Errorf("host: on-demand table limit %d reached", r.opts.MaxOnDemandTables)
+			}
+			reap = oldest
 		}
 	}
 	// Admission (spec §7): an on-demand table whose policy entry has
@@ -440,12 +455,42 @@ func (r *Registry) AddTable(c TableConfig) error {
 				}
 			}
 			if n >= r.opts.MaxSearchTables {
-				return fmt.Errorf("host: search bots are at capacity; choose a non-search policy")
+				return "", fmt.Errorf("host: search bots are at capacity; choose a non-search policy")
 			}
 		}
 	}
+	if reap != "" {
+		delete(r.tables, reap)
+	}
 	r.tables[c.ID] = newTable(r, c)
-	return r.saveLocked() // a no-op in memory mode
+	return reap, r.saveLocked() // a no-op in memory mode
+}
+
+// onDemandLocked counts the private on-demand tables (non-event) against
+// MaxOnDemandTables and names the oldest finished one, the table that gives
+// way at the limit: started, its goroutine exited (t.done closed), lowest
+// g<N>, ties by id. A live or never-started table is never named. r.mu held.
+func (r *Registry) onDemandLocked() (int, TableID) {
+	n, oldest, oldestN := 0, TableID(""), 0
+	for id, t := range r.tables {
+		if !t.cfg.OnDemand || t.cfg.Event != "" {
+			continue
+		}
+		n++
+		if !t.started {
+			continue
+		}
+		select {
+		case <-t.done:
+		default:
+			continue
+		}
+		k := gameIDNumber(id)
+		if oldest == "" || k < oldestN || (k == oldestN && id < oldest) {
+			oldest, oldestN = id, k
+		}
+	}
+	return n, oldest
 }
 
 // checkAccepted asks a validated table's engine whether it can play the table's
@@ -856,6 +901,9 @@ func (r *Registry) Tables() []protocol.TableInfo {
 		r.mu.RLock()
 		t := r.tables[id]
 		r.mu.RUnlock()
+		if t == nil { // removed since ids()
+			continue
+		}
 		out = append(out, t.info())
 	}
 	return out
@@ -873,6 +921,9 @@ func (r *Registry) LobbyTables() []protocol.TableInfo {
 		r.mu.RLock()
 		t := r.tables[id]
 		r.mu.RUnlock()
+		if t == nil { // removed since ids()
+			continue
+		}
 		t.mu.RLock()
 		onDemand := t.cfg.OnDemand
 		t.mu.RUnlock()

@@ -20,9 +20,9 @@ import (
 
 // deckImports holds the decks a client submitted with POST /api/games, under
 // the ids their tables name them by, and checks each one before it is
-// admitted. The decks are process-scoped like the on-demand tables that deal
-// them: the host asks the loader for them at match start and again whenever
-// it replays a match, so they stay for the life of the process.
+// admitted. A table's decks live as long as the table: the host asks the
+// loader for them at match start and again whenever it replays a match, and
+// dropTable releases them when the registry reaps the finished table.
 type deckImports struct {
 	reg       *cards.Registry
 	supported map[string]bool
@@ -52,8 +52,8 @@ func (d *deckImports) loader(next func(string) (host.Deck, error)) func(string) 
 	}
 }
 
-// maxStoredImports bounds how many submitted decks the process holds: tables
-// are process-scoped, so a deck is never evicted, and POST /api/games is open
+// maxStoredImports bounds how many submitted decks the process holds: a deck
+// leaves only with its reaped table (dropTable), and POST /api/games is open
 // to any client. A full store refuses a request that would add to it.
 const maxStoredImports = 512
 
@@ -88,6 +88,16 @@ func (d *deckImports) drop(ids ...string) {
 		delete(d.decks, id)
 	}
 	d.mu.Unlock()
+}
+
+// dropTable releases every deck submitted for table, seats 0 through 3.
+func (d *deckImports) dropTable(table host.TableID) {
+	d.drop(importDeckID(table, 0), importDeckID(table, 1), importDeckID(table, 2), importDeckID(table, 3))
+}
+
+// importDeckID is the id a deck submitted for table's seat is stored under.
+func importDeckID(table host.TableID, seat int) string {
+	return fmt.Sprintf("import-%s-s%d", table, seat)
 }
 
 // maxImportedDeckCards bounds a submitted deck's main board: a Commander deck
@@ -339,7 +349,7 @@ func (c config) importSeatDecks(req httpapi.CreateGameOptions) (map[int]host.Dec
 func podDecks(req httpapi.CreateGameOptions, shuffled []string, submitted map[int]host.Deck, table host.TableID, seats int) (want, ids []string, err error) {
 	want, ids = make([]string, seats), make([]string, seats)
 	for seat := range submitted {
-		ids[seat] = fmt.Sprintf("import-%s-s%d", table, seat)
+		ids[seat] = importDeckID(table, seat)
 		want[seat] = ids[seat]
 	}
 	for seat, pick := range []string{req.HumanDeck, req.BotDeck} {
@@ -428,4 +438,13 @@ func capNames(names []string) string {
 		return strings.Join(names, ", ")
 	}
 	return fmt.Sprintf("%s, and %d more", strings.Join(names[:shown], ", "), len(names)-shown)
+}
+
+// tableRemover is the registry's OnTableRemoved hook: a reaped table's
+// submitted decks and seat tokens go with it. A nil gate revokes nothing.
+func tableRemover(imports *deckImports, gate *seatGate) func(host.TableID) {
+	return func(id host.TableID) {
+		imports.dropTable(id)
+		gate.revoke(id)
+	}
 }
