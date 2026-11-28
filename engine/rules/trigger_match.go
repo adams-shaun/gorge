@@ -1388,7 +1388,8 @@ func (e *Engine) checkExertTriggers(ev events.Event) {
 }
 
 // skipTriggerLine reports a printed trigger line this walk must not match for
-// ev: the leaves-the-battlefield split gate (only the half whose look-back
+// ev: an under card's ward a copy replaced (underWardReplaced, for o's pile
+// face merged), the leaves-the-battlefield split gate (only the half whose look-back
 // shape matches this pass), and CR 603.6c/603.10/113.6 for a destination-based
 // zone-change line on its own departure.
 //
@@ -1401,7 +1402,10 @@ func (e *Engine) checkExertTriggers(ev events.Event) {
 // CARDNAME is put into a graveyard from anywhere", Card.Self) and one still
 // functional in the destination zone (TriggerZones$ Graveyard) keep firing
 // for their own move.
-func skipTriggerLine(t *cards.Trigger, source state.ObjID, ev *events.Event, split, leaving bool) bool {
+func skipTriggerLine(o *state.Object, merged int, t *cards.Trigger, source state.ObjID, ev *events.Event, split, leaving bool) bool {
+	if underWardReplaced(o, merged, t) {
+		return true
+	}
 	if split && looksBackOnDeparture(t) != leaving {
 		return true
 	}
@@ -1630,7 +1634,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// leaves-the-battlefield walk.) Mode$ Unattached looks back the
 				// same way (CR 701.3d/603.10a): the attachment's own departure
 				// is its unattach.
-				if skipTriggerLine(&t, id, ev, split, leaving) {
+				if skipTriggerLine(o, fc.merged, &t, id, ev, split, leaving) {
 					continue
 				}
 				// CR 603.8 state trigger: its condition is checked against the
