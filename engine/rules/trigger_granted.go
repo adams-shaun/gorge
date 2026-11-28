@@ -623,10 +623,11 @@ func (e *Engine) checkGrantedAttackKeywordTriggers(observer *Engine, id state.Ob
 	// Printed ownership is a multiset: each printed K:Firebending line is
 	// queued by the printed expansion, so it consumes one equal derived entry;
 	// every other derived entry is a granted instance (CR 113.2c: each is its
-	// own ability). A face-down object has no printed face (CR 708.8).
+	// own ability). A face-down object has no printed face (CR 708.8), and a
+	// pile that loses its abilities has no line beneath the top (CR 613.1f).
 	var printedLeft []string
 	if !e.faceDownPrintedHides(o) {
-		for _, k := range chars.PrintedKeywords(o, f) {
+		for _, k := range append(slices.Clip(f.Keywords), underPrintedKeywords(observer, o)...) {
 			if cards.KeywordHead(k) == "Firebending" {
 				printedLeft = append(printedLeft, k)
 			}
