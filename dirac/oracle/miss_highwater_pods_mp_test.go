@@ -1,11 +1,13 @@
 package oracle
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // Miss Highwater in a four-seat pod: a player who took the contract (the
@@ -36,8 +38,58 @@ var missHighwaterPodDecks = [4][]cardset.Entry{
 }
 
 // missHighwaterPodTally counts what the games showed, read off gorge's logs.
+// departed counts the seats that had lost the game when a Miss Highwater trigger
+// was put on the stack for it: that trigger's "discard your hand" unless
+// (UnlessPayer$ TriggeredTarget | UnlessSwitched$ True) then has a payer who
+// left the game, and CR 800.4a/800.4f ask it nothing. Gorge
+// (effects/unless.go unlessPayerTargetsFor) skips the Lost seat and the kernel
+// (dirac/cost_departedpayer.go execPayer) maps it to no payer; the lockstep
+// pins that the two agree.
 type missHighwaterPodTally struct {
-	games, contracts, contractLosses, copies, goneOn int
+	games, contracts, contractLosses, copies, goneOn, departed int
+}
+
+// departedUnlessPayers counts the Miss Highwater triggers put on the stack
+// for a damaged player who had already lost the game (the combat damage took
+// it to 0 life, and state-based actions run before the trigger is put on the
+// stack, CR 603.3 and 704.3), and the mode choices any departed seat made
+// afterwards (CR 800.4f: none).
+func departedUnlessPayers(g *GorgeSide) (departed, askedAfter int) {
+	isHighwater := func(id state.ObjID) bool {
+		o := g.E.G.Obj(id)
+		return o != nil && o.Card != nil && len(o.Card.Faces) > 0 && o.Card.Faces[0].Name == "Miss Highwater"
+	}
+	var gone, hit [MaxSeats]bool // hit: Miss Highwater's combat damage, trigger not yet pushed
+	for i := range g.E.L.Events {
+		switch e := &g.E.L.Events[i]; e.Kind {
+		case events.DamageProvenance:
+			// Obj is the source, IDs[0] the recipient (a PlayerRef for a seat)
+			if len(e.IDs) > 0 && strings.HasPrefix(e.Text, events.DamageProvenanceCombat) && isHighwater(e.Obj) {
+				if p, ok := e.IDs[0].PlayerRef(); ok && int(p) < MaxSeats {
+					hit[p] = true
+				}
+			}
+		case events.PlayerLost:
+			if int(e.Player) < MaxSeats {
+				gone[e.Player] = true
+			}
+		case events.TriggerPush:
+			if !isHighwater(e.Obj) { // Obj is the trigger's source permanent
+				continue
+			}
+			for p := range hit {
+				if hit[p] && gone[p] {
+					departed++
+				}
+				hit[p] = false
+			}
+		case events.ModeChosen:
+			if int(e.Player) < MaxSeats && gone[e.Player] {
+				askedAfter++
+			}
+		}
+	}
+	return departed, askedAfter
 }
 
 // missHighwaterPodTallyGame adds one finished game's events to y.
@@ -124,6 +176,11 @@ func TestFourSeatMissHighwaterPodsLockstep(t *testing.T) {
 		res := LockstepLed(m, seed, g, k, pol, RunConfig{Config: cfg, MaxDecisions: 8000, MaxTurns: 100})
 		CloseSide(k)
 		missHighwaterPodTallyGame(g, &y)
+		n, asked := departedUnlessPayers(g)
+		y.departed += n
+		if asked != 0 {
+			t.Errorf("seed %d: gorge asked a departed seat %d mode choice(s) (CR 800.4f)", seed, asked)
+		}
 		if d := res.Div; d != nil {
 			t.Errorf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
 		}
@@ -141,5 +198,10 @@ func TestFourSeatMissHighwaterPodsLockstep(t *testing.T) {
 	}
 	if y.copies == 0 {
 		t.Fatalf("gorge made no tokens after a contracted loss: the LosesGame Effect trigger did not fire: %+v", y)
+	}
+	// the departed-payer precondition: a Miss Highwater trigger went on the
+	// stack for a seat that had already left the game
+	if y.departed == 0 {
+		t.Fatalf("no Miss Highwater trigger went on the stack for a seat that had lost: the departed-payer case never arose: %+v", y)
 	}
 }
