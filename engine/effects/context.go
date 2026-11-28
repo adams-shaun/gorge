@@ -172,6 +172,20 @@ func DefinedRef(h Host, c *Ctx, r Ref, sa *cards.SA) []state.Target {
 func battlefieldValidTargets(h Host, c *Ctx, filt string) []state.Target {
 	g := h.Game()
 	sc := c.SpecContext(c.Controller)
+	// A context built outside effects.Resolve carries no layer tables: bind
+	// the host's always-published pair for this sweep, the same fallback
+	// EvalCountOK makes (count.go), so the ordinary filter reads a type a
+	// continuous effect granted (an animated land's Creature) rather than the
+	// printed face. A Resolve context already carries them and is left as is.
+	if sc.Layers.EffectiveNames == nil || sc.Layers.DerivedTypes == nil {
+		board := layerTablesFor(h, nil, nil)
+		if sc.Layers.EffectiveNames == nil {
+			sc.Layers.EffectiveNames = board.EffectiveNames
+		}
+		if sc.Layers.DerivedTypes == nil {
+			sc.Layers.DerivedTypes = board.DerivedTypes
+		}
+	}
 	sc.DerivedPTs = append(sc.DerivedPTs, GreatestPowerDerivedPTs(g, filt, h)...)
 	var out []state.Target
 	for _, p := range g.AliveFrom(0) {
