@@ -1119,6 +1119,9 @@ func (s *State) srcKw(k *prep) kop.KwMask {
 	if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
 		return s.kw(k, sl)
 	}
+	if s.emblemSrc(k, s.res.e.card) {
+		return 0 // an emblem's ability: the emblem has no keywords (CR 114.3; repl_emblemsrc.go)
+	}
 	kw := k.cards[s.res.e.card].kw
 	if e := &s.res.e; e.kind != seSpell {
 		kw = s.srcLeftKw(kw, e) // kw_srcleft.go: a source that left uses its last known keywords (CR 608.2h)

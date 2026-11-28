@@ -721,6 +721,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		// record) are layer-6 keyword grants gorge lists by timestamp beside
 		// a static's AddKeyword$ grant (lower_attackkwgrant.go)
 		ka.GrantedKw = a.Name == "GrantedUndying" || a.Name == "GrantedPersist"
+		ka.EmblemSrc = a.EmblemSrc
 	}
 	if a.Kind == akSpell {
 		ka.Cost = cb.spellCost
