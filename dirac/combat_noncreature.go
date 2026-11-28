@@ -43,5 +43,6 @@ func (s *State) leaveCombat(sl Slot) {
 	p.flags &^= pfAttacking | pfBlocking | pfBlocked
 	p.blocking = NoSlot
 	p.nblock = 0
+	s.bandClearSlot(sl) // CR 702.22f: a creature removed from combat leaves its band
 	s.touchSl(sl)
 }

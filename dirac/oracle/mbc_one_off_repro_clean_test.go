@@ -12,6 +12,17 @@ import (
 // checkRefusedRepro builds it) and fails on any divergence or stall.
 func oneOffReproClean(t *testing.T, name string) {
 	t.Helper()
+	r, res, _ := oneOffReproRun(t, name)
+	if !res.Clean() {
+		t.Fatalf("%s: the recorded game diverges (%d decisions): %v", name, res.Decisions, res.Div)
+	}
+	stallCheck(t, r, res, false)
+}
+
+// oneOffReproRun is oneOffReproClean's replay: the recording, its lockstep
+// result and the script policy that served it.
+func oneOffReproRun(t *testing.T, name string) (*Repro, Result, *ScriptPolicy) {
+	t.Helper()
 	r, err := ReadRepro(filepath.Join("testdata", "repro", name+".repro.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -39,9 +50,6 @@ func oneOffReproClean(t *testing.T, name string) {
 		t.Fatal(err)
 	}
 	defer CloseSide(k)
-	res := Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
-	if !res.Clean() {
-		t.Fatalf("%s: the recorded game diverges (%d decisions): %v", name, res.Decisions, res.Div)
-	}
-	stallCheck(t, r, res, false)
+	sp := &ScriptPolicy{Actions: r.Actions}
+	return r, Lockstep(m, r.Seed, k, sp, rc), sp
 }

@@ -804,6 +804,7 @@ Forced March
 Forlorn Pseudamma
 Formation Breaker
 Formidable Commons
+Fortified Area
 Fortress Kin-Guard
 Forum Familiar
 Fractal Anomaly
@@ -1496,6 +1497,7 @@ Narset of the Ancient Way
 Narset's Rebuke
 Narset, Jeskai Waymaster
 Nasty Little Rabbit
+Nature's Blessing
 Nature's Rhythm
 Nature's Will
 Nav Squad Commandos
