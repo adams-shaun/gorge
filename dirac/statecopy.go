@@ -18,8 +18,9 @@ func (*noCopy) Unlock() {}
 // own cold buffer and fork pool, and allocates only if its buffer is too small.
 func (dst *State) CopyFrom(src *State) {
 	stale := dst.permHi
-	dst.pcMemoDrop() // mana_pcmemo.go
-	dst.sfmDrop()    // mana_sfmemo.go
+	dst.pcMemoDrop()  // mana_pcmemo.go
+	dst.sfmDrop()     // mana_sfmemo.go
+	dst.tyCacheDrop() // static_typecache.go
 	dst.stateCore = src.stateCore
 	hi := src.permHi
 	copy(dst.perms[:hi], src.perms[:hi])
@@ -106,6 +107,8 @@ type ForkPool struct {
 	pcm pcMemo
 	// sfm: scriptFilt's per-decision memo (mana_sfmemo.go).
 	sfm sfMemo
+	// tyc: the cross-transition cache of derived types (static_typecache.go).
+	tyc tyCache
 }
 
 // warmForkDepth is past the deepest nesting measured, 5 in random play.
