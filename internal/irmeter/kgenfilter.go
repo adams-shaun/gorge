@@ -55,6 +55,34 @@ func (k KgenFilter) DropRow() string {
 	return fmt.Sprintf("kgen_filter_refuse_drop_pct\t%s\t%.1f", kgenScope, k.DropPct())
 }
 
+// Sites is every filter refusal site, whichever reader reaches it.
+func (k KgenFilter) Sites() int { return k.Shared + k.StringOnly + k.TypedOnly }
+
+// SiteSharePct is 100 * Sites / refuseSites, the filter sites against kgen's
+// refuse_sites count; 0 with no refuse site. refuse_sites counts only refuse
+// calls and Sites also counts fmt.Errorf and errors.New, so this compares two
+// sizes: it is not the share of a set the filter sites belong to.
+func (k KgenFilter) SiteSharePct(refuseSites int) float64 {
+	if refuseSites == 0 {
+		return 0
+	}
+	return 100 * float64(k.Sites()) / float64(refuseSites)
+}
+
+// RemovedByTyped is the refusal sites kgen would lose with the string reader
+// deleted, string_only - typed_only; never negative.
+func (k KgenFilter) RemovedByTyped() int { return max(k.StringOnly-k.TypedOnly, 0) }
+
+// siteRows are the printed rows that follow the drop row, the share one
+// decimal.
+func siteRows(k KgenFilter, refuseSites int) []string {
+	return []string{
+		fmt.Sprintf("kgen_filter_refuse_sites\t%s\t%d", kgenScope, k.Sites()),
+		fmt.Sprintf("kgen_filter_refuse_site_share_pct\t%s\t%.1f", kgenScope, k.SiteSharePct(refuseSites)),
+		fmt.Sprintf("kgen_refuse_sites_removed_by_typed\t%s\t%d", kgenScope, k.RemovedByTyped()),
+	}
+}
+
 // fnode is one function or package var of the package: its refusal sites
 // and the package-local names it references.
 type fnode struct {

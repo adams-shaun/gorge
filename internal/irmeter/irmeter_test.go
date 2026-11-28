@@ -1,7 +1,9 @@
 package irmeter
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -106,8 +108,9 @@ var liveBaseline = []struct {
 
 var engineScopes = []string{"engine/effects", "engine/rules", "engine/cards", "engine/events"}
 
-// TestMeterPrints measures the real module and holds the headline counts to
-// within 5% of the 1dc038d51c baseline.
+// TestMeterPrints measures the real module, holds the headline counts to
+// within 5% of the 1dc038d51c baseline and checks the kgen-filter site rows
+// close the printed report, after the drop row.
 func TestMeterPrints(t *testing.T) {
 	rows, err := Measure("../..")
 	if err != nil {
@@ -143,5 +146,31 @@ func TestMeterPrints(t *testing.T) {
 		if fam != got["param_string_reads\t"+s] {
 			t.Errorf("%s: family rows sum to %d, param_string_reads is %d", s, fam, got["param_string_reads\t"+s])
 		}
+	}
+	kf, err := MeasureKgenFilter("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out strings.Builder
+	if err := Print(&out, rows, kf); err != nil {
+		t.Fatal(err)
+	}
+	refuse := got["refuse_sites\t"+kgenScope]
+	sites := kf.Shared + kf.StringOnly + kf.TypedOnly
+	if refuse == 0 || sites == 0 {
+		t.Fatalf("precondition: refuse sites %d and filter sites %d are both measured", refuse, sites)
+	}
+	want := []string{
+		kf.DropRow(),
+		fmt.Sprintf("kgen_filter_refuse_sites\tdirac/kgen\t%d", sites),
+		fmt.Sprintf("kgen_filter_refuse_site_share_pct\tdirac/kgen\t%.1f", 100*float64(sites)/float64(refuse)),
+		fmt.Sprintf("kgen_refuse_sites_removed_by_typed\tdirac/kgen\t%d", max(kf.StringOnly-kf.TypedOnly, 0)),
+	}
+	lines := strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n")
+	if len(lines) != len(rows)+len(kf.Rows())+len(want) {
+		t.Fatalf("printed %d lines, want %d", len(lines), len(rows)+len(kf.Rows())+len(want))
+	}
+	if tail := lines[len(lines)-len(want):]; !reflect.DeepEqual(tail, want) {
+		t.Errorf("report ends %q, want %q", tail, want)
 	}
 }
