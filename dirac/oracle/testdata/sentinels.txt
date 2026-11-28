@@ -200,3 +200,6 @@ TestUnlessCommandTowerOfferLockstep
 TestVoteChoicesFourSeatLockstep
 TestVoteStoreNumFourSeatLockstep
 TestPinManifest
+# Named by 11-28 red (whole-oracle run 46131562007 at 98eebf0c0b: #5912 refused Cursed Mirror and Leyline Tyrant
+# by name; the FDC pod ratchet still listed none)
+TestFDCFourSeatPodsLockstep
