@@ -1,0 +1,8 @@
+family: ExtOp
+name: ExtEnterDevour
+value: next
+forge: EnterDevour
+state: none (the answered picks ride the sacrifice batch, sacM/sacOrd, while asked)
+status: active
+ticket: hosted-cmdr-devour
+doc: ExtEnterDevour: an as-enters Devour (CR 702.82a; gorge kwDevour's Moved replacement, engine/cards/kw_devour.go): as the permanent enters, its controller may sacrifice any number of the permanents F matches (Optional$, SacValid$ <valid>.Other: Famished Worldsire's lands, Feasting Hobbit's Foods), and it enters with B +1/+1 counters for each one sacrificed. gorge's replacement is a ReplacementResult$ Updated body, so it runs once the permanent is on the battlefield: the kernel queues the ask from the enters program (runReplProgAs, akDevour) and poses one ChSacrifice decision per pick over the unpicked matches in battlefield order, Done always offered (gorge's Min 0, Max the eligible count KChoose); nothing is asked when no permanent matches. The picks stay on the battlefield until the answer commits, leave as one batch in pick order (addSac/flushSac), then the permanent gets B +1/+1 counters for each one (placeEntryCounters). Only the lone instruction of an enters program. dirac/kw_devour.go.

@@ -1714,113 +1714,120 @@ const ExtEncore ExtOp = 104
 
 func init() { extOpNames[ExtEncore] = "Encore" }
 
+// EnterDevour (dirac/manifest/ExtOp/ExtEnterDevour)
+//
+// ExtEnterDevour: an as-enters Devour (CR 702.82a; gorge kwDevour's Moved replacement, engine/cards/kw_devour.go): as the permanent enters, its controller may sacrifice any number of the permanents F matches (Optional$, SacValid$ <valid>.Other: Famished Worldsire's lands, Feasting Hobbit's Foods), and it enters with B +1/+1 counters for each one sacrificed. gorge's replacement is a ReplacementResult$ Updated body, so it runs once the permanent is on the battlefield: the kernel queues the ask from the enters program (runReplProgAs, akDevour) and poses one ChSacrifice decision per pick over the unpicked matches in battlefield order, Done always offered (gorge's Min 0, Max the eligible count KChoose); nothing is asked when no permanent matches. The picks stay on the battlefield until the answer commits, leave as one batch in pick order (addSac/flushSac), then the permanent gets B +1/+1 counters for each one (placeEntryCounters). Only the lone instruction of an enters program. dirac/kw_devour.go.
+const ExtEnterDevour ExtOp = 105
+
+func init() { extOpNames[ExtEnterDevour] = "EnterDevour" }
+
 // ExtOp (dirac/manifest/ExtOp/ExtExileFaceDown)
 //
 // ChangeZone / ChangeZoneAll ExileFaceDown$ True (no WithMayLook$, no DefinedExiler$) beside RememberChanged$ True, the move first in its program: right after the move, each remembered object now in exile is marked exiled face down by the resolving source (gorge applyMoveFaceDown's blind exiled_with_face_down marker: FaceDown, ExiledWith the source, nobody the looker; apply_zone.go). The mark is the Dig face-down exile's (zone_exilefacedown.go exwFace). dirac/zone_exilefacedownmove.go.
-const ExtExileFaceDown ExtOp = 105
+const ExtExileFaceDown ExtOp = 106
 
 func init() { extOpNames[ExtExileFaceDown] = "ExileFaceDown" }
 
 // Mutate (dirac/manifest/ExtOp/ExtMergePermanent)
-const ExtMergePermanent ExtOp = 106
+const ExtMergePermanent ExtOp = 107
 
 func init() { extOpNames[ExtMergePermanent] = "MergePermanent" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtMonarchJail)
 //
 // Palace Jailer's exile until an opponent becomes the monarch (CR 610.3, 610.3b; gorge ChangeZone exileUntilOpponentMonarchMet plus the Effect's BecomeMonarch promise): Obj the target is exiled and a monarch link is recorded, unless an opponent became the monarch since the ability was put on the stack.
-const ExtMonarchJail ExtOp = 107
+const ExtMonarchJail ExtOp = 108
 
 func init() { extOpNames[ExtMonarchJail] = "MonarchJail" }
 
 // Myriad (dirac/manifest/ExtOp/ExtMyriad)
 //
 // ExtMyriad: DB$ Myriad (CR 702.116a; gorge effMyriad): for each opponent other than the defending player, from the controller in turn order, the controller is asked (ChGenMyriad yes/no; gorge offers a planeswalker of the asked player too, each a yes over that walker) and a yes makes a token copy of Obj (B and C as OpCopyAsTokenEx) tapped and attacking that player; each copy registers its end-of-combat exile promise (gorge scheduleAtEOTRider __kwWarpExile at this turn's end of combat step). dirac/kw_myriad.go.
-const ExtMyriad ExtOp = 108
+const ExtMyriad ExtOp = 109
 
 func init() { extOpNames[ExtMyriad] = "Myriad" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtOptInSeat)
 //
 // ExtOptInSeat: the head of an OpRepeatEachPlayer body under RepeatOptionalForEachPlayer$ True (gorge effRepeatEach's repeatEachElectionDecision, ResumeKind repeat_each_optional): the repeated player (the loop's own seat, not the controller) is asked yes / no (ChGenOptInSeat, canonical kinds yes_seat / no_seat); B.N the body's instructions after this one, which a no skips (the player's body is not run and the loop goes on to the next player). dirac/act_optinseat.go.
-const ExtOptInSeat ExtOp = 109
+const ExtOptInSeat ExtOp = 111
 
 func init() { extOpNames[ExtOptInSeat] = "OptInSeat" }
 
 // Pair (dirac/manifest/ExtOp/ExtPair)
 //
 // ExtPair: Soulbond's optional pairing (CR 702.95a; gorge engine/effects/soulbond.go effPair): the unpaired battlefield creature Obj may pair with another unpaired creature its trigger's controller controls; C 1 restricts the pick to the triggering entrant (RestrictToRemembered$).
-const ExtPair ExtOp = 111
+const ExtPair ExtOp = 112
 
 func init() { extOpNames[ExtPair] = "Pair" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtPayLifeX)
 //
 // The as-enters "pay any amount of life" ask (CR 614.12; gorge's R:Event$ Moved ReplaceWith$ StoreSVar body costing Mandatory PayLife<X>, cast_etbchoice.go etbPayLifeBound / etbPayLifeOptions: a KChoose of Kind "paylife" options 0..bound, the amount on Amount), the first instruction of an enters program. B the cap value (gorge's XMax$; the constant 32767 when the body has none), C the ExtStoreNum C field of the stored name (name index, delete flag, printed default; kop.StoreNumC). The controller is asked 0..min(life, cap) as a ChGenPayLife decision (mode = the amount); the answer loses that much life through loseLife and writes it as the entering permanent's stored number (act_storenum.go numStore), the Count$xPaid the body stores. dirac/repl_paylife.go.
-const ExtPayLifeX ExtOp = 112
+const ExtPayLifeX ExtOp = 113
 
 func init() { extOpNames[ExtPayLifeX] = "PayLifeX" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtPlaneCurse)
 //
 // Eloren Wilds' plane-source curse Effect (DB$ Effect | StaticAbilities$ STCantCast beside Triggers$ PlaneswalkedTo self-exile, Duration$ Permanent): the targeted player may not cast spells until any player planeswalks. gorge registers the CantBeCast static with the UntilPlaneswalk lifetime (effEffect's effectPlaneCurseEnd; rules' checkPlaneswalkTriggers ends it via withoutUntilPlaneswalk); the kernel keeps the narrow record instead -- planeSeat.curse's per-seat bitset, set by the instr's player target and cleared in planeswalk -- and castForbiddenCost reads it after the static scan (gorge consults registered effects after face statics). The Effect lives over the plane as its source; the record is the narrow equivalent the planebodies slice keeps on the cold planar record.
-const ExtPlaneCurse ExtOp = 113
+const ExtPlaneCurse ExtOp = 114
 
 func init() { extOpNames[ExtPlaneCurse] = "PlaneCurse" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtRememberPlayer)
 //
 // Pump RememberObjects$ TargetedController: record the target's controller as the resolution's player (res.chPl) so the chained Draw can read it after the GainControl (Rules of Acquisition; CR 608.2c).
-const ExtRememberPlayer ExtOp = 114
+const ExtRememberPlayer ExtOp = 115
 
 func init() { extOpNames[ExtRememberPlayer] = "RememberPlayer" }
 
 // RepeatOptional (dirac/manifest/ExtOp/ExtRepeatOptional)
 //
 // ExtRepeatOptional: an OpRepeatWhile body's RepeatOptional$ election (gorge effRepeat's repeat_optional "Repeat this process?"). B.N 0 at the body's head: C is the pass's progress condition, and a pass that starts without it is the last one, no election follows it (gorge's changed-nothing shortcut, CR 732.2a). B.N 1 at the body's tail: unless the pass was the last, the resolving controller is asked yes / no (ChGenConfirm); a no ends the loop. dirac/act_repeatoptional.go.
-const ExtRepeatOptional ExtOp = 115
+const ExtRepeatOptional ExtOp = 116
 
 func init() { extOpNames[ExtRepeatOptional] = "RepeatOptional" }
 
 // api Reveal Random (dirac/manifest/ExtOp/ExtRevealRandom)
 //
 // a Reveal Random$ True of one target player's hand (Urza's Bauble, "look at a card at random in target player's hand"): one draw of the engine RNG over that hand's cards when it holds any, no card moves, no decision; the reveal is a Note in gorge, so only the RNG draw is state
-const ExtRevealRandom ExtOp = 116
+const ExtRevealRandom ExtOp = 117
 
 func init() { extOpNames[ExtRevealRandom] = "RevealRandom" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtRippleBottom)
 //
 // ExtRippleBottom: the tail of a granted ripple's trigger body (gorge effRippleBottom): every card of the resolution's remembered set still in its owner's library goes to the bottom of that library, in remembered order. Two or more pose the owner the CR 401.4 arrangement ask (ChArrange, gorge libraryPlacementOrder over the cards still at the top — the ask precedes the move), and the answer's order is the bottom order (libraryOrderPlacement bottom=true); one or none bottoms unasked. A cast card is on the stack and skipped; a card a response moved is skipped by the same zone recheck (gorge's placed). The kernel-native ripple body arms it (kw_ripple.go rippleProg); no ExtLibPlace bracket, the op asks itself. dirac/kw_ripple.go rippleBottomExt.
-const ExtRippleBottom ExtOp = 117
+const ExtRippleBottom ExtOp = 118
 
 func init() { extOpNames[ExtRippleBottom] = "RippleBottom" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtStoreNum)
 //
 // StoreSVar's per-object number write (gorge effStoreSVar, events.StoreSVar -> Object.RuntimeSVars; CR 400.7): B the value (any ValueRef, evaluated at the write), C the SVar name (Table.SVarNames index, low 4 bits) with the delete-on-default flag (kop.StoreNumDel) and the printed default beside it (kop.StoreNumDefault); the target is the resolving source. The number is a record of the object-set store (kind osNum) keyed by the object, whatever zone it is in: only a departure from the battlefield clears it (gorge's wasBattlefield reset), so a write after the source left persists on the departed object. dirac/act_storenum.go.
-const ExtStoreNum ExtOp = 118
+const ExtStoreNum ExtOp = 119
 
 func init() { extOpNames[ExtStoreNum] = "StoreNum" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtTokenCounters)
 //
 // A Token's WithCountersType$ / WithCountersAmount$ rider: A.N > 0 arms genState.enterCtr with A counters of kind C for the OpCreateToken(Ex) that follows, so the minted token enters with them (CR 122.6, 614.1c), and A.N 0 clears the arm after the mint. Printlifter Ooze's 0/0 Ooze with X +1/+1 counters. dirac/ctr_tokenentry.go.
-const ExtTokenCounters ExtOp = 119
+const ExtTokenCounters ExtOp = 120
 
 func init() { extOpNames[ExtTokenCounters] = "TokenCounters" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtTurnFaceDown)
 //
 // SetState Mode$ TurnFaceDown (gorge effSetState): battlefield permanent Obj turns face down in place (CR 708.2): a 2/2 colourless creature with no name, types or abilities. Its printed triggers and statics unsubscribe; its counters and other effects stay. Obscuring Aether. dirac/face_facedown.go.
-const ExtTurnFaceDown ExtOp = 120
+const ExtTurnFaceDown ExtOp = 121
 
 func init() { extOpNames[ExtTurnFaceDown] = "TurnFaceDown" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtTwoPilesEach)
 //
 // A RepeatEach player body's battlefield TwoPiles (Bend or Break: Defined$ Remembered, Separator$ Remembered, Chooser$ ChosenPlayer, ValidCards$ Land.!token+RememberedPlayerCtrl; gorge effTwoPiles' battlefield arm over the repeated player): F names the repeated player's permanents (CtrlEachPl). They separate them into two piles (ChGenPileSplit, a permanent per pick, AkDone-closed, picking them all ends it; a one-permanent pool poses no split), the opponent their chain's ExtChoosePlayerEach chose picks one (ChGenPileChoose mode 0 the picks, 1 the rest; resChosenPlayer), and the chosen pile is destroyed while the other is tapped (ChosenPile$ DestroyAll Land.IsRemembered then UnchosenPile$ TapAll Land.IsRemembered: each pile's members still matching F run the ordinary destroy / tap-all passes, gorge twoPilesRunPile's fresh Remembered = pile). Pile A rides genState.sacM, the pool player genState.pickP; both are cleared at the end. B.N&1: the pick's mode-1 answer names pile A (the chosen/unchosen piles swap; the lockstep mutation). dirac/act_pileseach.go.
-const ExtTwoPilesEach ExtOp = 121
+const ExtTwoPilesEach ExtOp = 122
 
 func init() { extOpNames[ExtTwoPilesEach] = "TwoPilesEach" }
 

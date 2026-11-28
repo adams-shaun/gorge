@@ -94,7 +94,7 @@ func hostedCmdrCases() []hostedCmdrCase {
 	// bears tap for their own spells, so seat 0's untap step reaches the cap.
 	staticOrbDeck := append(deckOf(4, "Static Orb"), deckOf(36, "Swamp")...)
 	orbBearsDeck := append(deckOf(20, "Grizzly Bears"), deckOf(20, "Forest")...)
-	return []hostedCmdrCase{
+	return append(devourCases(), []hostedCmdrCase{
 		{
 			name:     "flayer_probe_gain_control_granted_annihilator",
 			carrier:  "Flayer Probe",
@@ -179,7 +179,7 @@ func hostedCmdrCases() []hostedCmdrCase {
 			decks:   [2][]string{orbBearsDeck, staticOrbDeck},
 			reached: staticOrbCapElection,
 		},
-	}
+	}...)
 }
 
 // hybridProbeScript carries Ulalek's first pip ({C/W}, CR 702.105): a
