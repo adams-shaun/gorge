@@ -188,6 +188,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return 0
 	case kop.ExAttackedTurn:
 		return s.attackedTurn(k, x, ctx) // value_turntallies.go
+	case kop.ExCardNumAttacksThisTurn:
+		return s.atkTally(ctx) // value_attacktally.go
 	case kop.ExOppsLostLife:
 		return s.oppsLostLife(ctx.ctrl, x.N) // N 1 legendary hit, N 2 any hit (value_turntallies.go), N 3 any damage (value_oppsdamaged.go)
 	case kop.ExNotOwnLibMV:

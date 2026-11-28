@@ -2655,6 +2655,8 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vSrcRemCounters:     kop.ExSrcRemCounters,       // lower_tokenrem.go
 	vVoteTally:          kop.ExVoteTally,            // lower_vote.go
 	vCardBasePower:      kop.ExCardBasePower,        // Count$CardBasePower
+
+	vCardAttacks: kop.ExCardNumAttacksThisTurn, // Count$CardNumAttacksThisTurn (dirac/value_attacktally.go)
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {

@@ -204,7 +204,7 @@ type coldArrays struct {
 
 // maxCold is how many regions the registry holds; registering one more panics
 // at start-up.
-const maxCold = 72
+const maxCold = 80
 
 // coldLayout is where a table's cold regions sit in the buffer, by registry
 // position: n elements at byte offset off. set fills n, size the rest.
