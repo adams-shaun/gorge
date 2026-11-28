@@ -19,7 +19,7 @@
 #               the command above, whose input decks have moved since: decks.py --from-decks
 #               <that tree>/decks, the same other flags, and one --also-refuse for each card that kept
 #               four-seat pods refused-pair: "Archangel of Tithes", "Ashaya, Soul of the Wild",
-#               "Cabal Therapy", "Glacial Chasm", "Incubation Druid", "Lion's Eye Diamond", "Propaganda"
+#               "Cabal Therapy", "Glacial Chasm", "Incubation Druid", "Lion's Eye Diamond", "Propaganda", "Six"
 #   fdc-gaps    dirac/support/pools/fdc-gaps: four committed 50-card decks holding the five Foundations
 #               Commander cards the fdc-gaps lowerings add, played 2-seat as -kernel fdn -set cmd5
 #               (its verdict line reads cmd5:, see run_kernel in scripts/dirac-first-refusals.py)
