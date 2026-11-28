@@ -7,7 +7,8 @@ import (
 
 // TestValidateRef holds ValidateRef to its rules: kind in range, Of exactly
 // where the kind uses it, a Union of two or more, Memory exactly on
-// RefMemory, Role only on the event kinds, and a valid Filter.
+// RefMemory, Role only on the event kinds (the replaced-target and new-card
+// roles only on an event object), AllZones only on RefAll, and a valid Filter.
 func TestValidateRef(t *testing.T) {
 	self := func() *Ref { return &Ref{Kind: RefSelf} }
 	you := func() *Ref { return &Ref{Kind: RefYou} }
@@ -25,6 +26,9 @@ func TestValidateRef(t *testing.T) {
 		{Kind: RefMemory, Memory: MemChosenPlayer},
 		{Kind: RefUnion, Union: []*Ref{self(), you()}},
 		{Kind: RefAll, Filter: goodFilter},
+		{Kind: RefAll, Filter: goodFilter, AllZones: true},
+		{Kind: RefEventObject, Role: RoleReplacedTarget},
+		{Kind: RefEventObject, Role: RoleNewCard, LKI: true},
 		{Kind: RefTopOfLibrary, N: &Value{Kind: VConst, N: 1}},
 		{Kind: RefTopOfLibrary, Of: you(), N: &Value{Kind: VConst, N: 1}},
 		{Kind: RefChoose, Filter: goodFilter},
@@ -51,6 +55,9 @@ func TestValidateRef(t *testing.T) {
 		{&Ref{Kind: RefSelf, Role: RoleCard}, "takes no role"},
 		{&Ref{Kind: RefEventObject, Role: eventRoleCount}, "role"},
 		{&Ref{Kind: RefAll, Filter: badFilter}, "filter"},
+		{&Ref{Kind: RefSelf, AllZones: true}, "takes no all-zones"},
+		{&Ref{Kind: RefEventPlayer, Role: RoleReplacedTarget}, "takes no object role"},
+		{&Ref{Kind: RefEventPlayer, Role: RoleNewCard}, "takes no object role"},
 		{&Ref{Kind: RefControllerOf, Of: &Ref{}}, "no kind"},
 		{&Ref{Kind: RefUnion, Union: []*Ref{self(), nil}}, "nil ref"},
 	}
@@ -62,7 +69,8 @@ func TestValidateRef(t *testing.T) {
 	}
 }
 
-// TestRefRoleAndLKIPrintAndCompare: Role and LKI are part of a Ref's meaning.
+// TestRefRoleAndLKIPrintAndCompare: Role, LKI and AllZones are part of a
+// Ref's meaning.
 func TestRefRoleAndLKIPrintAndCompare(t *testing.T) {
 	a := &Ref{Kind: RefEventObject, Role: RoleCard}
 	b := &Ref{Kind: RefEventObject, Role: RoleCard, LKI: true}
@@ -71,6 +79,14 @@ func TestRefRoleAndLKIPrintAndCompare(t *testing.T) {
 		t.Errorf("Role/LKI ignored:\n%s\n%s\n%s", a, b, c)
 	}
 	if got, want := b.String(), "(ref event-object :role card :lki)"; got != want {
+		t.Errorf("print %s, want %s", got, want)
+	}
+	d := &Ref{Kind: RefAll}
+	e := &Ref{Kind: RefAll, AllZones: true}
+	if Equal(d, e) {
+		t.Errorf("AllZones ignored by Equal: %s", e)
+	}
+	if got, want := e.String(), "(ref all :all-zones)"; got != want {
 		t.Errorf("print %s, want %s", got, want)
 	}
 }
