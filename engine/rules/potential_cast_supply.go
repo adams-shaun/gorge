@@ -1,0 +1,113 @@
+package rules
+
+import (
+	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/rules/pay"
+	"github.com/adams-shaun/gorge/engine/state"
+)
+
+// castSupplyHost is the narrow slice of the engine castOutrunsSupply reads:
+// the supply proof's own reads plus the plain cast offer gate's cost
+// composition (castOfferBase, the cost statics, the optional colour
+// reductions and the cost-credit keywords).
+type castSupplyHost interface {
+	supplyProofHost
+	castOfferBase(p state.PlayerID, id state.ObjID) Cost
+	collectCostStatics() costStaticViews
+	offerCostForUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, base Cost, scope costScope) Cost
+	reduceColorOptionalViews(statics costStaticViews, p state.PlayerID, id state.ObjID) []reduceColorView
+	hasCastConvoke(id state.ObjID) bool
+	hasCastImprovise(id state.ObjID) bool
+	hasCastDelve(id state.ObjID, ability bool) bool
+}
+
+// castOutrunsSupply is abilityOutrunsSupply for a plain cast (CR 601.2f):
+// the composed cost the hand walk's plain cast gate charges (the printed
+// cost with the spell ability's extras, plus the commander tax, raised and
+// reduced by the cost statics) needs more mana than supply, the floating
+// pool plus one mana for each source. A census-gap prefix taps each source
+// at most once (CR 602.2b), so no prefix can float that much and the search
+// could only spend its budget (Ancient Stone Idol's {10} under Manabarbs,
+// where every land is a gap: three searches of potentialScriptNodes clones
+// per priority decision). A cost whose mana count can fall after
+// announcement or past the gate's base -- an {X}, a Phyrexian, twobrid or
+// waterbend part, a convoke, improvise or delve credit, an either-or
+// additional cost, an optional life-for-pip reduction -- is never proven.
+func castOutrunsSupply(e castSupplyHost, p state.PlayerID, o decision.Option, supply int32) bool {
+	if o.Kind != optCast || o.Mode != "" || o.AltCostIndex != 0 || o.Keyword != "" {
+		return false
+	}
+	ob := e.Game().Obj(o.Obj)
+	if ob == nil || ob.Face() == nil {
+		return false
+	}
+	f := ob.Face()
+	if e.hasCastConvoke(o.Obj) || e.hasCastImprovise(o.Obj) || e.hasCastDelve(o.Obj, false) || len(altAddCostParts(f)) != 0 {
+		return false
+	}
+	statics := e.collectCostStatics()
+	if len(e.reduceColorOptionalViews(statics, p, o.Obj)) != 0 {
+		return false
+	}
+	c := e.offerCostForUsing(statics, p, o.Obj, pay.WithSpellAbilityExtras(f, e.castOfferBase(p, o.Obj)), spellScope(""))
+	if c.X != 0 || c.XMin != 0 || c.Waterbend != 0 || c.WaterbendX || len(c.Phyrexian)+len(c.HybridPhyrexian)+len(c.Twobrid) != 0 {
+		return false
+	}
+	return supply < c.CMC()
+}
+
+// censusTapSupply is the most mana p can have floating after any prefix of
+// the census-gap search: the floating pool (restricted batches included)
+// plus, for each untapped source, the most any one of its mana abilities
+// nets -- the mana it makes and the deterministic tap extra, less its mana
+// fee. Every such ability must cost the source's own {T}, so the search
+// activates each source at most once (pathPaidTap: CR 602.2b, 605.3a); ok is
+// false when one does not, when its amount is not a literal (a "for each"
+// count, an {X} fee), or when a card off the battlefield has a mana ability
+// p could activate, so no bound is claimed. A reflected or choice
+// production with no fixed colours counts its literal amount.
+func censusTapSupply(e castSupplyHost, p state.PlayerID) (supply int32, ok bool) {
+	g := e.Game()
+	pl := &g.Players[p]
+	supply = int32(pl.Pool.Total())
+	for _, r := range pl.RestrictedMana {
+		supply += max(r.Amount, 0)
+	}
+	// A mana ability off the battlefield (Simian Spirit Guide's, from the
+	// hand) is a priority activation the search may take too: no bound.
+	for _, z := range [...]state.Zone{state.ZHand, state.ZGraveyard, state.ZExile, state.ZCommand} {
+		for _, id := range g.Zone(z, p) {
+			if len(e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true)) != 0 {
+				return 0, false
+			}
+		}
+	}
+	for _, id := range g.Zone(state.ZBattlefield, p) {
+		o := g.Obj(id)
+		if o == nil || o.Tapped {
+			continue
+		}
+		best := int32(0)
+		for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
+			mp := effects.ManaOf(ma)
+			cost := e.manaAbilityCC(p, id, ma).Cost
+			if !cost.Tap || cost.X != 0 || cost.XMin != 0 || mp.Each.Present || !mp.AmountIsLit && mp.AmountTrim != "" || condSplitLiveSub(e, p, id, ma) != nil {
+				return 0, false
+			}
+			amt := availableAmountOf(mp)
+			made := amt
+			if !mp.CountsAny {
+				fixed := int32(0)
+				for _, n := range mp.Counts {
+					fixed += n * amt
+				}
+				made = max(fixed, amt)
+			}
+			made += int32(e.potentialTapExtra(p, id, ma).Total())
+			best = max(best, made-cost.CMC())
+		}
+		supply += best
+	}
+	return supply, true
+}
