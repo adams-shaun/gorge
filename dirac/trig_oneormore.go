@@ -48,13 +48,23 @@ func (s *State) batchClose(old uint8) {
 // changeZoneAllBatch reports whether one ChangeZoneAll sweep opens a zone
 // batch: a graveyard sweep (a "leaves your graveyard" line), a sweep into a
 // graveyard (the ChangesZoneAll "from anywhere" line), or a graveyard-to-exile
-// move. Gorge brackets every sweep in its zone batch (CR 603.2c).
+// move. Gorge brackets every sweep in its zone batch (CR 603.2c). A graveyard
+// sweep opens one with no "one or more" line in the game too: the batch is the
+// board a "leaves your graveyard" watcher returned by the same sweep looks back
+// to (fireLeavesGraveyard), where it was still a card in the graveyard
+// (CR 603.10a: Syr Konrad returned beside other Knights sees none of them leave).
 func (s *State) changeZoneAllBatch(k *prep, in *kop.Instr, fl kop.Filter) bool {
-	if k.gen == nil || !k.gen.anyBatch {
+	if k.gen == nil {
+		return false
+	}
+	if fl.Zone == kop.ZoneGraveyard {
+		return true
+	}
+	if !k.gen.anyBatch {
 		return false
 	}
 	z := kop.Zone(in.C & 7)
-	return fl.Zone == kop.ZoneGraveyard || z == kop.ZoneGraveyard ||
+	return z == kop.ZoneGraveyard ||
 		in.Op == kop.OpChangeZoneAllEx && in.C>>3&kop.MvGraveExile != 0
 }
 
