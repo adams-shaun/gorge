@@ -118,4 +118,22 @@ describe('startPlayVsBot', () => {
     fetchMock.mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({ code: 'not_found', message: 'disabled' }) });
     await expect(startPlayVsBot('commander')).rejects.toMatchObject({ status: 404 });
   });
+
+  it('sends substitute only with consent', async () => {
+    setBasePathForTests('');
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ table: 'g1', match: 1, seed: 7, seat: 0, token: 'tok', join: '/t/g1?seat=0&token=tok' }),
+    });
+    const text = 'Commander\n1 Ghoulcaller Gisa\n\n1 Sol Ring';
+    await startPlayVsBot('commander', '', '', 6, '', '', 2, text, true);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ format: 'commander', mulligans: 6, decks: [{ seat: 0, text, substitute: true }] });
+    // Without consent the seat entry is exactly what the paste flow sent
+    // before substitution existed: no substitute key at all.
+    await startPlayVsBot('commander', '', '', 6, '', '', 2, text);
+    const decks = JSON.parse(fetchMock.mock.calls[1][1].body).decks;
+    expect(decks).toEqual([{ seat: 0, text }]);
+    expect('substitute' in decks[0]).toBe(false);
+  });
 });
