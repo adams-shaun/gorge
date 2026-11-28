@@ -56,7 +56,7 @@ The third workload is **four-player Commander pods** of the five official Founda
 (`testkit/testutil/decks/foundations-*`, 100 cards each), `PAIRS=fdc`: game `g` seats four of them, leaving out deck `(g/4) mod 5`, and
 rotates the seats by `g mod 4`, at 40 life with each commander in the command zone. `PAIRS=fdc-sub` is the same pods with every card dirac
 doesn't play replaced by its deck's basic land; `dirac/cmd/dpod -write` derives the list from the kernel's own refusals and the harness
-copies it to `$OUT/fdc-sub-substitutions.tsv`. gorge (`enginebench -pair fdc|fdc-sub`) and Forge play both, dirac (`dpod`, random policy)
+copies it to `$OUT/fdc-sub-substitutions.tsv`. gorge (`enginebench -pair fdc|fdc-sub`) and Forge play both, dirac (`dpod`, random and `hbot` policies)
 `fdc-sub` only; XMage's driver seats two players.
 
 | Pods | Seats | Decks | Who plays it |
@@ -183,8 +183,9 @@ The game rows use `dirac/cmd/dplay`, built from the checkout; it needs the corpu
 OUT=/tmp/xengine CORES="24 26 30" SECS=20 scripts/xengine-bench.sh dirac
 ```
 
-The `fdc-sub` pod row uses `dirac/cmd/dpod` (`PAIRS=fdc-sub`), the random policy on every seat under the same configuration, one
-kernel table per four-deck pod. Both two-seat rows use `dplay`'s default `-config lockstep-autopay`, the configuration lockstep verifies against gorge's auto-pay seat, on a table holding only the pair's two decks.
+The `fdc-sub` pod rows use `dirac/cmd/dpod` (`PAIRS=fdc-sub`) under the same configuration, one kernel table per four-deck pod:
+`random` seats the random policy on every seat, `hbot` (`dpod -policy hbot`) the native heuristic bot on every seat, one bot per pod
+table over facts built from gorge's compiled cards before timed play. Both two-seat rows use `dplay`'s default `-config lockstep-autopay`, the configuration lockstep verifies against gorge's auto-pay seat, on a table holding only the pair's two decks.
 
 The transition rows are Go benchmarks, one core, reporting no allocations:
 
