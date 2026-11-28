@@ -163,6 +163,13 @@ func (k *Memory) UnmarshalJSON(b []byte) error { return unmarshalEnum(k, b, "Mem
 // EventRole says which participant of the triggering or replaced event a
 // RefEventObject or RefEventPlayer denotes. RoleNone on RefEventPlayer is the
 // event's player; on RefEventObject it is the event's object.
+//
+// On a replaced event, RoleReplaced is the object a zone change is acting on
+// (or, on RefEventPlayer, the replaced event's player) and RoleReplacedTarget
+// is what the replaced event was aimed at, an object or a player.
+// RoleReplacedTarget and RoleNewCard are read by RefEventObject only.
+// RoleNewCard is the triggering event's card as the new object it became
+// (CR 400.7), where RoleCard is the card the event happened to.
 type EventRole uint8
 
 const (
@@ -174,18 +181,22 @@ const (
 	RoleTarget
 	RoleActivator
 	RoleReplaced
+	RoleReplacedTarget
+	RoleNewCard
 	eventRoleCount
 )
 
 var eventRoleNames = [...]string{
-	RoleNone:      "none",
-	RoleCard:      "card",
-	RoleSource:    "source",
-	RoleAttacker:  "attacker",
-	RoleBlocker:   "blocker",
-	RoleTarget:    "target",
-	RoleActivator: "activator",
-	RoleReplaced:  "replaced",
+	RoleNone:           "none",
+	RoleCard:           "card",
+	RoleSource:         "source",
+	RoleAttacker:       "attacker",
+	RoleBlocker:        "blocker",
+	RoleTarget:         "target",
+	RoleActivator:      "activator",
+	RoleReplaced:       "replaced",
+	RoleReplacedTarget: "replaced-target",
+	RoleNewCard:        "new-card",
 }
 
 // String returns the lower-kebab name of k.
@@ -206,7 +217,9 @@ func (k *EventRole) UnmarshalJSON(b []byte) error {
 //
 //   - RefTarget uses Slot.
 //   - RefControllerOf, RefOwnerOf, RefAttachedTo and RefPlayerOrControllerOf use Of.
-//   - RefAll is every object or player matching Filter.
+//   - RefAll is every object or player matching Filter. Objects are read from
+//     the battlefield unless Filter scopes other zones, or from every zone with
+//     AllZones; a Filter's scope Zones still restrict an AllZones read.
 //   - RefChoose is N objects matching Filter, chosen by Of. With UpTo the
 //     chooser may pick fewer than N, down to none (a hidden-zone search, CR
 //     701.23b; "up to N"); without it exactly N, or all there are when fewer.
@@ -238,8 +251,10 @@ type Ref struct {
 	// Role is the event participant a RefEventObject or RefEventPlayer reads.
 	Role EventRole `json:"role,omitempty"`
 	// LKI reads the object's last known information.
-	LKI bool   `json:"lki,omitempty"`
-	Src string `json:"src,omitempty"`
+	LKI bool `json:"lki,omitempty"`
+	// AllZones reads a RefAll's objects from every zone.
+	AllZones bool   `json:"allZones,omitempty"`
+	Src      string `json:"src,omitempty"`
 }
 
 // Target is one target declaration. The enclosing Program's Targets index is the
