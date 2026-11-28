@@ -350,13 +350,13 @@ dirac_run() { # POLICY PAIR REP CORE
 		-pairs-file "$w.pairs.tsv" -a "$pol" -b "$pol" -wall "${SECS}s" -out "$w.jsonl" -summary "$w.summary.json" >"$w.log" 2>&1
 	record dirac "$pol" "$pair" "$rep" "$core" "$l0" "$w.time" "$w.summary.json" dplay
 }
-dirac_pod_run() { # REP CORE: dpod's 4-seat fdc-sub pods, random policy on every seat
-	local rep=$1 core=$2
-	local w=$OUT/work/dirac-random-fdc-sub-$rep l0
+dirac_pod_run() { # POLICY REP CORE: dpod's 4-seat fdc-sub pods, POLICY (random or hbot) on every seat
+	local pol=$1 rep=$2 core=$3
+	local w=$OUT/work/dirac-$pol-fdc-sub-$rep l0
 	l0=$(load1); corestat "$core" > "$w.stat0"
 	pinned "$core" "$w.time" env GOMAXPROCS=1 "$dpod_bin" -cards "$PRIV_CARDS" -decks "$REPO/testkit/testutil/decks" \
-		-secs "$SECS" -seed $((1 + 1000003 * rep)) -summary "$w.summary.json" >"$w.log" 2>&1
-	record dirac random fdc-sub "$rep" "$core" "$l0" "$w.time" "$w.summary.json" dplay
+		-policy "$pol" -secs "$SECS" -seed $((1 + 1000003 * rep)) -summary "$w.summary.json" >"$w.log" 2>&1
+	record dirac "$pol" fdc-sub "$rep" "$core" "$l0" "$w.time" "$w.summary.json" dplay
 }
 dirac_all() {
 	local w=$OUT/work/dirac-warm
@@ -375,7 +375,8 @@ dirac_all() {
 			;;
 		fdc-sub)
 			pod_dir fdc-sub >/dev/null
-			batch "dirac random fdc-sub" dirac_pod_run
+			batch "dirac random fdc-sub" dirac_pod_run random
+			batch "dirac hbot fdc-sub" dirac_pod_run hbot
 			continue
 			;;
 		esac

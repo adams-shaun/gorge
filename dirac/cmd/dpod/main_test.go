@@ -4,7 +4,9 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -35,21 +37,7 @@ func TestSeatingRotatesEveryPod(t *testing.T) {
 // table, the decks written for gorge are 100 cards with the commander kept,
 // and a short run plays whole 4-seat games.
 func TestPodBuildsAndPlays(t *testing.T) {
-	dir, err := cardset.CorpusDir()
-	if errors.Is(err, cardset.ErrNoCorpus) {
-		t.Skipf("no corpus: %v", err)
-	}
-	if err != nil {
-		t.Fatal(err)
-	}
-	reg, err := cards.SharedCorpus(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	p, err := buildPod(reg, deckDir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	reg, p := testPod(t)
 	for skip, tbl := range p.tbls {
 		if tbl == nil {
 			t.Fatalf("pod without %s has no table", fdcDecks[skip])
@@ -92,4 +80,61 @@ func TestPodBuildsAndPlays(t *testing.T) {
 		t.Fatalf("3 games: %+v", sum)
 	}
 	t.Logf("%d card copies substituted; 3 games: %d turns, %d decisions, %d stalls", len(p.rows), sum.Turns, sum.Decisions, sum.Stalls)
+}
+
+var (
+	podOnce sync.Once
+	podReg  *cards.Registry
+	podP    *pod
+	podErr  error
+)
+
+// testPod is the substituted pod, built once per test binary.
+func testPod(t *testing.T) (*cards.Registry, *pod) {
+	t.Helper()
+	dir, err := cardset.CorpusDir()
+	if errors.Is(err, cardset.ErrNoCorpus) {
+		t.Skipf("no corpus: %v", err)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	podOnce.Do(func() {
+		if podReg, podErr = cards.SharedCorpus(dir); podErr == nil {
+			podP, podErr = buildPod(podReg, deckDir)
+		}
+	})
+	if podErr != nil {
+		t.Fatal(podErr)
+	}
+	return podReg, podP
+}
+
+// TestPodHBotIsDeterministic: -policy hbot seats the heuristic bot on all
+// four seats; the same seed plays the same games twice, and the bot finishes
+// games (a win, not a cap or a stall).
+func TestPodHBotIsDeterministic(t *testing.T) {
+	reg, p := testPod(t)
+	const games = 3
+	var sums [2]summary
+	for i := range sums {
+		gm := &game{cfg: dirac.LockstepConfig(dirac.SurfaceAutopay)}
+		gm.cfg.Commander = true
+		gm.useHBot(reg, p)
+		for g := 0; g < games; g++ {
+			gm.playOne(p, 7, g, &sums[i])
+		}
+	}
+	a, b := sums[0], sums[1]
+	a.Substitute, b.Substitute = nil, nil
+	if !reflect.DeepEqual(a, b) {
+		t.Fatalf("same seed, two runs:\n%+v\n%+v", a, b)
+	}
+	if a.Games != games || a.Errors != 0 || a.Decisions == 0 {
+		t.Fatalf("%d games: %+v", games, a)
+	}
+	if a.Stalls == games {
+		t.Fatalf("no hbot game finished: %+v", a)
+	}
+	t.Logf("hbot, %d games: %d turns, %d decisions, %d stalls %v, wins %v", games, a.Turns, a.Decisions, a.Stalls, a.StallKinds, a.Wins)
 }
