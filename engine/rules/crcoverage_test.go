@@ -14,6 +14,9 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/adams-shaun/gorge/engine/effects"
+	_ "github.com/adams-shaun/gorge/engine/rules"
 )
 
 // The CR coverage tables (engine/rules/crcoverage/*.md) record, rule by
@@ -147,6 +150,9 @@ func TestCRCoverageIsCurrent(t *testing.T) {
 	}
 	checkCRSummary(t, rows)
 	checkCRIndexCoverage(t, rows, readCRIndex(t))
+	// status vs registry
+	checkCRStatusVsRegistry(t, rows, readCRIndex(t), effects.Supported())
+	// end status vs registry
 }
 
 func crKnownStatus(s string) bool {
@@ -729,5 +735,91 @@ func TestCRRowIDs(t *testing.T) {
 	}
 	if !crIDLess("113.9", "113.10") || !crIDLess("704.5z", "704.5aa") || !crIDLess("113", "113.1") || crIDLess("606.5", "506.8") {
 		t.Error("crIDLess does not follow rules order")
+	}
+}
+
+// status vs registry
+
+// checkCRStatusVsRegistry refuses a not-impl row of section 702 that covers a
+// keyword's heading rule (702.N) or its first subrule (702.Na) while the
+// effects registry holds the kw: entry for that keyword. A row listing only
+// later subrules is exempt: one unimplemented subrule of a registered keyword
+// is a legitimate not-impl.
+func checkCRStatusVsRegistry(t *testing.T, rows []crRow, index []crIndexRow, supported map[string]bool) {
+	t.Helper()
+	titles := make(map[string]string, len(index))
+	for _, r := range index {
+		if r.kind == "rule" {
+			titles[r.id] = r.title
+		}
+	}
+	for _, r := range rows {
+		if r.status != "not-impl" {
+			continue
+		}
+		ids, _ := crRowIDs(r.rule, index)
+		if len(ids) == 0 || !strings.HasPrefix(ids[0], "702.") {
+			continue
+		}
+		at := fmt.Sprintf("%s:%d (%s)", r.file, r.line, r.rule)
+		reported := map[string]bool{}
+		for _, id := range ids {
+			head := crParentRule(id)
+			if !strings.HasPrefix(head, "702.") || (id != head && id != head+"a") || reported[head] {
+				continue
+			}
+			title := titles[head]
+			if title == "" || !crRegisteredKeyword(title, supported) {
+				continue
+			}
+			reported[head] = true
+			t.Errorf("%s: not-impl, but kw:%s is registered; re-audit the row", at, title)
+		}
+	}
+}
+
+// crFold lower-cases s and drops every character outside a-z0-9, so the
+// registry's `kw:Split second` and the index's `Split Second` compare equal.
+func crFold(s string) string {
+	var b strings.Builder
+	for _, c := range strings.ToLower(s) {
+		if (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') {
+			b.WriteRune(c)
+		}
+	}
+	return b.String()
+}
+
+// crRegisteredKeyword reports whether supported holds a kw: entry whose name
+// folds to the folded title.
+func crRegisteredKeyword(title string, supported map[string]bool) bool {
+	want := crFold(title)
+	if want == "" {
+		return false
+	}
+	for k := range supported {
+		if name, ok := strings.CutPrefix(k, "kw:"); ok && crFold(name) == want {
+			return true
+		}
+	}
+	return false
+}
+
+func TestCRRegisteredKeyword(t *testing.T) {
+	t.Parallel()
+	for _, c := range []struct {
+		title     string
+		supported map[string]bool
+		want      bool
+	}{
+		{"Split Second", map[string]bool{"kw:Split second": true}, true},
+		{"For Mirrodin!", map[string]bool{"kw:For Mirrodin": true}, true},
+		{"Living Metal", map[string]bool{"kw:Living metal": true}, true},
+		{"Banding", map[string]bool{"kw:Bands with other": true}, false},
+		{"Flying", map[string]bool{"api:Flying": true}, false},
+	} {
+		if got := crRegisteredKeyword(c.title, c.supported); got != c.want {
+			t.Errorf("crRegisteredKeyword(%q, %v) = %v, want %v", c.title, c.supported, got, c.want)
+		}
 	}
 }
