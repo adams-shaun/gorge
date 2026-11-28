@@ -117,9 +117,9 @@ type Value struct {
 	Word    string      `json:"word,omitempty"`
 	Colors  ColorSet    `json:"colors,omitempty"`
 	Receipt ReceiptKind `json:"receipt,omitempty"`
-	Src     string      `json:"src,omitempty"`
 	// Test is VIf's condition.
 	Test *Cond `json:"test,omitempty"`
 	// Zones is VEnteredThisTurn's origin.
 	Zones ZoneSet `json:"zones,omitempty"`
+	Src   string  `json:"src,omitempty"`
 }

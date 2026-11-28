@@ -1,6 +1,7 @@
 package forge
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cardc/ir"
@@ -114,7 +115,7 @@ func TestLowerValueFilterHeads(t *testing.T) {
 }
 
 func TestLowerValueRefusals(t *testing.T) {
-	svars := svarTable(map[string]string{"DBDraw": "DB$ Draw | NumCards$ 1", "F": "Creature.YouCtrl"})
+	svars := svarTable(map[string]string{"DBDraw": "DB$ Draw | NumCards$ 1", "F": "Creature.YouCtrl", "L": "L"})
 	cases := []struct {
 		in   string
 		kind RefusalKind
@@ -137,11 +138,23 @@ func TestLowerValueRefusals(t *testing.T) {
 		{"Count$Devotion.Chosen", RefuseNeedsReference, "Devotion.Chosen"},
 		{"Count$CardCounters.WIDGET", RefuseUnknownCounter, "CardCounters.WIDGET"},
 		{"Count$Valid Creature.blorp", RefuseUnknownPredicate, "blorp"},
+		{"L", RefuseSVarCycle, "L"},
 		{"Result", RefuseSVarMissing, "Result"},
 		{"Count$xPaid/Plus.Q7", RefuseSVarMissing, "QN"},
 		{"DBDraw", RefuseNotANumber, "DB"},
 		{"F", RefuseNotANumber, "Creature"},
 		{"Number$many", RefuseNotANumber, "Number$"},
+	}
+	for k := firstValueRefusal; k < refusalKindCount; k++ {
+		if !slices.ContainsFunc(cases, func(c struct {
+			in   string
+			kind RefusalKind
+			atom string
+		}) bool {
+			return c.kind == k
+		}) {
+			t.Errorf("refusal kind %s has no case", k)
+		}
 	}
 	for _, c := range cases {
 		v, r := LowerValue(c.in, svars)

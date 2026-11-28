@@ -51,6 +51,9 @@ const (
 	refusalKindCount
 )
 
+// firstValueRefusal is the first kind only LowerValue gives.
+const firstValueRefusal = RefuseUnknownHead
+
 var refusalKindNames = [...]string{
 	RefuseNone:             "none",
 	RefuseEmpty:            "empty",
