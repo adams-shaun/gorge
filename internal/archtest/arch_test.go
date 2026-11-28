@@ -203,7 +203,9 @@ func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 // cardcImportEdges is the closed list of "importer -> imported" edges into
 // engine/cardc from outside engine/cardc/... and cmd/cardc; a ticket adds its
 // own edge.
-var cardcImportEdges = []string{}
+var cardcImportEdges = []string{
+	module + "/engine/cards -> " + module + "/engine/cardc/ir",
+}
 
 // cardcImportViolations returns, sorted, one "importer -> imported" line per
 // package outside engine/cardc/... and cmd/cardc that imports a package under

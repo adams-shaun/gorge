@@ -23,7 +23,7 @@ const (
 	triggerFieldCount  = 11
 	staticFieldCount   = 5
 	replFieldCount     = 8
-	paramSetFieldCount = 6
+	paramSetFieldCount = 7 // filt is counted but deliberately not compared (see paramSetEqual)
 	faceFieldCount     = 54
 )
 
@@ -57,6 +57,7 @@ func paramSetEqual(a, b *ParamSet) bool {
 	if a == nil || b == nil {
 		return false
 	}
+	// filt is not compared: it is a lazy memo of the binder over src, which is.
 	return StringMapEqual(a.src, b.src) && a.n == b.n && a.has == b.has && a.rank == b.rank &&
 		sliceEq(a.vals, b.vals) && sliceEq(a.codes, b.codes)
 }

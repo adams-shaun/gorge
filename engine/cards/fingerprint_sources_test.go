@@ -67,6 +67,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"face_runtime.go":         {false, "runtime copy-basis setters events.Apply calls; compile never runs them"},
 	"textchange.go":           {false, "CR 612 text-changed runtime faces events.Apply builds; compile never runs them"},
 	"fetch.go":                {false, "git fetch of the corpus and its Lock record; corpus changes are caught by cacheFresh's mtimes"},
+	"filter_slot.go":          {false, "runtime typed-filter memo slots filled on first read; no init, compile never calls it"},
 	"fingerprint.go":          {false, "the fingerprint hash itself"},
 	"fingerprint_sources.go":  {false, "the embed list itself"},
 	"gitenv.go":               {false, "git environment for fetch"},
