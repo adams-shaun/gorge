@@ -2,86 +2,115 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// kfix-cast: "any player may pay" (UnlessPayer$ Player; kgen lowers it to
-// OpIfPaid / OpUnlessPaid / OpUnlessSwitched obj=RefEachPlayer). gorge at the pin
+// kfix-cast: "any player may pay" (UnlessPayer$ Player, and UnlessPayer$
+// Opponent; kgen lowers them to OpIfPaid / OpUnlessPaid / OpUnlessSwitched
+// obj=RefEachPlayer or RefEachOpponent). gorge at the pin
 // (engine/effects/unless.go unlessPayerTargetsFor, unlessProceed): the payers
-// are every living player in AliveFrom(0) seat order -- player 0 first,
-// whoever controls the resolving object, a departed player skipped (CR
-// 800.4a, 800.4f) -- and each is posed the unless ask (KModes, ResumeKind
-// "unless_pay", decline only when the cost can't be paid); a pay ends the
-// walk paid, a decline asks the next payer, and only when every payer
+// are every living player (for Opponent, without the resolving controller) in
+// APNAP order (CR 101.4): the active player first, then turn order, a departed
+// player skipped (CR 800.4a, 800.4f). Each is posed the unless ask (KModes,
+// ResumeKind "unless_pay", decline only when the cost can't be paid); a pay
+// ends the walk paid, a decline asks the next payer, and only when every payer
 // declined does the body take the unpaid branch.
 // The ask is the ordinary raGenPay with pfModes (gorge's unless ask, never
 // a trigger's own cost) and pfEachNext while a later seat is still to come;
 // g.pickP is the seat being asked, so the walk needs no state of its own.
+// A walk of one payer (every two-seat "opponent" ask) is execPay's ordinary
+// single-payer ask.
 // Guard: prep.eachPay (some op has the shape); the entry is execPay's
 // cold p == 255 branch and payDone's decline.
-// "Any opponent may pay" (UnlessPayer$ Opponent, obj=RefEachOpponent; Vexing
-// Devil) above two seats is the same walk with the resolving controller
-// skipped: gorge's Opponent arm sorts AliveFrom(c.Controller) minus the
-// controller by AliveFrom(0) rank (sortTargets), so player 0 is asked first,
-// Forge's game player order. At two seats it stays the one opponent.
 
-// execPayEach poses the any-player ask to the first living seat; false =
-// suspended.
-//
-//go:noinline
-func (s *State) execPayEach(k *prep, in *kop.Instr, kind int, skip uint16, amt int) bool {
-	s.posePayEach(k, in, s.eachPayerFrom(in, 0), kind, skip|pfModes, amt)
-	return false
+// eachPayers is in's payers in the order they are asked: the living seats in
+// turn order from the active player, the resolving controller left out of an
+// opponents' walk.
+func (s *State) eachPayers(in *kop.Instr) seatSeq {
+	all := s.aliveFrom(s.active)
+	if in.Obj != kop.RefEachOpponent {
+		return all
+	}
+	var q seatSeq
+	for i := uint8(0); i < all.n; i++ {
+		if p := all.at(i); p != s.res.e.ctrl {
+			q.add(p)
+		}
+	}
+	return q
 }
 
-// payEachNext: the asked seat declined; the next living seat is asked the
-// same cost.
-//
-//go:noinline
-func (s *State) payEachNext(k *prep) {
-	in := &s.prog(k)[s.res.pc]
-	f := s.g.pickF &^ (pfEachNext | pfNoPay)
-	s.posePayEach(k, in, s.eachPayerFrom(in, s.g.pickP+1), int(s.g.pickZ), f, s.value(k, in.A))
-}
-
-// eachPayerFrom is the first seat at or after p, in seat order and without
-// wrapping, that is still in the game (and, for in's RefEachOpponent, is not
-// the resolving controller), or noSeat past the last.
-func (s *State) eachPayerFrom(in *kop.Instr, p uint8) uint8 {
-	for ; p < s.nSeats(); p++ {
-		if !s.out(p) && (in.Obj != kop.RefEachOpponent || p != s.res.e.ctrl) {
-			return p
+// eachPayAfter is the payer asked after p, or noSeat past the last.
+func (s *State) eachPayAfter(in *kop.Instr, p uint8) uint8 {
+	q := s.eachPayers(in)
+	for i := uint8(0); i < q.n; i++ {
+		if q.at(i) == p {
+			return q.at(i + 1)
 		}
 	}
 	return noSeat
 }
 
+// execPayStart is execPay's payer: the one seat in asks, or 255 with walk set
+// when in asks several in turn, or 255 alone when nobody is asked (a departed
+// payer, cost_departedpayer.go; an each-payer ref with no living payer).
+func (s *State) execPayStart(k *prep, in *kop.Instr) (p uint8, walk bool) {
+	if !k.eachPay || in.Obj != kop.RefEachPlayer && in.Obj != kop.RefEachOpponent {
+		return s.execPayer(k, in.Obj), false
+	}
+	q := s.eachPayers(in)
+	if q.n > 1 {
+		return 255, true
+	}
+	return q.at(0), false
+}
+
+// execPayEach poses the walk's ask to its first payer; false = suspended.
+//
+//go:noinline
+func (s *State) execPayEach(k *prep, in *kop.Instr, kind int, skip uint16, amt int) bool {
+	s.posePayEach(k, in, s.eachPayers(in).at(0), kind, skip|pfModes, amt)
+	return false
+}
+
+// payEachNext: the asked seat declined; the next payer is asked the same
+// cost.
+//
+//go:noinline
+func (s *State) payEachNext(k *prep) {
+	in := &s.prog(k)[s.res.pc]
+	f := s.g.pickF &^ (pfEachNext | pfNoPay)
+	kind := int(s.g.pickZ)
+	if kind == payPickBlight {
+		kind = kop.PaySac // poseGenPay's remap, undone for the next payer's gate
+	}
+	s.posePayEach(k, in, s.eachPayAfter(in, s.g.pickP), kind, f, max(s.value(k, in.A), 0))
+}
+
 // posePayEach is posePay for seat p of the walk, marking whether a later seat
 // is still to be asked.
 func (s *State) posePayEach(k *prep, in *kop.Instr, p uint8, kind int, skip uint16, amt int) {
-	if s.eachPayerFrom(in, p+1) != noSeat {
+	if s.eachPayAfter(in, p) != noSeat {
 		skip |= pfEachNext
 	}
 	s.posePay(k, in, p, kind, skip, amt)
 }
 
-// posePay sets the raGenPay ask for payer p (execPay's tail).
+// posePay asks payer p for in's cost: the gate and the ask execPay's
+// single-payer tail makes (payAnswerGate, poseGenPay).
 func (s *State) posePay(k *prep, in *kop.Instr, p uint8, kind int, skip uint16, amt int) {
-	stall := uint8(0)
-	if !s.canPayUnlessGen(k, p, kind, amt, in.B.N, in.F) {
-		var ok bool
-		ok, stall = s.windowPays(k, p, kind, skip, amt, in.B.N)
-		if !ok {
-			skip |= pfNoPay
-		}
-	}
-	if stall != 0 {
-		// the drop is final (the payer is offered decline only) and a failed
-		// window probe's fork latched a rule gap the kernel stalls by name:
-		// declare it, not a silent unpayable cost. A found plan's spill is the
-		// same model gap and is declared too.
-		s.capFull(stall)
-	}
+	skip = s.payAnswerGate(k, in, p, kind, skip, amt, in.B.N)
+	s.poseGenPay(in, p, kind, skip, amt)
+}
+
+// poseGenPay sets the raGenPay ask for payer p, skip already gated
+// (payAnswerGate).
+func (s *State) poseGenPay(in *kop.Instr, p uint8, kind int, skip uint16, amt int) {
 	s.g.pickF = skip
 	s.g.pickZ = uint8(kind)
-	s.g.pickLeft = uint8(amt)
+	if kind == kop.PaySac && in.B.N == kop.PayBSubBlight {
+		s.g.pickZ = payPickBlight
+		s.g.pickLeft = 1 // one creature, however many counters
+	} else {
+		s.g.pickLeft = uint8(amt)
+	}
 	s.g.pickP = p
 	s.res.ask, s.res.askP = raGenPay, p
 }
@@ -98,10 +127,4 @@ func prepEachPay(t *kop.Table) bool {
 		}
 	}
 	return false
-}
-
-// eachPayWalks: in is a pay op whose payers are walked seat by seat: any
-// player, or any opponent above two seats.
-func (s *State) eachPayWalks(k *prep, in *kop.Instr) bool {
-	return k.eachPay && (in.Obj == kop.RefEachPlayer || in.Obj == kop.RefEachOpponent && !s.duel())
 }

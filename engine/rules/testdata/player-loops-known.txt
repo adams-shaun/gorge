@@ -73,9 +73,6 @@ effects/token.go:tokenOwnersControllingAny#0
 effects/trigger_referents.go:controlReferentPlayers#0
 effects/trigger_referents.go:controlReferentPlayers#1
 effects/trigger_referents.go:playerSpecControlTargets#0
-effects/unless.go:unlessPayerTargetsFor#0
-effects/unless.go:unlessPayerTargetsFor#1
-effects/unless.go:unlessPayerTargetsFor#3
 effects/untap.go:untapTypeCandidates#0
 effects/vote_effect.go:effCardVote#0
 effects/zone_bulk.go:effDestroyAll#0

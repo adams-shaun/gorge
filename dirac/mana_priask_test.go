@@ -37,7 +37,7 @@ func priAskOffered(d Decision, obj Obj) (Action, bool) {
 
 // TestManaPriorityActivationAsksAndOpponentPays: under Config.PriorityManaAsk an untapped
 // unless source is a priority option. Activating it taps it, asks its controller the colour,
-// then each player in seat order whether to pay {1} (the activator, who has nothing to pay
+// then each player in turn order from the active player whether to pay {1} (the activator, who has nothing to pay
 // with, can only decline); the opponent's payment taps its Mountain and the source makes no
 // mana. Priority returns to the activator with the pass count cleared (CR 117.4).
 func TestManaPriorityActivationAsksAndOpponentPays(t *testing.T) {

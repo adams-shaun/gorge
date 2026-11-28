@@ -574,7 +574,7 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 }
 
 // UnlessPayers resolves the UnlessPayer$ selector to the players who get the
-// pay offer, in deterministic AliveFrom order, deduplicated. It returns no
+// pay offer, in APNAP order (CR 101.4), deduplicated. It returns no
 // targets for an unresolved named selector; callers that need to distinguish
 // that from Forge's unqualified default use unlessPayerTargets below.
 func UnlessPayers(h Host, c *Ctx, sa *cards.SA) []state.Target {
@@ -702,7 +702,7 @@ func unlessPayerTargetsFor(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Targ
 			add(c.Repl.Player.Player)
 			break
 		}
-		for _, p := range g.AliveFrom(0) {
+		for _, p := range g.AliveFrom(g.Active) {
 			if p != c.Repl.Player.Player {
 				add(p)
 			}
@@ -737,7 +737,7 @@ func unlessPayerTargetsFor(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Targ
 		}
 		addTargets(c.Remembered)
 	case unlessPayerTargetsPlayer:
-		for _, p := range g.AliveFrom(0) {
+		for _, p := range g.AliveFrom(g.Active) {
 			add(p)
 		}
 	case unlessPayerTargetsOpponent:
@@ -818,8 +818,9 @@ func unlessPayerTargetsFor(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Targ
 		// instead.
 		return nil, false
 	}
-	// Deterministic AliveFrom order, whoever named them.
-	alive := g.AliveFrom(0)
+	// APNAP order, whoever named them (CR 101.4): the active player is asked
+	// first, then each other payer in turn order.
+	alive := g.AliveFrom(g.Active)
 	rank := map[state.PlayerID]int{}
 	for i, p := range alive {
 		rank[p] = i
@@ -835,7 +836,7 @@ func unlessPayerTargetsFor(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Targ
 	return out, true
 }
 
-// sortTargets orders player targets by the seat order rank (AliveFrom
+// sortTargets orders player targets by the turn order rank (AliveFrom
 // position), keeping the slice's own order for ties (no ties arise — add
 // dedupes — but the comparator is total regardless).
 // unlessPayerControllerFallback identifies the legacy target-based selector
