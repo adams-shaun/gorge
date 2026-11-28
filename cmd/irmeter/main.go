@@ -1,6 +1,8 @@
 // Command irmeter prints how much of the code still reads Forge-spelled
 // strings (internal/irmeter): one tab-separated row per metric and scope,
-// `metric<TAB>scope<TAB>value`, sorted by metric then scope. It reads source
+// `metric<TAB>scope<TAB>value`, sorted by metric then scope, then the
+// kgen-filter section (irmeter.MeasureKgenFilter): its three refusal-site
+// rows and kgen_filter_refuse_drop_pct, one decimal. It reads source
 // files only; two runs on one tree print identical bytes.
 //
 //	go run ./cmd/irmeter
@@ -36,6 +38,14 @@ func run() error {
 	for _, r := range rows {
 		fmt.Fprintf(w, "%s\t%s\t%d\n", r.Metric, r.Scope, r.Value)
 	}
+	kf, err := irmeter.MeasureKgenFilter(root)
+	if err != nil {
+		return err
+	}
+	for _, r := range kf.Rows() {
+		fmt.Fprintf(w, "%s\t%s\t%d\n", r.Metric, r.Scope, r.Value)
+	}
+	fmt.Fprintln(w, kf.DropRow())
 	return w.Flush()
 }
 
