@@ -3,6 +3,7 @@ package irmeter
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -37,5 +38,40 @@ func TestKgenFilterSection(t *testing.T) {
 	}
 	if (KgenFilter{}).DropPct() != 0 {
 		t.Error("no string-only site: want a 0 drop")
+	}
+	// refuse_sites_all differs, so the share names its denominator.
+	printed := func(k KgenFilter, refuseSites int) string {
+		t.Helper()
+		var b strings.Builder
+		in := []Row{{"refuse_sites", kgenScope, refuseSites}, {"refuse_sites_all", kgenScope, 1000}}
+		if err := Print(&b, in, k); err != nil {
+			t.Fatal(err)
+		}
+		return b.String()
+	}
+	if got, want := printed(k, 8), "refuse_sites\tdirac/kgen\t8\n"+
+		"refuse_sites_all\tdirac/kgen\t1000\n"+
+		"kgen_filter_refuse_shared\tdirac/kgen\t1\n"+
+		"kgen_filter_refuse_string_only\tdirac/kgen\t3\n"+
+		"kgen_filter_refuse_typed_only\tdirac/kgen\t1\n"+
+		"kgen_filter_refuse_drop_pct\tdirac/kgen\t66.7\n"+
+		"kgen_filter_refuse_sites\tdirac/kgen\t5\n"+
+		"kgen_filter_refuse_site_share_pct\tdirac/kgen\t62.5\n"+
+		"kgen_refuse_sites_removed_by_typed\tdirac/kgen\t2\n"; got != want {
+		t.Errorf("printed %q, want %q", got, want)
+	}
+	noString := KgenFilter{TypedOnly: 2, Shared: 1}
+	if noString.StringOnly != 0 || noString.TypedOnly <= noString.StringOnly {
+		t.Fatalf("precondition: no string-only site and a negative difference to clamp: %+v", noString)
+	}
+	got := printed(noString, 0)
+	for _, want := range []string{
+		"\nkgen_filter_refuse_sites\tdirac/kgen\t3\n",
+		"\nkgen_filter_refuse_site_share_pct\tdirac/kgen\t0.0\n",
+		"\nkgen_refuse_sites_removed_by_typed\tdirac/kgen\t0\n",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("printed %q, want the row %q", got, want)
+		}
 	}
 }
