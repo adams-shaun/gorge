@@ -12,8 +12,8 @@ import (
 // granted view stood for the source in the potential bound, so the Druid's
 // reflected colours were dropped and Falkenrath Exterminator's {2}{R}, paid by
 // the Plains and the Druid's {R} (a tapped Mountain "could produce" it), was
-// not offered. Each mana ability counts on its own (CR 605.1a). With no land
-// that could make {R} the activation stays unoffered.
+// not offered. The Druid's own ability stays activatable beside the granted one
+// (CR 605.3a). With no land that could make {R} the activation stays unoffered.
 func TestReflAmtBesideItsGrantOffersTheActivationItsColourPays(t *testing.T) {
 	for _, tc := range []struct {
 		tapped string
