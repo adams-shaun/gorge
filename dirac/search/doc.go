@@ -102,4 +102,10 @@
 //     synthetic plain-cast options appended for payment casts; dirac's
 //     Done of a declaration is no gorge option and is left out of the
 //     declaration's subset score.
+//   - Seeds: the per-decision seed input matches (DecisionSeed folds
+//     SeqNo, which is gorge's Decision.Ordinal at every decision both
+//     engines pose). The streams drawn from it do not: gorge's redealer
+//     (bots/searchprobe redeal.go) and the redeal here differ, and gorge
+//     seeds a world's chance from its own stream (engine/rules chance.go)
+//     where dirac reseeds it (ReseedChance).
 package search
