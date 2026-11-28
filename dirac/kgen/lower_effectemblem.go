@@ -168,6 +168,9 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 		ps.consume("ForgetOnCast")
 	}
 	ps.consume("Name", "Image", "Stackable")
+	if err := lc.effectLandTapRepl(ps); err != nil { // lower_effectlandtapped.go
+		return err
+	}
 	// the graveyard-to-exile replacement an Effect resolves beside its
 	// statics (Yawgmoth's Will, Gaea's Will, Magus of the Will;
 	// lower_effectgravetoexile.go): the same emblem carries it, so the
@@ -216,14 +219,19 @@ func effectReduceCostFaceDown(ss []cards.Static) bool {
 }
 
 // effectEmblemChosenNumber reads a no-target Effect's SetChosenNumber$ for
-// the one emblem shape the kernel freezes: every
-// StaticAbilities$ body is a Mode$ ReduceCost Type$ Spell static whose
-// Amount$ names an SVar whose whole body is Count$ChosenNumber. It replaces
-// each body's Amount$ with the constant 0 (StEmbNum: the static lowers with
-// no dynamic value and no VA) and consumes SetChosenNumber$ and returns its
-// lowered value for the CreateEmblem instruction's A. Anything else refuses
-// by name: a SetChosenNumber$ outside this shape must not lower as a silent
-// zero.
+// the emblem shapes the kernel freezes: every StaticAbilities$ body is a
+// Mode$ ReduceCost Type$ Spell static whose Amount$ names an SVar whose
+// whole body is Count$ChosenNumber, or a Mode$ Continuous Affected$ You
+// static whose AdjustLandPlays$ names such an SVar (Nahiri's Lithoforming;
+// gorge effects/staticline.go adjustLandPlaysGrantFromLine reads the frozen
+// number). It replaces each body's Amount$ with the constant 0 (or the
+// AdjustLandPlays$ with 1, the ExtraLandPlay grammar's placeholder; StEmbNum:
+// the static lowers with no dynamic value and no VA) and consumes
+// SetChosenNumber$ and returns its lowered value for the CreateEmblem
+// instruction's A. A ReplacementEffects$ beside it is allowed only when it is
+// the lands-enter-tapped line effectLandTapRepl lowers (it reads no number).
+// Anything else refuses by name: a SetChosenNumber$ outside this shape must
+// not lower as a silent zero.
 func (lc *lowerCtx) effectEmblemChosenNumber(ps *params, ss []cards.Static) (lValue, bool, error) {
 	name, ok := ps.m["SetChosenNumber"]
 	if !ok {
@@ -232,15 +240,18 @@ func (lc *lowerCtx) effectEmblemChosenNumber(ps *params, ss []cards.Static) (lVa
 	if _, ok := ps.m["Triggers"]; ok || len(ss) == 0 {
 		return lValue{}, false, refuse("Effect SetChosenNumber$ outside an emblem ReduceCost")
 	}
-	if _, ok := ps.m["ReplacementEffects"]; ok {
+	if _, ok := ps.m["ReplacementEffects"]; ok && !lc.isEffectLandTapLine(ps) {
 		return lValue{}, false, refuse("Effect SetChosenNumber$ outside an emblem ReduceCost")
 	}
 	for i := range ss {
 		s := &ss[i]
-		if s.Mode != "ReduceCost" || s.Params["Type"] != "Spell" {
+		key, placeholder := "Amount", "0"
+		if s.Mode == "Continuous" && s.Params["Affected"] == "You" && s.Params["AdjustLandPlays"] != "" {
+			key, placeholder = "AdjustLandPlays", "1"
+		} else if s.Mode != "ReduceCost" || s.Params["Type"] != "Spell" {
 			return lValue{}, false, refuse("Effect SetChosenNumber$ outside an emblem ReduceCost")
 		}
-		body, ok := lc.face.SVars[s.Params["Amount"]]
+		body, ok := lc.face.SVars[s.Params[key]]
 		if !ok || strings.TrimSpace(body) != "Count$ChosenNumber" {
 			return lValue{}, false, refuse("Effect SetChosenNumber$ outside an emblem ReduceCost")
 		}
@@ -248,7 +259,7 @@ func (lc *lowerCtx) effectEmblemChosenNumber(ps *params, ss []cards.Static) (lVa
 		for k, v := range s.Params {
 			cp[k] = v
 		}
-		cp["Amount"] = "0"
+		cp[key] = placeholder
 		s.Params = cp
 	}
 	v, err := lc.value(strings.TrimSpace(name))
