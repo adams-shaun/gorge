@@ -38,6 +38,9 @@ var (
 	reWhyTag = regexp.MustCompile(` \[(?:mana-provenance|gorge-unmodelled)\]$`)
 )
 
+// RefusalClasses is refusalClasses for a caller outside kgen (dpod -census).
+func RefusalClasses(reason string) []string { return refusalClasses(reason) }
+
 // refusalClasses returns the classes a refusal reason carries (usually one;
 // an unread-params reason carries one per param).
 func refusalClasses(reason string) []string {

@@ -16,6 +16,13 @@
 // The summary is one JSON object with dplay's keys (games, turns, decisions,
 // cpu_s, stalls, errors), so the bench summarizer records it as a dplay run.
 // A run is bounded by process CPU seconds; no game reads a clock.
+//
+//	dpod -census DIR -census-out OUT [-cards .cards] [-census-chunk 50]
+//
+// -census plays no game: for every Commander deck file in DIR it writes
+// OUT/decks.tsv (does dirac seat four copies of the deck, exactly and with up
+// to 3 substituted copies) and OUT/blockers.tsv (every card in the way, with
+// its status and refusal class); see census.go.
 package main
 
 import (
@@ -78,8 +85,18 @@ func run(args []string, stdout, stderr io.Writer) int {
 	seed := fs.Uint64("seed", 1, "base seed; game g uses seed+g")
 	write := fs.String("write", "", "write the substituted deck files and substitutions.tsv here")
 	sumPath := fs.String("summary", "", "summary file (default: stdout)")
+	censusDir := fs.String("census", "", "census every Commander deck file in this directory instead of playing")
+	censusOut := fs.String("census-out", "", "directory -census writes decks.tsv and blockers.tsv to")
+	censusChunk := fs.Int("census-chunk", 50, "decks per -census table build")
 	if err := fs.Parse(args); err != nil {
 		return 2
+	}
+	if *censusDir != "" {
+		if err := runCensus(*cardsDir, *censusDir, *censusOut, *censusChunk, stdout); err != nil {
+			fmt.Fprintln(stderr, "dpod:", err)
+			return 1
+		}
+		return 0
 	}
 	if err := play(*cardsDir, *deckDir, *secs, *seed, *write, *sumPath, stdout); err != nil {
 		fmt.Fprintln(stderr, "dpod:", err)
@@ -121,16 +138,8 @@ func isBasic(n string) bool {
 	return false
 }
 
-// basicOf is the deck's most common basic land, the replacement for its refused cards.
-func basicOf(f deck.File) string {
-	best, n := "", 0
-	for _, e := range f.Cards {
-		if isBasic(e.Name) && e.Count > n {
-			best, n = e.Name, e.Count
-		}
-	}
-	return best
-}
+// basicOf is the replacement for the deck's refused cards (deck.SubstituteBasic).
+func basicOf(f deck.File, reg *cards.Registry) string { return deck.SubstituteBasic(f, reg) }
 
 // buildPod substitutes until every 4-deck pod's table builds: a card the kernel
 // does not lower, and every card but a commander or a basic land named in an
@@ -179,7 +188,7 @@ func buildPod(reg *cards.Registry, deckDir string) (*pod, error) {
 		}
 		for i := range p.files {
 			p.files[i] = orig[i]
-			basic := basicOf(orig[i])
+			basic := basicOf(orig[i], reg)
 			var out []deck.Entry
 			for _, e := range orig[i].Cards {
 				if _, bad := why[e.Name]; bad {
@@ -272,7 +281,7 @@ func buildPod(reg *cards.Registry, deckDir string) (*pod, error) {
 		}
 	}
 	for i, f := range orig {
-		basic := basicOf(f)
+		basic := basicOf(f, reg)
 		for _, e := range f.Cards {
 			if w, bad := why[e.Name]; bad {
 				p.subst[e.Name] += e.Count
