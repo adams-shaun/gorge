@@ -64,7 +64,12 @@ func TestK8sManifestArgs(t *testing.T) {
 		"cards":           "/cards",
 		// Bot tables prune old finished matches: without it the local pod kept
 		// 9.8 GB of them and ran out of its 2 GiB at startup (11-28).
-		"keep-matches": "200",
+		"keep-matches":         "500",
+		"rate-limit":           "10",
+		"rate-burst":           "10",
+		"trusted-proxy-header": "CF-Connecting-IP",
+		"site-name":            "master-edh.net",
+		"metrics":              "true",
 	} {
 		f := fs.Lookup(name)
 		if f == nil {
@@ -74,5 +79,21 @@ func TestK8sManifestArgs(t *testing.T) {
 		if got := f.Value.String(); got != want {
 			t.Errorf("-%s = %q, want %q", name, got, want)
 		}
+	}
+}
+
+// TestK8sProbesReadHealthz keeps all three probes on the dedicated health
+// route rather than the capabilities read they used before it existed.
+func TestK8sProbesReadHealthz(t *testing.T) {
+	b, err := os.ReadFile(filepath.Join("..", "..", "deploy", "k8s", "deployment.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if n := strings.Count(s, "path: /healthz"); n != 3 {
+		t.Errorf("path: /healthz appears %d times, want 3 (startup, readiness, liveness)", n)
+	}
+	if n := strings.Count(s, "path: /api/capabilities"); n != 0 {
+		t.Errorf("path: /api/capabilities appears %d times, want 0", n)
 	}
 }

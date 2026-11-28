@@ -18,8 +18,21 @@ cluster-scoped except the namespace itself.
 The Deployment passes the full gorged command as `args` (it replaces the image `CMD`): four
 Commander tables of four seats, plus play-vs-bot, draft events and the ManaBrew routes.
 
-Probes: all three (startup, readiness, liveness) read `GET /api/capabilities` on port 8080,
-since gorged has no dedicated health route. The startup probe allows 15 minutes for the first fetch.
+Probes: all three (startup, readiness, liveness) read `GET /healthz` on port 8080, which
+answers as soon as the listener serves. The startup probe allows 15 minutes for the first fetch.
+
+Limits: the args also turn on
+
+- `-keep-matches=500`: keep the 500 newest finished matches on disk and prune the rest.
+- `-rate-limit=10`: requests per second allowed per client.
+- `-rate-burst=10`: the burst size of that limit.
+- `-trusted-proxy-header=CF-Connecting-IP`: take the client address from this header, so the limit is per visitor rather than per tunnel.
+- `-site-name=master-edh.net`: the name the site reports for itself.
+- `-metrics`: serve the metrics route.
+
+`-trusted-proxy-header` is safe here because the only route to the pod is the gateway behind the
+Cloudflare tunnel (`httproute.yaml`). On a cluster reached any other way, drop the flag: a client
+could otherwise set the header itself and dodge the rate limit.
 
 ## Use
 
