@@ -48,8 +48,9 @@ func TestMutateUnderCardKeywords(t *testing.T) {
 		t.Fatalf("the pile lacks the under card's flying: derived %q", e.Derived(bear).Keywords)
 	}
 
-	// CR 701.4a: leaving the battlefield splits the pile; the flying leaves
-	// with the card that prints it.
+	// CR 702.140e: when a mutated permanent leaves the battlefield, each card
+	// that represents it moves with it, so the pile splits and the flying
+	// leaves with the card that prints it.
 	e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield, To: state.ZHand})
 	if o := e.G.Obj(bear); o.Zone != state.ZHand || len(o.MergedCards) != 0 {
 		t.Fatalf("precondition: the pile split to hand: %+v", o)
