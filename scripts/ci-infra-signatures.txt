@@ -3,5 +3,5 @@
 # the fault. A log with a test verdict never retries, whatever it matches here. A lost runner or an empty log cannot be
 # retried from inside a step (the job itself is gone), so neither is a row.
 killed	signal: killed|exit code 137|fatal error: runtime: out of memory
-no-space	No space left on device
+no-space	[Nn]o space left on device
 network	fatal: unable to access 'https://github\.com/|RPC failed; HTTP 5[0-9][0-9]|TLS handshake timeout|dial tcp [^ ]+: i/o timeout
