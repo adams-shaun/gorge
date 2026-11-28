@@ -177,3 +177,29 @@ func TestTapExtraPainOnlyKeptTarget(t *testing.T) {
 		}
 	}
 }
+
+// TestPainOnlyGuardAnyColourRider: the any-colour rider's affordability reads
+// the same guard (CR 120.3, 609.4b): a held Ancient Tomb still pays {C}{C} and
+// generic mana for the one tap the life allows, and no more.
+func TestPainOnlyGuardAnyColourRider(t *testing.T) {
+	sc, _, _, _ := painOnlyTombs(t, 2, 0, false, 3)
+	a := sc.census(t)
+	if !a.pain.on {
+		t.Fatal("precondition: the life guard does not bind")
+	}
+	for _, c := range []struct {
+		name string
+		cost kop.ManaCost
+		pays bool
+	}{
+		{"{C}{C}", kop.ManaCost{Pips: [kop.NumManaKinds]uint8{kop.C: 2}}, true},
+		{"{2}", kop.ManaCost{Generic: 2}, true},
+		{"{3}", kop.ManaCost{Generic: 3}, false},
+		{"{C}{C}{C}", kop.ManaCost{Pips: [kop.NumManaKinds]uint8{kop.C: 3}}, false},
+		{"{B}", kop.ManaCost{Pips: [kop.NumManaKinds]uint8{kop.B: 1}}, false},
+	} {
+		if got := a.affordsAnyColor(&c.cost, 0); got != c.pays {
+			t.Errorf("%s under the any-colour rider = %v, want %v", c.name, got, c.pays)
+		}
+	}
+}

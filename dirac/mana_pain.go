@@ -1105,13 +1105,13 @@ func (s *State) painTightBail(modal bool) {
 	}
 }
 
-// painAffords is affordsPlain under a painful budget: some split of the
-// budget over the groups (x[g] units of group g making a colour, at most
-// the budget in all) leaves a Hall-feasible avail. A board with too many
-// splits answers no past the cap.
+// painAffords is affordsPlain (with anyColor, affordsAnyColorPlain) under a
+// painful budget: some split of the budget over the groups (x[g] units of
+// group g making a colour, at most the budget in all) leaves a feasible avail.
+// A board with too many splits answers no past the cap.
 //
 //go:noinline
-func (a *avail) painAffords(cost *kop.ManaCost, pipMask uint8, extra int) bool {
+func (a *avail) painAffords(cost *kop.ManaCost, pipMask uint8, extra int, anyColor bool) bool {
 	pa := &a.pain
 	var x [6]uint8
 	tries := 0
@@ -1140,7 +1140,7 @@ func (a *avail) painAffords(cost *kop.ManaCost, pipMask uint8, extra int) bool {
 					t.addUnits(key.mask|key.prim, x[g])
 				}
 			}
-			if t.hallPlain(cost, pipMask, extra) {
+			if anyColor && t.anyColorUnits(cost, extra) || !anyColor && t.hallPlain(cost, pipMask, extra) {
 				return true
 			}
 		}

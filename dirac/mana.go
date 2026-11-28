@@ -602,7 +602,7 @@ func (a *avail) affordsPlain(cost *kop.ManaCost, pipMask uint8, extra int) bool 
 		return a.exclAffords(0, cost, pipMask, extra, false)
 	}
 	if a.pain.on {
-		return a.painAffords(cost, pipMask, extra)
+		return a.painAffords(cost, pipMask, extra, false)
 	}
 	return a.hallPlain(cost, pipMask, extra)
 }
@@ -681,6 +681,14 @@ func (a *avail) affordsAnyColorPlain(cost *kop.ManaCost, extra int) bool {
 	if a.nExcl != 0 {
 		return a.exclAffords(0, cost, 0, extra, true)
 	}
+	if a.pain.on && a.pain.held != 0 {
+		return a.painAffords(cost, 0, extra, true) // a held wide tap stands only in the guard's splits
+	}
+	return a.anyColorUnits(cost, extra)
+}
+
+// anyColorUnits is affordsAnyColorPlain over a's units alone.
+func (a *avail) anyColorUnits(cost *kop.ManaCost, extra int) bool {
 	tot := int(cost.Generic) + extra
 	for _, n := range cost.Pips {
 		tot += int(n)
