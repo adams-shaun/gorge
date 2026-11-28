@@ -6,8 +6,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // foldGoad / expireTurnGoads, rules/combat act_goad.go and attack.go's
 // RequirementSet.Goad). The default duration only: a permanent goaded by
 // seat p stays goaded until p's next turn begins (gorge's TurnChange fold;
-// a departed goader's goad stays: expireTurnGoads only fires on its own
-// turn and pruneGoads ignores the loss) or it leaves the battlefield (a new
+// a departed goader's goad ends where that turn would have begun, CR 800.4m:
+// the ordinary rotation passing its seat or its queued extra turn consumed,
+// gorge expireDepartedGoads) or it leaves the battlefield (a new
 // object). A goaded creature attacks each combat if able (CR 701.15b; gorge
 // marks the attack option Required) and attacks a player other than its
 // goaders if able: attackOffersN offers a goader as defender only when every
@@ -203,6 +204,24 @@ func (s *State) goadTurn(k *prep, p uint8) {
 		s.touchSl(m.first())
 	}
 	s.mSlZero(k, g)
+}
+
+// ordinaryTurn begins the ordinary rotation's next turn, after the last
+// normal turn's holder (exBase). The departed seats it passes on the way
+// end their goads first: their next turn would have begun there (CR 800.4m;
+// gorge foldRotationTurn / expireDepartedGoads, where a full cycle back to
+// exBase passes every other seat).
+func (s *State) ordinaryTurn() {
+	next := s.nextAlive(s.g.exBase)
+	if k := s.k(); goadOn(k) && !s.duel() {
+		for q := s.nextSeat(s.g.exBase); q != next; q = s.nextSeat(q) {
+			if s.out(q) {
+				s.goadTurn(k, q)
+			}
+		}
+	}
+	s.g.exBase = next
+	s.beginTurn(next)
 }
 
 // goadLeave clears slot sl's goads as its permanent leaves.

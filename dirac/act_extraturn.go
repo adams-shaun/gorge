@@ -92,6 +92,9 @@ func (s *State) exTake() {
 			s.g.exRide &^= 1 << s.g.exN
 		}
 		if s.pl[p].lost {
+			if goadOn(s.k()) {
+				s.goadTurn(s.k(), p) // that turn would have begun: the seat's goads end (CR 800.4m, gorge foldRotationExtraTurn)
+			}
 			continue // gorge's consumer: consumed, no turn, the next grant now
 		}
 		if rider {
@@ -106,9 +109,7 @@ func (s *State) exTake() {
 		s.beginTurn(p)
 		return
 	}
-	next := s.nextAlive(s.g.exBase)
-	s.g.exBase = next
-	s.beginTurn(next)
+	s.ordinaryTurn() // act_goad.go
 }
 
 // exNextTurn is the seat whose turn the next cleanup begins: the most
