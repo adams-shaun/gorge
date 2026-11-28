@@ -198,7 +198,7 @@ func TestCIInfraRetryWired(t *testing.T) {
 		t.Error("job dirac-slices still tees slices.log itself: the wrapper owns the log")
 	}
 	body := readText(t, "ci-test-shard.sh")
-	for _, want := range []string{"scripts/ci_shard.sh", "ci-splits.tsv", `-skip '^(TestHeads)$'`, "$GITHUB_EVENT_NAME"} {
+	for _, want := range []string{"scripts/ci_shard.sh", "ci-splits.tsv", `-skip "^(TestHeads${q:+|$q})\$"`, "$GITHUB_EVENT_NAME"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("ci-test-shard.sh lacks %q", want)
 		}

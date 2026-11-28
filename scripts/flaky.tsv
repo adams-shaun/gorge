@@ -1,0 +1,9 @@
+# flaky.tsv: flaky tests that still run on every merge-queue batch but cannot fail it (scripts/ci-flaky.sh,
+# scripts/ci-test-shard.sh, ci.yml's job test). They still gate a push to main's test job, the nightly and a dispatch.
+# Tab-separated columns:
+#   package    full import path
+#   test       one top-level test name, declared nowhere else in the repository (a -skip matches by name)
+#   ticket     id of the ticket that owns the fix
+#   added      YYYY-MM-DD
+#   signature  short phrase from the failure
+# Each row is its own reviewed change. At most 20 rows; TestHeads is never listed (TestFlakyListWellFormed).

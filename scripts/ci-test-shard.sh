@@ -17,6 +17,10 @@ count= tags=
 # The SpellBench and ManaBrew interface tests (build tags) run nightly only.
 if [ "$GITHUB_EVENT_NAME" = schedule ]; then count=-count=1; tags="-tags=spellbench,manabrew"; fi
 if [ -z "$pkgs" ]; then echo "shard $1 is empty"; exit 0; fi
+# On a merge-queue batch (ci.yml sets QUARANTINE) every call leaves out the tests listed in scripts/flaky.tsv, and the
+# job's next step runs them where they cannot fail it. Elsewhere q is empty and they run, and gate, here.
+q=
+if [ -n "${QUARANTINE:-}" ]; then q=$(bash scripts/ci-flaky.sh skip-regex) || exit; fi
 # dirac/kgen runs uncached (-count=1): its tests open the corpus ~88 times, so go spent 190-300 s hashing those
 # files for a test-result cache that never hit in a batch (0 of 6), against ~112 s of tests (11-17).
 # 11-20: kgen runs beside the shard's other packages, not after them. Serial, it added its ~224 s (median of
@@ -36,10 +40,10 @@ solo() { local log=$1; shift; go test "$@" >"$log" 2>&1 & pids+=($!); logs+=("$l
 has() { grep -qx "$1" <<<"$pkgs"; }
 kgen_rx=$(awk -F'\t' -v k="$kgen" '$1 == k { print $2 }' scripts/ci-splits.tsv)
 if has "$kgen"; then
-  if [ -n "$kgen_rx" ]; then solo kgen-test.log -count=1 $tags -timeout 20m -skip "^(TestHeads)\$|$kgen_rx" "$kgen"
-  else solo kgen-test.log -count=1 $tags -timeout 20m -skip '^(TestHeads)$' "$kgen"; fi
+  if [ -n "$kgen_rx" ]; then solo kgen-test.log -count=1 $tags -timeout 20m -skip "^(TestHeads${q:+|$q})\$|$kgen_rx" "$kgen"
+  else solo kgen-test.log -count=1 $tags -timeout 20m -skip "^(TestHeads${q:+|$q})\$" "$kgen"; fi
 fi
-if [ -n "$kgen_rx" ] && has "$kgen#A"; then solo kgen-a-test.log -count=1 $tags -timeout 20m -run "$kgen_rx" "$kgen"; fi
+if [ -n "$kgen_rx" ] && has "$kgen#A"; then solo kgen-a-test.log -count=1 $tags -timeout 20m -run "$kgen_rx" ${q:+-skip "^($q)\$"} "$kgen"; fi
 # The skip for a package's whole call is the union of all its rows' regexes, so every top-level test runs
 # in exactly one call: the first matching #entry, or the whole call.
 declare -A whole_rx=()
@@ -54,11 +58,11 @@ while IFS=$'\t' read -r sp rx label; do
   ex+=(-e "$sp" -e "$sp#$label"); n=${sp##*/}
   if [ -z "${ran_whole[$sp]:-}" ]; then
     ran_whole[$sp]=1
-    if has "$sp"; then solo "$n-test.log" $count $tags -timeout 20m -skip "^(TestHeads)\$|${whole_rx[$sp]}" "$sp"; fi
+    if has "$sp"; then solo "$n-test.log" $count $tags -timeout 20m -skip "^(TestHeads${q:+|$q})\$|${whole_rx[$sp]}" "$sp"; fi
   fi
-  if has "$sp#$label"; then solo "$n-$label-test.log" $count $tags -timeout 20m -run "$rx" "$sp"; fi
+  if has "$sp#$label"; then solo "$n-$label-test.log" $count $tags -timeout 20m -run "$rx" ${q:+-skip "^($q)\$"} "$sp"; fi
 done <scripts/ci-splits.tsv
 rest=$(printf '%s\n' $pkgs | grep -vx "${ex[@]}" || true)
-if [ -n "$rest" ]; then go test $count $tags -timeout 20m -skip '^(TestHeads)$' $rest || rc=1; fi
+if [ -n "$rest" ]; then go test $count $tags -timeout 20m -skip "^(TestHeads${q:+|$q})\$" $rest || rc=1; fi
 for i in "${!pids[@]}"; do wait "${pids[$i]}" || rc=1; cat "${logs[$i]}"; done
 exit $rc
