@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtChooseNumberElection
+value: next
+forge: ChooseNumber
+state: code 0
+status: active
+doc: ExtChooseNumberElection (gorge effects.effChooseNumberElection, choose.go: api ChooseNumber with MatchedAbility$/UnmatchedAbility$ and Defined$ TargetedAndYou, Expert-Level Safe): the resolving controller and then the targeted opponent (Obj) each secretly choose a number from C&0xff to B (ChooseNumberMid's bounds, C&0x100 the has-Max flag); the first pick is held in resolution scratch until the second is answered, the controller's pick is then stored as the source's chosen number, and the verdict is left in the result slot (ExRollResult): 1 the picks match, 2 not. dirac/act_numberelection.go.

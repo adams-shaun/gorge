@@ -102,11 +102,15 @@ func (lc *lowerCtx) etbChooseNumber(ps *params, node, sa *cards.SA, other bool, 
 // the literal Min$ floor and, when the card states one, the Max$ value
 // (a literal, an SVar or an inline Count$ expression). Random$ True makes
 // the kernel draw the number instead of asking, as cr 107.1 / the Oracle
-// text say. The secret election (Secretly$, MatchedAbility$, Guesser$ and
-// their kin: Expert-Level Safe, The Toymaker's Trap) is a different question
-// -- several players answering secretly then a comparison -- and is kept
-// refused with its own reason, not modelled as a single chooser.
+// text say. The secret election with MatchedAbility$ / UnmatchedAbility$
+// (Expert-Level Safe) lowers through chooseNumberElection
+// (lower_choosenumber_election.go); the Guesser$ shape (The Toymaker's Trap)
+// and the rest of its kin stay refused with their own reason, not modelled
+// as a single chooser.
 func (lc *lowerCtx) chooseNumberEffect(ps *params) error {
+	if isChooseNumberElection(ps) {
+		return lc.chooseNumberElection(ps)
+	}
 	for _, k := range []string{"MatchedAbility", "UnmatchedAbility", "Guesser", "GuessWrong", "GuessCorrect", "RemoveChoices"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("ChooseNumber %s$: the secret election is not modelled", k)

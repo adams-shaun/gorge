@@ -330,7 +330,7 @@ func (lc *lowerCtx) apiSacrifice(sa *cards.SA, ps *params) error {
 	_, hasT := ps.get("ValidTgts")
 	sv := strings.TrimSpace(ps.str("SacValid"))
 	selfSac := sv == "" || sv == "Self" || sv == "Card.Self"
-	if selfSac && !hasT && (!hasD || ps.str("Defined") == "Self") {
+	if selfSac && !hasT && (!hasD || ps.str("Defined") == "Self" || youSacrificeSelf(ps)) {
 		// gorge effSacrifice: no Defined$/ValidTgts$ (or Defined$ Self)
 		// and no SacValid$ other than Self resolves Defined() to the
 		// source object, which is sacrificed: its controller sacrifices
@@ -467,4 +467,17 @@ func (lc *lowerCtx) apiSacrificeAll(sa *cards.SA, ps *params) error {
 	}
 	lc.emit(in)
 	return nil
+}
+
+// youSacrificeSelf reads gorge effSacrifice's ValidCard$ narrowing on a
+// Defined$ You line with no SacValid$ (Expert-Level Safe's "sacrifice
+// CARDNAME"): you sacrifice a permanent of yours matching Permanent and
+// Card.Self, which is the source alone, so it is the self-sacrifice. The
+// ValidCard$ key is consumed here.
+func youSacrificeSelf(ps *params) bool {
+	if ps.str("Defined") != "You" || ps.str("SacValid") != "" || ps.str("ValidCard") != "Card.Self" {
+		return false
+	}
+	ps.consume("ValidCard")
+	return true
 }
