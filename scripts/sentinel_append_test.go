@@ -124,6 +124,20 @@ func TestSentinelAppend(t *testing.T) {
 		}
 	})
 
+	t.Run("invalid-max-exit-2", func(t *testing.T) {
+		t.Parallel()
+		root := sentinelTree(t, "TestAlpha\n", "", "TestAlpha")
+		for _, v := range []string{"0", "08", "x", "-1"} {
+			out, code := runSentinelAppend(t, root, []string{"SENTINEL_APPEND_MAX=" + v}, "failing.txt", "n")
+			if code != 2 {
+				t.Errorf("SENTINEL_APPEND_MAX=%s: exit %d, want 2\n%s", v, code, out)
+			}
+			if got := sentinelsText(t, root); got != sentinelAppendBase {
+				t.Errorf("SENTINEL_APPEND_MAX=%s changed sentinels.txt:\n%s", v, got)
+			}
+		}
+	})
+
 	t.Run("usage-exit-2", func(t *testing.T) {
 		t.Parallel()
 		root := sentinelTree(t, "TestAlpha\n", "", "TestAlpha")

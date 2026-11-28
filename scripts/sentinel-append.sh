@@ -23,7 +23,7 @@ secs=dirac/oracle/testdata/ci-shard-seconds.txt
 max=${SENTINEL_APPEND_MAX:-3}
 [ -f "$failing" ] && [ -r "$failing" ] || usage "cannot read $failing"
 [ -f "$sent" ] || usage "no $sent"
-[[ $max =~ ^[0-9]+$ ]] || usage "SENTINEL_APPEND_MAX=$max is not a number"
+[[ $max =~ ^[1-9][0-9]*$ ]] || usage "SENTINEL_APPEND_MAX=$max is not a positive integer"
 
 mapfile -t names < <(grep -E '^Test[A-Za-z0-9_]*$' "$failing" | sort -u || true)
 

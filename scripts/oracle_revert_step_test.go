@@ -166,6 +166,23 @@ esac
 	return string(b) + string(out), code
 }
 
+// revertStepBody returns the body of the last --body-file the gh stub logged: the text after its
+// "--- body <path>" marker, read from gh.log alone. The step's stdout is not included, so an assertion here
+// cannot pass on the "| tee sentinels.out" output instead of the PR body.
+func revertStepBody(t *testing.T, repo string) string {
+	t.Helper()
+	ghLog := readText(t, filepath.Join(filepath.Dir(repo), "gh.log"))
+	i := strings.LastIndex(ghLog, "--- body ")
+	if i < 0 {
+		t.Fatalf("gh stub logged no --body-file body:\n%s", ghLog)
+	}
+	nl := strings.IndexByte(ghLog[i:], '\n')
+	if nl < 0 {
+		t.Fatalf("gh stub's body marker has no body:\n%s", ghLog)
+	}
+	return ghLog[i+nl+1:]
+}
+
 // originTip returns the sha origin has for ref, or "" when it has none.
 func originTip(t *testing.T, repo, ref string) string {
 	t.Helper()
@@ -275,8 +292,19 @@ func TestOracleBisectRevertStep(t *testing.T) {
 		if strings.Contains(got, "TestBeta") {
 			t.Errorf("TestBeta is not declared and must not be listed:\n%s", got)
 		}
-		if !strings.Contains(log, "sentinel-append: added 1 of 2") || !strings.Contains(log, "gh pr create --draft") {
-			t.Errorf("the PR body must carry the sentinel-append report:\n%s", log)
+		if !strings.Contains(log, "gh pr create --draft") {
+			t.Errorf("the step must open a draft PR:\n%s", log)
+		}
+		body := revertStepBody(t, repo)
+		i := strings.Index(body, "sentinel-append: added 1 of 2")
+		if i < 0 {
+			t.Errorf("the PR body must carry the sentinel-append report:\n%s", body)
+		}
+		footer := strings.Index(body, "\n---\n")
+		if footer < 0 {
+			t.Errorf("the PR body has no `---` footer:\n%s", body)
+		} else if i > footer {
+			t.Errorf("the sentinel-append report must come before the body's `---` footer:\n%s", body)
 		}
 	})
 }
