@@ -54,6 +54,7 @@ func LoadPolicynet(path string) (*Weights, error) {
 type pnScratch struct {
 	m      *policynet.Model
 	s      []float32 // the state trunk (H)
+	part   []float32 // per hidden unit: its sum over the bias and the trunk (Hidden)
 	x      []float32 // one option's hidden input (InW)
 	a      []float32 // hidden activations (Hidden)
 	va     []float32 // value hidden activations (ValueHidden)
@@ -70,15 +71,17 @@ func newPNScratch(m *policynet.Model, maxCards int) *pnScratch {
 	poolW := m.Features.EntityGroupsN() * 2 * m.EntK
 	return &pnScratch{
 		m: m,
-		s: make([]float32, m.H), x: make([]float32, m.InW), a: make([]float32, m.Hidden),
+		s: make([]float32, m.H), part: make([]float32, m.Hidden),
+		x: make([]float32, m.InW), a: make([]float32, m.Hidden),
 		va: make([]float32, m.ValueHidden), vz: make([]float32, m.ValueK),
 		u: make([]float32, maxCards*inW), h: make([]float32, maxCards*m.EntK),
 		pool: make([]float32, poolW), set: make([]bool, poolW),
 	}
 }
 
-// trunk computes the state trunk of st into p.s and the entity encodings
-// into p.h: policynet Model.stateTrunkEnt's arithmetic, in its order.
+// trunk computes the state trunk of st into p.s, the entity encodings into
+// p.h (policynet Model.stateTrunkEnt's arithmetic, in its order) and each
+// hidden unit's partial sum over the trunk into p.part.
 func (p *pnScratch) trunk(st *policynet.State) {
 	m, s := p.m, p.s
 	copy(s, m.StateB)
@@ -109,6 +112,20 @@ func (p *pnScratch) trunk(st *policynet.State) {
 		for j := range s {
 			s[j] += row[j] * v
 		}
+	}
+	// Every option's hidden input starts with s, so the first H terms of
+	// each hidden sum are the same for all of them: sum them once, in
+	// forwardHead's order and with its zero skip, and score continues from
+	// there.
+	for h := range p.part {
+		sum := m.HidB[h]
+		base := h * m.InW
+		for i, si := range s {
+			if si != 0 {
+				sum += m.HidW[base+i] * si
+			}
+		}
+		p.part[h] = sum
 	}
 }
 
@@ -163,11 +180,12 @@ func (p *pnScratch) entForward(st *policynet.State) {
 }
 
 // score is policynet Model.Score's per-option arithmetic (inputVector,
-// forwardHead, the bot-prior residual) against the loaded trunk.
+// forwardHead, the bot-prior residual) against the loaded trunk. The
+// trunk's inputs x[:H] are already summed in p.part, so score builds and
+// reads only x[H:].
 func (p *pnScratch) score(o *policynet.Option) float32 {
 	m, x := p.m, p.x
-	clear(x)
-	copy(x, p.s)
+	clear(x[m.H:])
 	off := m.H
 	for _, f := range o.Hashed {
 		base := int(f.Row) * m.H
@@ -193,9 +211,9 @@ func (p *pnScratch) score(o *policynet.Option) float32 {
 	}
 	a := p.a
 	for h := 0; h < m.Hidden; h++ {
-		sum := m.HidB[h]
-		base := h * m.InW
-		for i, xi := range x {
+		sum := p.part[h]
+		base := h*m.InW + m.H
+		for i, xi := range x[m.H:] {
 			if xi != 0 {
 				sum += m.HidW[base+i] * xi
 			}
