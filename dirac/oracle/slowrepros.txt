@@ -16,6 +16,8 @@
 # on every oracle run whatever the slice (scripts/test_targets.py oracle_lanes now drops this list's names from
 # it too): TestMBCTail08CensusSearchLockstep 82.2 s and TestMBCOrzhovaFeeOnlyCensusNotAProofLockstep 37.3 s,
 # one `make test-one` at 37bb534499 (76.6 idle cores, 4 cores).
+# The batch's replay step does not play these two (no Repro in their names): test-smart's census step (Census)
+# does before the merge, oracle.yml after.
 TestMBCAboshanSDesireReprosLockstep
 TestMBCBashToBitsReprosLockstep
 TestMBCBatrocTheLeaperReprosLockstep

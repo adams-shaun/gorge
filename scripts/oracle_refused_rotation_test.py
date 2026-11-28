@@ -22,7 +22,7 @@ def sha_in(lane):
 
 def plain(res, sha):
     laned = tt.oracle_lanes(res, names=NAMES, weights=WEIGHTS, zero=set(), sha=sha)
-    return sorted(n for k, _, rx in laned if k == "oraclelane" and "/" not in rx for n in rx[2:-2].split("|"))
+    return sorted(n for _, _, rx in laned if "/" not in rx for n in rx[2:-2].split("|"))
 
 
 def slice_entry(named=()):
@@ -70,7 +70,7 @@ def test_a_slow_listed_census_named_replay_leaves_the_lanes_unless_named():
     def got(named, slow):
         laned = tt.oracle_lanes(slice_entry(named), names=names, weights=weights, zero=set(), sha=sha_in(0),
                                 slow=slow)
-        return [n for k, _, rx in laned if k == "oraclelane" and "/" not in rx for n in rx[2:-2].split("|")]
+        return [n for _, _, rx in laned if "/" not in rx for n in rx[2:-2].split("|")]
 
     assert tail in got((), ())  # precondition: the CENSUS arm selects it
     assert tail not in got((), {tail})

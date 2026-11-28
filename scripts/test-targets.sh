@@ -345,13 +345,9 @@ if [ "$mode" = targeted ]; then
 	if [ "${#lanes[@]}" -gt 0 ]; then
 		lane_dir=.ds4/scratch/test/lanes-${sha%+dirty}
 		rm -rf "$lane_dir" && mkdir -p "$lane_dir" || finish ""
-		# Each lane's GOMAXPROCS is twice its even share of the run's (at least 2). With the run's whole
-		# GOMAXPROCS every lane, 12 lanes held ~140 runnable threads on 12 cores, so a one-thread lane (a
-		# lone recorded game) got ~1/12 core until the parallel lanes drained: at 6d2f131f6c the Orzhova
-		# census (19 s alone) held its lane for 198 s, and at 77b3e9b8a7 the Surtland Frostpyre refusal
-		# entry (~52 s alone) for 171 s. An even share makes a lane's wall its cost, which the deal balances.
-		lane_procs=$(( (2 * ${GOMAXPROCS:-$(nproc)} + ${#lanes[@]} - 1) / ${#lanes[@]} ))
-		[ "$lane_procs" -ge 2 ] || lane_procs=2
+		# Each lane's GOMAXPROCS: near its even share of the run's, so a one-thread lane is not starved
+		# (test_targets.py lane_procs).
+		lane_procs=$("${py[@]}" laneprocs --procs "${GOMAXPROCS:-$(nproc)}" --lanes "${#lanes[@]}") || verdict FAIL "lane GOMAXPROCS failed"
 		lane_logs=() lane_pids=() n=0
 		for r in "${lanes[@]}"; do
 			log=$lane_dir/lane$n.json

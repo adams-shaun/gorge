@@ -21,7 +21,7 @@ def sha_in(lane):
 
 def plain(res, sha):
     laned = tt.oracle_lanes(res, names=NAMES, weights=WEIGHTS, zero=set(), sha=sha)
-    return sorted(n for k, _, rx in laned if k == "oraclelane" and "/" not in rx for n in rx[2:-2].split("|"))
+    return sorted(n for _, _, rx in laned if "/" not in rx for n in rx[2:-2].split("|"))
 
 
 def slice_entry(named=()):
@@ -53,4 +53,4 @@ def test_a_shard_the_diff_names_plays_whatever_the_lane():
 def test_the_selector_passes_the_merge_base():
     # cmd_select hands oracle_lanes replay_sel's merge base, so the targeted run rotates
     src = (HERE / "test_targets.py").read_text()
-    assert 'res = oracle_lanes(res, sha=reprosel.get("sha"))' in src
+    assert 'res = oracle_lanes(res, sha=reprosel.get("sha"), changed=changes)' in src
