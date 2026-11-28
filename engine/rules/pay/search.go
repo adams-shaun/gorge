@@ -379,9 +379,11 @@ func Run(cost Cost, pool state.Mana, life int32, ctx RankContext, choices [][]Al
 
 // SearchScratch is a search's reusable working storage: the
 // level order and its suffix statistics, the reordered classes and the
-// unit counters. A search is a pure function of its arguments that calls
-// back into nothing, so one engine-owned scratch serves every search the
-// engine runs; the returned search's best plan never points into it.
+// unit counters. A search is a pure function of its arguments whose only call
+// back is Env.Fundable (planVictimGate: AssignPlanVictims inside the query
+// scope, which caches the units and runs no nested search), so one
+// engine-owned scratch serves every search the engine runs; the returned
+// search's best plan never points into it.
 type SearchScratch struct {
 	search     Search
 	classes    []Class

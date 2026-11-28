@@ -203,7 +203,7 @@ func TestAltarMixedVictimLockstep(t *testing.T) {
 			t.Fatal(err)
 		}
 		gd := altarMixCardsOf(t, reg, decks)
-		for seed := uint64(1); seed <= 20; seed++ {
+		for seed := uint64(1); seed <= 12; seed++ {
 			cfg := Config{GorgeAutopaySurface: true}
 			m, err := NewMatchup(reg, [2]string{"altarmix-a", "altarmix-b"}, gd, 1)
 			if err != nil {

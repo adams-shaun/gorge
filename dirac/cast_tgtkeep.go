@@ -309,16 +309,16 @@ func (s *State) setTkPrefix(on bool) {
 // that targets t cannot also fund its cost by sacrificing t, so gorge's prefix
 // search (potential_script.go targetsGone) finds no script through them.
 //
-// A planned read releases the sources gorge's payment plan uses
+// A planned read releases a lone source gorge's payment plan uses
 // (planOtherSacSource, a plain creature victim): that plan pays after the
-// targets are announced, so it may take the announced one (CR 601.2c-h). Its
-// search admits only sets that name a victim per step (pay.planVictimGate), so
-// two planned sources over one victim still fund the cast through whichever
-// one pays (two Ashnod's Altars beside Captivating Gyre's only target: one
-// altar and the lands). Every other sacrifice source (the Kaleidoscope's
-// Prism token) stays held.
+// targets are announced, so it may take the announced one (CR 601.2c-h). Two or
+// more such sources over the one victim stay held: gorge's search can spend two
+// of them, names no distinct victims and offers nothing (pay.AssignPlanVictims;
+// two Ashnod's Altars beside Captivating Gyre's only target). Every other
+// sacrifice source (the Kaleidoscope's Prism token) stays held.
 func (s *State) fodderOnlySources(k *prep, p uint8, t Slot, planned bool) slotMask {
 	var fm, byPlan slotMask
+	nByPlan := 0
 	var cs [MaxPerm]Slot
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
 		sl := b.first()
@@ -332,10 +332,14 @@ func (s *State) fodderOnlySources(k *prep, p uint8, t Slot, planned bool) slotMa
 			fm = fm.with(sl)
 			if planned && s.planOtherSacSource(k, sl) {
 				byPlan = byPlan.with(sl)
+				nByPlan++
 			}
 		}
 	}
-	return fm.andNot(byPlan)
+	if nByPlan == 1 {
+		fm = fm.andNot(byPlan)
+	}
+	return fm
 }
 
 // plainCensusPays reports whether p's tier-1 census (availPlain: the pool and
