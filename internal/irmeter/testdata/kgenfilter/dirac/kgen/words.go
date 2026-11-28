@@ -11,3 +11,10 @@ func (c *lClause) setOne() error {
 }
 
 func stringOnlyWord(p string) error { return refuse("unknown property %q", p) } // string-only
+
+// refusal keeps refuse itself free of a refusal site.
+type refusal string
+
+func (r refusal) Error() string { return string(r) }
+
+func refuse(format string, _ ...any) error { return refusal(format) }
