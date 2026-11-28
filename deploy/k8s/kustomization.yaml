@@ -7,6 +7,7 @@ resources:
   - service.yaml
   - httproute.yaml
 # The one place the image name lives; override with IMAGE_NAME's value when it changes.
+# newTag stays :latest (a dated tag in git would need a commit a day); the deploy command sets the tag.
 images:
   - name: ghcr.io/adams-shaun/gorge
     newTag: latest
