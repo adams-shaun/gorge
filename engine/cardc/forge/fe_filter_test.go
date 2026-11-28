@@ -226,7 +226,9 @@ func TestLowerFilterRefusals(t *testing.T) {
 		{"Creature.IsValidThing", RefuseNestedFilter, "IsValidThing"},
 	}
 	for k := RefuseNone + 1; k < refusalKindCount; k++ {
-		found := k >= firstValueRefusal // LowerValue's kinds: TestLowerValueRefusals
+		// LowerValue's and LowerRef's kinds are covered by
+		// TestLowerValueRefusals and TestLowerRefRefusals.
+		found := k >= firstValueRefusal && k <= lastValueRefusal || k >= firstRefRefusal && k <= lastRefRefusal
 		for _, tc := range cases {
 			found = found || tc.kind == k
 		}
