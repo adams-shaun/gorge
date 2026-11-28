@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// The quiet-seat proof's verify runs (quiet_seat.go,
+// The quiet-seat proof's verify runs (cast_quietseat.go,
 // docs/design/dirac-quiet-seat-proof.md): every posed priority walk runs with
 // the proof read beside it, and a proved window whose walk offers more than
 // pass, or changes the State beyond the filter-bound memo, panics.

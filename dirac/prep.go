@@ -443,7 +443,7 @@ type prep struct {
 	// (mana_rider.go).
 	riderAb []int8
 
-	// quietCard: per card, the quiet-seat proof's facts (quiet_seat.go);
+	// quietCard: per card, the quiet-seat proof's facts (cast_quietseat.go);
 	// quietOff: the table carries a route the proof does not model;
 	// quietGrantAny, quietGrantTap: the least mana floor over the activated
 	// abilities that are not sorcery-speed a grant may hand another
@@ -690,7 +690,7 @@ func prepare(t *kop.Table) *prep {
 	p.restrSrc = p.gen != nil && p.gen.anyRestrSrc
 	p.embComb = prepEmbComb(t, p)
 	p.embIdem = prepEmbIdem(p) // static_emblemcombat.go
-	prepQuiet(t, p)            // quiet_seat.go
+	prepQuiet(t, p)            // cast_quietseat.go
 	p.cold.size()
 	// A Planechase game carries one planar-deck record (zone_planechase.go).
 	// The record lives in a variant of the table's cold layout selected at

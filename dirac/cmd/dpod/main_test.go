@@ -140,7 +140,7 @@ func TestPodHBotIsDeterministic(t *testing.T) {
 }
 
 // TestPodQuietProofHBot: the heuristic bot on every seat of the auto-pay
-// pods, with the quiet-seat proof's verify on (dirac/quiet_seat.go): every
+// pods, with the quiet-seat proof's verify on (dirac/cast_quietseat.go): every
 // posed priority walk runs, and a proved window whose walk offers more than
 // pass, or changes the State, fails the game (playOne counts its panic).
 func TestPodQuietProofHBot(t *testing.T) {

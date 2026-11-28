@@ -1,6 +1,6 @@
 # dirac: the quiet-seat proof (skip the priority walk when a seat can only pass)
 
-Status: implemented and consulted (`dirac/quiet_seat.go`), with a verify arm
+Status: implemented and consulted (`dirac/cast_quietseat.go`), with a verify arm
 (`DebugQuietVerify`) and a shadow arm (`DebugQuietShadow`, on in every
 `dirac/oracle` test). Base `e62aa28e17`.
 
@@ -104,7 +104,7 @@ routes) are all behind routes the proof rules out.
 
 The committed tests run these with the verify panicking on a mismatch:
 `TestQuietProofEDH`, `TestQuietProofEDHAutopay`, `TestQuietProofFDN`
-(`dirac/quiet_seat_test.go`) and `TestPodQuietProofHBot` (`dirac/cmd/dpod`). Every
+(`dirac/cast_quietseat_test.go`) and `TestPodQuietProofHBot` (`dirac/cmd/dpod`). Every
 `dirac/oracle` test runs with `DebugQuietShadow` (no tally, parallel-safe).
 
 The proof costs about 2,200 instructions per call on the edh pods (one extra call per

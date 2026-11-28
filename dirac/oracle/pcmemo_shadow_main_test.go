@@ -16,6 +16,6 @@ import (
 func TestMain(m *testing.M) {
 	dirac.DebugPCMemoShadow = true
 	dirac.DebugSFMemoShadow = true // scriptFilt's memo (dirac/mana_sfmemo.go)
-	dirac.DebugQuietShadow = true  // the quiet-seat proof: every posed walk runs and a proved one must be pass alone (dirac/quiet_seat.go)
+	dirac.DebugQuietShadow = true  // the quiet-seat proof: every posed walk runs and a proved one must be pass alone (dirac/cast_quietseat.go)
 	os.Exit(m.Run())
 }
