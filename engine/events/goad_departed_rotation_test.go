@@ -39,6 +39,8 @@ func TestDepartedGoadFollowsTheTurnRotation(t *testing.T) {
 		{"consecutive extra turns keep the base", 1,
 			[]Event{grant(3), grant(2), take(2), turn(2), take(3), turn(3), turn(2)}, false},
 		{"departed seat's grant consumed without a turn", 1, []Event{grant(1), take(1), turn(2)}, false},
+		{"departed seat's extra turn would have begun, short of its slot", 3,
+			[]Event{grant(3), take(3), turn(1)}, false},
 		{"skipped extra turn begins nothing", 1, []Event{grant(2), drop(2), turn(2)}, false},
 		{"skipped extra turn does not move the rotation", 3,
 			[]Event{grant(2), skip(2), drop(2), turn(1)}, true},

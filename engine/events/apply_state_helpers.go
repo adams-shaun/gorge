@@ -163,10 +163,15 @@ func rotationSeat(g *state.Game) state.PlayerID {
 }
 
 // foldRotationExtraTurn marks the next TurnChange as an extra turn when an
-// ExtraTurn consumption takes one: a skipped grant, and a grant to a departed
-// seat, begin no turn.
+// ExtraTurn consumption takes one: a skipped grant begins no turn. Neither
+// does a departed seat's grant, but it is consumed where that turn would have
+// begun, which ends the seat's goads (CR 800.4m).
 func foldRotationExtraTurn(g *state.Game, e *Event) {
-	if e.Text != ExtraTurnSkippedText && !g.Players[e.Player].Lost {
+	switch {
+	case e.Text == ExtraTurnSkippedText:
+	case g.Players[e.Player].Lost:
+		expireSeatGoads(g, e.Player)
+	default:
 		g.Rotation.ExtraNext = true
 	}
 }
@@ -214,14 +219,20 @@ func expireDepartedGoads(g *state.Game, from, to state.PlayerID) {
 		if q == to {
 			return
 		}
-		if !g.Players[q].Lost {
-			continue
+		if g.Players[q].Lost {
+			expireSeatGoads(g, q)
 		}
-		for j := range g.Objs {
-			if g.Objs[j].Goads == nil {
-				continue
-			}
-			g.Objs[j].Goads = expireTurnGoads(g.Objs[j].Goads, q)
+	}
+}
+
+// expireSeatGoads drops p's default-duration goads from every object.
+func expireSeatGoads(g *state.Game, p state.PlayerID) {
+	if !g.GoadsSeen() {
+		return
+	}
+	for i := range g.Objs {
+		if g.Objs[i].Goads != nil {
+			g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, p)
 		}
 	}
 }
