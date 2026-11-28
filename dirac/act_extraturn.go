@@ -72,12 +72,13 @@ func (s *State) exTake() {
 	for s.g.exN > 0 {
 		var p uint8
 		var src Obj
-		var rider bool
+		var rider, noPrev, lose bool
 		if DebugExtraTurnFIFO {
 			// the mutation test's wrong order: the oldest entry first
 			p = s.g.exQ[0]
 			src = s.g.exQSrc[0]
 			rider = s.g.exRide&1 != 0 // seat-ok: a grant-flag bit, not a seat
+			noPrev, lose = s.exNoPrevTake(0, true)
 			copy(s.g.exQ[:s.g.exN-1], s.g.exQ[1:s.g.exN])
 			copy(s.g.exQSrc[:s.g.exN-1], s.g.exQSrc[1:s.g.exN])
 			s.g.exRide >>= 1
@@ -87,6 +88,7 @@ func (s *State) exTake() {
 			p = s.g.exQ[s.g.exN]
 			src = s.g.exQSrc[s.g.exN]
 			rider = s.g.exRide&(1<<s.g.exN) != 0
+			noPrev, lose = s.exNoPrevTake(s.g.exN, false)
 			s.g.exRide &^= 1 << s.g.exN
 		}
 		if s.pl[p].lost {
@@ -94,6 +96,9 @@ func (s *State) exTake() {
 		}
 		if rider {
 			s.exRideArm(p, src)
+		}
+		if noPrev {
+			s.exNoPrevPendAdd(p, lose, src) // armed at the turn's first upkeep (act_extraturnnoprev.go)
 		}
 		if !DebugNoExtraTurnBegun {
 			s.g.extraTurnBegun |= 1 << SeatIx(p) // an extra turn's TurnChange fires

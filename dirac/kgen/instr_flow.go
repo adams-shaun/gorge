@@ -228,6 +228,12 @@ func (ic *instrCtx) opAddTurn() error {
 		// the loss (act_extraturn.go). The end step is the only lowered phase.
 		ki.C = int16(kop.StepEnd)
 	}
+	if _, ok := ic.fl["ExtraTurnNoPrev"]; ok {
+		// Alchemist's Gambit's upkeep rider: damage can't be prevented during
+		// the turn of the granted turn's first upkeep, and C's loss arms there
+		// (lower_addturnupkeep.go; act_extraturnnoprev.go)
+		ki.B = kop.Const(1)
+	}
 	return nil
 }
 
