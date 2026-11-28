@@ -549,7 +549,9 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		twoLive: twoLive, repeatLive: repeatLive,
 	}
 	var bound Decision
-	rt.bound = s.tapXBoundWalk(k, p, &rt, sacAny, sacOpen, sacRepeat, &bound)
+	if s.tapXBoundWalk(k, p, &rt, sacAny, sacOpen, sacRepeat, &bound) {
+		rt.bound = &bound
+	}
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
 		if !s.gapsOrBoundPlay(k, p, boundLive, &gaps, a) && !twoLive && !repeatLive && !((caAny || raBoard) && s.reflAmtBoundPlay(k, p, a)) && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {

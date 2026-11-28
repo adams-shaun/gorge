@@ -21,18 +21,19 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // bounded relaxation (census.bounded); beside a sacrifice-any source, a
 // repeatable filter or any other gap kind it stays off.
 
-// tapXBoundWalk fills out with the plays the bounded walk lists and returns
-// it, or nil when the board is not one the bound reads (the search then runs
-// for every walk play, as before). sacAny, sacOpen, sacRepeat are
+// tapXBoundWalk fills out with the plays the bounded walk lists and reports
+// true, or reports false when the board is not one the bound reads (the search
+// then runs for every walk play, as before). It returns no pointer: a returned
+// *Decision would move scriptOffers' local to the heap. sacAny, sacOpen, sacRepeat are
 // scriptOffers': any sacrifice-any source makes the board unrelaxable.
-func (s *State) tapXBoundWalk(k *prep, p uint8, rt *scriptRoute, sacAny, sacOpen, sacRepeat bool, out *Decision) *Decision {
+func (s *State) tapXBoundWalk(k *prep, p uint8, rt *scriptRoute, sacAny, sacOpen, sacRepeat bool, out *Decision) bool {
 	if !rt.twoLive || sacAny || sacOpen || sacRepeat || rt.repeatLive || !k.tapMana || !s.tapXTwoLive(k, p) || !s.tapXOnlyGaps(k, p, rt) {
-		return nil
+		return false
 	}
 	s.g.turnF |= turnTapXBound
 	s.plainOptions(k, out, availGaps)
 	s.g.turnF &^= turnTapXBound
-	return out
+	return true
 }
 
 // scriptCandDrop is scriptOffers' drop test for one counted candidate: a play
