@@ -210,11 +210,15 @@ func (s *State) drawOp(k *prep, in *kop.Instr) bool {
 	return true
 }
 
-// dredgeDraws is the resumable OpDraw loop: in.A cards for each player in.Obj
-// names, each card asked first when its player has a candidate; false: an
-// ask is posed.
+// dredgeDraws is the resumable OpDraw loop over the players in.Obj names.
 func (s *State) dredgeDraws(k *prep, in *kop.Instr) bool {
-	q := s.players(k, in.Obj)
+	return s.dredgeDrawSeq(k, in, s.players(k, in.Obj))
+}
+
+// dredgeDrawSeq is the resumable OpDraw loop: in.A cards for each player of q
+// (in.Obj's players, or a RefSet's members, value_setexpr.go execSet), each
+// card asked first when its player has a candidate; false: an ask is posed.
+func (s *State) dredgeDrawSeq(k *prep, in *kop.Instr, q seatSeq) bool {
 	if q.n == 0 {
 		return true
 	}
