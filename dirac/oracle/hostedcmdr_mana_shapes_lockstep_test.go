@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -126,6 +127,33 @@ func TestHostedCmdrManaShapesLockstep(t *testing.T) {
 	}
 	if !seen {
 		t.Fatalf("the ProduceMana replacement was not reached on any seed played, so the lockstep is vacuous")
+	}
+	// The two remaining shapes stay refused by name: the kernel's mirrored
+	// prefix search cannot price them yet (see hostedCmdrManaShapeRefused).
+	t.Run("Squandered Resources refused", func(t *testing.T) {
+		hostedCmdrManaShapeRefused(t, "Squandered Resources", `ManaReflected Valid$ "Defined.Sacrificed"`)
+	})
+	t.Run("Vivi Ornitier refused", func(t *testing.T) {
+		hostedCmdrManaShapeRefused(t, "Vivi Ornitier", `activation PlayerTurn$ "True" beside another condition`)
+	})
+}
+
+// hostedCmdrManaShapeRefused pins one of the two mana shapes this slice could
+// not lower, through the set a deck is built from: the card is not lowered and
+// its reason is the named one. The lowering test in dirac/kgen pins the same
+// refusal; this case keeps the lockstep test's contract (a deck holding the
+// card is turned away rather than played wrong) next to the Virtue line it
+// does play.
+func hostedCmdrManaShapeRefused(t *testing.T, name, want string) {
+	t.Helper()
+	set := printedDelveSetIn(t, corpusDirOrSkip(t), [2][]string{{name}})
+	i, ok := set.Lookup(name)
+	if !ok {
+		t.Fatalf("%s is not in the set", name)
+	}
+	st, why := set.Status(i), set.Reason(i)
+	if st != cardset.StatusNotLowered || !strings.Contains(why, want) {
+		t.Fatalf("%s: %s (%q), want not lowered with a reason containing %q", name, st, why, want)
 	}
 }
 
