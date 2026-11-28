@@ -294,7 +294,10 @@ func (s *State) payAnswerGate(k *prep, in *kop.Instr, p uint8, kind int, skip ui
 	unpricedChosen := in.Op == kop.OpUnlessPaid && kind == kop.PayMana && s.g.nchosen == 0 &&
 		in.A.K == kop.VExpr && int(in.A.N) < len(k.t.Exprs) &&
 		k.t.Exprs[in.A.N].Kind == kop.ExMVOf && k.t.Exprs[in.A.N].Ref == kop.RefChosen
-	noPay := stackSelfGone || unpricedChosen
+	// a trigger's own announced Sac<X> (kop.PayBSubSacXTrig): gorge's
+	// triggered-cost window has no settle for it and poses decline only
+	sacXTrig := kind == kop.PaySac && in.B.N == kop.PayBSubSacXTrig
+	noPay := stackSelfGone || unpricedChosen || sacXTrig
 	var stall uint8
 	if !noPay {
 		ok := s.canPayGenFor(k, p, kind, skip, amt, pips, in.F)

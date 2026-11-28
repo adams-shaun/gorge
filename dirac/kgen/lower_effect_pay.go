@@ -104,6 +104,9 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 			in.CS, in.A = "Discard", cst(c.DiscardN)
 		}
 	}
+	if err := lc.sacXTrigPayInstr(&in, &c, &n); err != nil {
+		return in, err
+	}
 	if c.Sac != nil {
 		n++
 		in.CS, in.A, in.F = "Sacrifice", cst(c.SacN), c.Sac
@@ -375,6 +378,29 @@ func (lc *lowerCtx) moveGravePayInstr(in *lInstr, c *lCost, n int) error {
 	}
 	in.CS, in.A, in.F = "MoveGrave", cst(c.MoveGraveN), c.MoveGraveF
 	c.MoveGraveN, c.MoveGraveF = 0, nil
+	return nil
+}
+
+// sacXTrigPayInstr lowers Sac<X/Spec> as a printed trigger's own whole cost
+// (Sephiroth, One-Winged Angel): gorge's triggered-cost window has no settle
+// for an announced sacrifice, so it poses the election decline only and the
+// body never runs (cumulative.go costCarriesUnfoldedX,
+// triggeredCostComponentsPayable). The body's Count$xPaid reads the
+// resolution's X, which is never paid. A no-op unless the cost is Sac<X>.
+func (lc *lowerCtx) sacXTrigPayInstr(in *lInstr, c *lCost, n *int) error {
+	if c.Sac == nil || !c.SacX {
+		return nil
+	}
+	if !lc.trigOwnCost || *n != 0 || !c.Mana.None {
+		return refuse("resolution Sac<X> cost shape")
+	}
+	if x, ok := lc.face.SVars["X"]; !ok || strings.TrimSpace(x) != "Count$xPaid" {
+		return refuse("trigger Sac<X> cost with SVar:X other than Count$xPaid")
+	}
+	*n++
+	in.CS, in.A, in.F = "SacrificeXTrig", cst(0), c.Sac
+	lc.trigXPaid = true
+	c.Sac, c.SacX = nil, false
 	return nil
 }
 
