@@ -23,7 +23,7 @@ func unionMask(r kop.Ref) uint8 {
 	case kop.RefTargets0123:
 		return 15
 	case kop.RefSet:
-		return setUnionMark // not a slot union: execGen hands it to execSet (set_eval.go)
+		return setUnionMark // not a slot union: execGen hands it to execSet (value_setexpr.go)
 	}
 	return 0
 }

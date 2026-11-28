@@ -191,7 +191,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	}
 	if k.gen.anyUnion && unionMask(in.Obj) != 0 {
 		if in.Obj == kop.RefSet {
-			return s.execSet(k, in), true // set_eval.go
+			return s.execSet(k, in), true // value_setexpr.go
 		}
 		s.execUnion(k, in)
 		return true, true

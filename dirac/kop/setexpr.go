@@ -6,7 +6,7 @@ import "strconv"
 // set-valued operand. An instruction whose Obj is RefSet names a SetExpr of
 // Table.Sets through its ability's SetRefs entry for the instruction's PC; the
 // kernel evaluates the expression when the instruction runs (dirac
-// set_eval.go evalSet) and runs the op once per member.
+// value_setexpr.go evalSet) and runs the op once per member.
 //
 // A SetExpr is a postfix program: a base kind pushes a set, a combinator pops
 // its operands and pushes the result, and the program leaves exactly one set.
