@@ -33,9 +33,16 @@ func (e *Engine) settleLandPlay(id state.ObjID) {
 	if !e.etbLandPlay || id != e.etbLandObj {
 		return
 	}
+	logged := e.etbLandLogged
+	e.etbLandPlay, e.etbLandObj, e.etbLandLogged = false, 0, false
+	if !logged {
+		e.logLandPlay(id)
+	}
+}
+
+// logLandPlay emits id's LandPlayed event for the armed land play.
+func (e *Engine) logLandPlay(id state.ObjID) {
 	p := e.etbLandPlayer
-	e.etbLandPlay = false
-	e.etbLandObj = 0
 	// A land played through a limited untyped may-play static carries the
 	// static's permission token (mayPlayKeyLimitReached counts it); every
 	// other land play is byte-identical.
@@ -76,6 +83,19 @@ func (e *Engine) landEntryParked(id state.ObjID) bool {
 	return false
 }
 
+// landEntryOrderParked reports whether id's battlefield entry waits on a
+// CR 616.1 order ask between competing entry replacements (a tapped land
+// beside "lands you control enter untapped"). The answer composes the entry
+// and reaches finishLandPlay.
+func (e *Engine) landEntryOrderParked(id state.ObjID) bool {
+	for i := range e.replChoices {
+		if ev := &e.replChoices[i].ev; ev.Kind == events.MoveZone && ev.Obj == id {
+			return true
+		}
+	}
+	return false
+}
+
 // settleLandPlayIfDone is the terminal-path settle: called wherever a land
 // play's battlefield entry has finished being processed, it logs the land play
 // unless the entry is still parked on an outstanding answer. An entry that
@@ -84,6 +104,17 @@ func (e *Engine) landEntryParked(id state.ObjID) bool {
 // reaches the battlefield at all.
 func (e *Engine) settleLandPlayIfDone(id state.ObjID) {
 	if e.landEntryParked(id) {
+		return
+	}
+	if e.landEntryOrderParked(id) {
+		// The play is counted as it is made, before the order ask (the
+		// special action is taken, CR 305.1), but the play stays in flight:
+		// the answered entry's MoveZone is what a Mode$ LandPlayed trigger
+		// matches (playingLand), and finishLandPlay disarms it then.
+		if e.etbLandPlay && id == e.etbLandObj && !e.etbLandLogged {
+			e.logLandPlay(id)
+			e.etbLandLogged = true
+		}
 		return
 	}
 	e.settleLandPlay(id)
