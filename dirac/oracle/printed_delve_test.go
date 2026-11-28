@@ -26,7 +26,8 @@ var delveTables sync.Map
 // printedDelveSet builds (or shares) the kernel table a repro's decks need: a
 // card no synthetic pool holds (a printed Delve card outside the Standard set
 // lists, say) has no table of its own. The table is a test artifact, never
-// committed (kgen's tables are corpus-derived).
+// committed (kgen's tables are corpus-derived). A tree with no corpus (a fresh
+// clone) skips the caller.
 func printedDelveSet(t *testing.T, cards [2][]string) cardset.Set {
 	t.Helper()
 	var names []string
@@ -37,6 +38,7 @@ func printedDelveSet(t *testing.T, cards [2][]string) cardset.Set {
 	names = slices.Compact(names)
 	cardsDir, err := cardset.CorpusDir()
 	if err != nil {
+		corpusDirOrSkip(t) // no corpus at all: skip; one cardset cannot read: fail
 		t.Fatal(err)
 	}
 	key := cardsDir + "\x00" + strings.Join(names, "\x00")
