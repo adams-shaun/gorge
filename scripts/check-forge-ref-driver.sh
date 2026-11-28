@@ -28,7 +28,7 @@ pin() { awk -v n="$1" '$1 == n && ($2 == "?=" || $2 == "=") { v = $3; sub(/#.*/,
 
 # The checkout may not carry <base>: a broken or shallow workspace store makes git show fail, so a FORGE_REF that has
 # not moved reads as moved (old comes back empty) and the step used to die on the gh line before the compare API could
-# answer, blaming a missing gh for an unreadable base. This happened twice: 2026-11-26 16:27Z on metal2-gorge-box-2 for
+# answer, blaming a missing gh for an unreadable base. This happened twice: 2026-11-26 16:27Z on a self-hosted runner for
 # PR #4816 (4f8d2c6491 is the merge ref's own parent and its Makefile still failed to read), and 2026-11-27 17:25Z for
 # PR #5621, which does not touch FORGE_REF at all. Fetch the base when the checkout cannot read it; if it is still
 # unreadable, die before the gh check with the true cause rather than guessing that the pin moved. The verdicts below

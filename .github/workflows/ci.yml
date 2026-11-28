@@ -16,7 +16,7 @@
 #
 # Fork PRs get a read-only token and no secrets; nothing here needs either.
 #
-# Runner: pull_request jobs from forks ALWAYS run on GitHub-hosted runners; same-repo PRs use gorge-box (metal2) when CI_SELF_HOSTED. Push, schedule
+# Runner: pull_request jobs from forks ALWAYS run on GitHub-hosted runners; same-repo PRs use gorge-box when CI_SELF_HOSTED. Push, schedule
 # and dispatch jobs run on the maintainers' ephemeral k8s runners (label
 # gorge-box) when the repository variable
 # CI_SELF_HOSTED is 'true', and on GitHub-hosted runners otherwise. The fork-PR
@@ -64,7 +64,7 @@ env:
   GOFLAGS: -p=4 -trimpath
 
 # Runner priority (operator 11-16: "the mergify queue checks run w/ higher prio"): GitHub Actions has no job
-# priority, so a pull request's own checks (fast, lint) run only on the runners labelled gorge-pr (on metal2 and the spot boxes). The others
+# priority, so a pull request's own checks (fast, lint) run only on the runners labelled gorge-pr (on the owned box and the spot boxes). The others
 # box runners always stay free for Mergify's queue batches (mergify/merge-queue/*), main, nightly and on demand.
 jobs:
   # A push to main only: did a queue batch or pull request's ci-ok already pass this exact tree?
@@ -105,14 +105,15 @@ jobs:
     # 97 s of kgen tests; one owner per compile action is what keeps that from coming back.
     strategy:
       matrix:
-        # The boxes come from the repo variable CI_BOXES (a JSON list, e.g. ["metal2"]), so adding or
+        # The boxes come from the repo variable CI_BOXES (a JSON list of box names), so adding or
         # dropping a box is `gh variable set CI_BOXES`, never a PR. Every listed box must have a gorge-box runner.
-        # An empty list falls back to metal2 as well: 11-26 10:0x-11:11 CI_BOXES expanded to no box, prepare got
+        # An empty list falls back to the repo variable CI_BOX_DEFAULT, and with that unset too, to any gorge-box runner
+        # (box names are local state and stay out of this public tree, 11-28). The fallback exists because 11-26 10:0x-11:11 CI_BOXES expanded to no box, prepare got
         # zero matrix jobs, test/wire-matrix/dirac-slices all skipped and ci-ok reddened four batches in a row
         # (runs 45802945687, 45803903089, 45807210008, 45807737930) while nothing merged for 2 h. The suite must
         # run somewhere even then; CI_BOXES='[]' is not a way to pause batch CI (set CI_SELF_HOSTED instead).
-        box: ${{ fromJSON((vars.CI_BOXES != '' && vars.CI_BOXES != '[]' && vars.CI_BOXES) || '["metal2"]') }}
-    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON(format('["gorge-box","box-{0}"]', matrix.box)) || 'ubuntu-24.04' }}
+        box: ${{ fromJSON((vars.CI_BOXES != '' && vars.CI_BOXES != '[]' && vars.CI_BOXES) || format('["{0}"]', vars.CI_BOX_DEFAULT)) }}
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON(matrix.box != '' && format('["gorge-box","box-{0}"]', matrix.box) || '["gorge-box"]') || 'ubuntu-24.04' }}
     steps:
       - name: Heal the runner's workspace (self-hosted)
         # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
