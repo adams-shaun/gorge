@@ -200,6 +200,8 @@ export interface CreateGameRequest {
   seats?: number;
   /** Human seats at a pod; the panel always asks for 1. */
   humans?: number;
+  /** Submitted decks by seat: each is a deck object or a plain-text decklist, never both. The server judges them. */
+  decks?: { seat: number; deck?: unknown; text?: string }[];
 }
 
 /** createGame asks the server to seat the player against a bot in the given format: a fresh single-shot table is created and started, and the join path it returns is the URL the player follows to sit in the seat. Omitted deck ids retain random assignment. A server that did not enable the play-vs-bot flow answers 404, surfaced as ApiError. */

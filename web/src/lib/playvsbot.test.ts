@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
-import { startPlayVsBot } from './playvsbot';
+import { MAX_DECK_TEXT_BYTES, deckTextTooLong, startPlayVsBot } from './playvsbot';
 import { setBasePathForTests, withBase } from './basepath';
 
 const fetchMock = vi.fn();
@@ -67,6 +67,49 @@ describe('startPlayVsBot', () => {
     );
     await startPlayVsBot('commander', 'h', 'b', 6, '', '', 2);
     expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toEqual({ format: 'commander', human_deck: 'h', bot_deck: 'b', mulligans: 6 });
+  });
+
+  it('sends pasted text as decks[0].text and equals the shared fixture', async () => {
+    setBasePathForTests('');
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ table: 'g1', match: 1, seed: 7, seat: 0, token: 'tok', join: '/t/g1?seat=0&token=tok' }),
+    });
+    const fixture = JSON.parse(readFileSync(new URL('../../../server/gorged/testdata/web-create-pod-text.json', import.meta.url), 'utf8'));
+    expect(fixture.decks).toHaveLength(1);
+    const text = 'Commander\n1 Ghoulcaller Gisa\n\n1 Sol Ring\n';
+    await startPlayVsBot('commander', 'h', '', 6, '', '', 4, text);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(fixture);
+    // At two seats the pasted list replaces the pool pick; the bot's pick stays.
+    await startPlayVsBot('commander', 'h', 'b', 6, '', '', 2, text);
+    expect(fetchMock.mock.calls[1][1].body).toBe(
+      JSON.stringify({ format: 'commander', bot_deck: 'b', mulligans: 6, decks: [{ seat: 0, text: text.trim() }] }),
+    );
+  });
+
+  it('keeps the request unchanged when the box is empty', async () => {
+    setBasePathForTests('');
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ table: 'g1', match: 1, seed: 7, seat: 0, token: 'tok', join: '/t/g1?seat=0&token=tok' }),
+    });
+    for (const empty of ['', '  \n\t\n']) {
+      fetchMock.mockClear();
+      await startPlayVsBot('commander', 'h', 'b', 6, '', '', 2, empty);
+      expect(fetchMock.mock.calls[0][1].body).toBe(
+        JSON.stringify({ format: 'commander', human_deck: 'h', bot_deck: 'b', mulligans: 6 }),
+      );
+    }
+  });
+
+  it('deckTextTooLong is true past 65536 bytes', () => {
+    expect(MAX_DECK_TEXT_BYTES).toBe(65536);
+    expect(deckTextTooLong('a'.repeat(65536))).toBe(false);
+    expect(deckTextTooLong('a'.repeat(65537))).toBe(true);
+    // Bytes, not characters: 32769 two-byte characters are 65538 bytes.
+    expect(deckTextTooLong('é'.repeat(32769))).toBe(true);
   });
 
   it('propagates a server rejection so the panel can render it', async () => {

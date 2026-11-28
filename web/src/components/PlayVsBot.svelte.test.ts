@@ -21,6 +21,15 @@ describe('PlayVsBot entry point', () => {
     expect(html.match(/>Random<\/option>/g)).toHaveLength(2);
   });
 
+  it('offers a 12-row box to paste your own deck, with the pool picker enabled while it is empty', () => {
+    const { html } = render(PlayVsBot, {});
+    expect(html).toContain('Paste your deck');
+    expect(html).toContain('data-testid="deck-text"');
+    expect(html).toContain('rows="12"');
+    expect(html).toContain('1 Your Commander');
+    expect(html).not.toMatch(/<select[^>]*disabled[^>]*data-testid="human-deck"/);
+  });
+
   it('offers an opponent bot picker that defaults to the server policy', () => {
     const { html } = render(PlayVsBot, {});
     expect(html).toContain('data-testid="bot-policy"');

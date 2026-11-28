@@ -3,16 +3,18 @@
   import { fetchBotPolicies, fetchCapabilities, fetchDecks, type DeckInfo } from '../lib/api';
   import type { BotPolicyInfo, PairedBotChoice } from '../protocol';
   import ProtocolSetting from './ProtocolSetting.svelte';
-  import { VS_BOT_FORMATS, VS_BOT_MULLIGANS, VS_BOT_SEATS, deckLabel, startPlayVsBot, type VsBotFormat, type VsBotMulligans, type VsBotSeats } from '../lib/playvsbot';
+  import { VS_BOT_FORMATS, VS_BOT_MULLIGANS, VS_BOT_SEATS, deckLabel, deckTextTooLong, startPlayVsBot, type VsBotFormat, type VsBotMulligans, type VsBotSeats } from '../lib/playvsbot';
 
   // The landing-page entry point that sits the player down against bots: a
   // duel, or (Commander only) a pod of three or four seats, one of them yours.
   // Deck ids come only from the server catalogue; empty values deliberately
-  // stay the original random-assignment path. The opponent picker lists the
-  // server's offered policies for the chosen format; empty keeps its default.
+  // stay the original random-assignment path. A pasted decklist replaces the
+  // player's pool pick; the server alone judges it. The opponent picker lists
+  // the server's offered policies for the chosen format; empty keeps its default.
   let format: VsBotFormat = $state('constructed');
   let humanDeck = $state('');
   let botDeck = $state('');
+  let deckText = $state('');
   let botPolicy = $state('');
   let policies = $state<BotPolicyInfo[]>([]);
   let defaultPolicy = $state('');
@@ -72,10 +74,14 @@
   }
 
   async function start() {
+    if (deckTextTooLong(deckText)) {
+      error = 'That list is too long to send.';
+      return;
+    }
     busy = true;
     error = null;
     try {
-      const join = await startPlayVsBot(format, humanDeck, botDeck, mulligans, botPolicy, pairedBot, seats);
+      const join = await startPlayVsBot(format, humanDeck, botDeck, mulligans, botPolicy, pairedBot, seats, deckText);
       window.location.href = join;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
@@ -121,7 +127,7 @@
     {#if seats === 2}
       <label class="picker">
         <span>Your deck</span>
-        <select aria-label="Your deck" bind:value={humanDeck} data-testid="human-deck">
+        <select aria-label="Your deck" bind:value={humanDeck} disabled={deckText.trim() !== ''} data-testid="human-deck">
           <option value="">Random</option>
           {#each formatDecks as d (d.id)}
             <option value={d.id} disabled={!!d.refused}>{deckLabel(d)}</option>
@@ -140,6 +146,16 @@
     {:else}
       <p class="hint">Pod decks are dealt from the server's Commander pool.</p>
     {/if}
+    <label class="picker">
+      <span>Paste your deck</span>
+      <textarea
+        aria-label="Paste your deck"
+        rows="12"
+        placeholder={'Commander\n1 Your Commander\n\n1 Sol Ring\n...'}
+        bind:value={deckText}
+        data-testid="deck-text"
+      ></textarea>
+    </label>
     <label class="picker">
       <span>Bot</span>
       <select aria-label="Bot" bind:value={botPolicy} data-testid="bot-policy">
@@ -236,7 +252,8 @@
   .policy-hint {
     color: var(--ink-dim);
   }
-  select {
+  select,
+  textarea {
     width: 100%;
     padding: var(--sp-2);
     border: 1px solid var(--edge-inst);
@@ -255,6 +272,10 @@
     font-size: var(--t-14);
     cursor: pointer;
   }
+  textarea {
+    box-sizing: border-box;
+    resize: vertical;
+  }
   button:disabled {
     opacity: 0.6;
     cursor: default;
@@ -263,5 +284,6 @@
     margin: 0;
     font-size: var(--t-12);
     color: var(--danger);
+    white-space: pre-wrap;
   }
 </style>
