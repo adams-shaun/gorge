@@ -7,19 +7,6 @@ import (
 	"testing"
 )
 
-// abProbeCard is one synthetic card whose first node refuses on a target
-// filter, so the node's other params stay unread in the default mode.
-func abProbeCard(t *testing.T, extra ...string) *lCard {
-	t.Helper()
-	src := strings.Join(append([]string{
-		"Name:Probe",
-		"ManaCost:R",
-		"Types:Instant",
-		"A:SP$ DealDamage | ValidTgts$ Any.!EnchantedBy | NumDmg$ 1 | SpellDescription$ Probe.",
-	}, extra...), "\n")
-	return abLower(t, src, false)
-}
-
 // probeFixture lowers a card in both modes and asserts the default mode
 // reports only the node's first refusal, while the every-blocker mode also
 // reports the probed param's refusal.
@@ -95,6 +82,33 @@ func TestProbeReadsCostKeys(t *testing.T) {
 			"SVar:TrigBody:AB$ PutCounter | ValidTgts$ Creature | Defined$ Targeted.!BogusWord | Cost$ Bogus",
 		}, "\n")
 		probeFixture(t, src, `!BogusWord`, `cost token "Bogus"`)
+	})
+	t.Run("numtimes-skipped", func(t *testing.T) {
+		// effect hands a Mana<...\NumTimes> cost to numTimesPay, not to a
+		// cost reader: the probe leaves it unread instead of a false blocker.
+		src := strings.Join([]string{
+			"Name:Probe",
+			"ManaCost:R",
+			"Types:Creature Human",
+			"PT:1/1",
+			"T:Mode$ Phase | Phase$ BeginCombat | Execute$ TrigBody | TriggerDescription$ Probe.",
+			"SVar:TrigBody:AB$ PutCounter | ValidTgts$ Creature | Defined$ Targeted.!BogusWord | Cost$ Mana<1\\NumTimes>",
+		}, "\n")
+		c := abLower(t, src, true)
+		all := abReasons(c)
+		if !strings.Contains(all, `!BogusWord`) {
+			t.Fatalf("precondition: the node refuses in its Defined$ guard:\n%s", all)
+		}
+		if strings.Contains(all, "NumTimes") {
+			t.Errorf("the NumTimes cost became a probed blocker:\n%s", all)
+		}
+		unread := ""
+		for _, u := range c.Unreadable {
+			unread += u.Reason + "\n"
+		}
+		if !strings.Contains(unread, "Cost") {
+			t.Errorf("the NumTimes cost left no unread row: %q", unread)
+		}
 	})
 }
 
@@ -172,11 +186,24 @@ func unreadTableRow(t *testing.T, md, list string) (gap, partial int) {
 	return 0, 0
 }
 
-// TestUnreadShareTable: the ALL row counts equal a recount over the result
-// rows (refused cards and cards carrying a partial row).
+// TestUnreadShareTable: the ALL row counts of an every-blocker census equal a
+// recount over the result rows (refused cards and cards carrying a partial
+// row). Only that mode writes unread-after-refusal rows, so the census runs
+// in it and the partial column must be non-zero: a 0 == 0 pass is no check.
 func TestUnreadShareTable(t *testing.T) {
-	heavyParallel(t)
-	res := sharedCensus(t)
+	// Sequential, never heavyParallel: the mode is the package global
+	// censusAllBlockers, which the shared census tests read unset.
+	std, err := readCardList(filepath.Join("../../", standardListPath))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cardsDir := ratchetCards(t)
+	censusAllBlockers = true
+	defer func() { censusAllBlockers = false }()
+	res, err := computeSetlistCensus(testSetlistDir, cardsDir, std)
+	if err != nil {
+		t.Fatal(err)
+	}
 	var md strings.Builder
 	writeStdCensus(&md, res)
 	if !strings.Contains(md.String(), "## Unread after refusal") {
@@ -203,6 +230,9 @@ func TestUnreadShareTable(t *testing.T) {
 	}
 	if partial != len(unread) {
 		t.Errorf("ALL cards with unread params = %d, recount over rows = %d", partial, len(unread))
+	}
+	if partial == 0 {
+		t.Fatal("precondition: the every-blocker census holds no card with unread params")
 	}
 	if partial > gap {
 		t.Errorf("ALL unread cards %d exceed gap cards %d", partial, gap)

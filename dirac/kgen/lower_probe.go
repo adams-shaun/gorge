@@ -103,8 +103,9 @@ func (lc *lowerCtx) probeScratch(fn func() error) error {
 	lc.chosenOppAb, lc.chosenPlAb, lc.chosenMidAb = savedOpp, savedPl, savedMid
 	lc.chosenResAb, lc.chosenEachAb, lc.remOppAb = savedRes, savedEach, savedRemOpp
 	// The scratch program is not part of the card's lowering: drop it so the
-	// ability indices the census prints for later refusals do not shift.
-	if len(lc.out.Abilities) == at+1 {
+	// ability indices the census prints for later refusals do not shift. A
+	// latent a reader made during the probe is scratch too.
+	if len(lc.out.Abilities) > at {
 		lc.out.Abilities = lc.out.Abilities[:at]
 	}
 	return err
@@ -208,6 +209,11 @@ func (lc *lowerCtx) probeUnlessCost(v string) error {
 // only while the body's program is empty, everything else is an ordinary
 // resolution cost.
 func (lc *lowerCtx) probeNodeCost(v string) error {
+	if strings.HasSuffix(v, `\NumTimes>`) && strings.HasPrefix(v, "Mana<") {
+		// effect hands this shape to numTimesPay with the rest of the node,
+		// not to a cost reader: no probe reads it alone.
+		return errProbeSkip
+	}
 	parse := lc.cost
 	if lc.ab != nil && lc.ab.Kind == akTriggered && len(lc.ab.Prog) == 0 {
 		lc.trigBodyCost = true
