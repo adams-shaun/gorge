@@ -1933,7 +1933,8 @@ func (s *State) stackCtrl(o Obj) uint8 {
 }
 
 // targetCands writes every legal choice for spec into out (players first,
-// then battlefield in slot order, then the stack top-down, then cards).
+// then battlefield in gorge's offer order, then the stack top-down, then
+// cards).
 func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]TCode) int {
 	n := 0
 	if t.Kind == kop.TgtAny || t.Kind == kop.TgtPlayer {
@@ -1948,16 +1949,7 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 	}
 	switch t.Kind {
 	case kop.TgtObject, kop.TgtAny:
-		m := s.occ
-		for m.any() {
-			sl := m.first()
-			m = m.rest()
-			o := s.perms[sl].obj
-			if s.targetOK(k, t, p, src, self, TCode(o)) {
-				out[n] = TCode(o)
-				n++
-			}
-		}
+		n = s.permTgtCands(k, t, p, src, self, out, n) // tgt_permorder.go
 	case kop.TgtSpell, kop.TgtSpellTgting:
 		for i := int(s.sp) - 1; i >= 0; i-- {
 			e := &s.stack[i]
