@@ -36,6 +36,13 @@ func refuseOnRedAbs(t *testing.T) string {
 	return p
 }
 
+// refuseOnRedIdentity is the git identity of the fixture commits and of the script's own
+// refusal commit. A CI runner has none, so neither may borrow the host's.
+var refuseOnRedIdentity = []string{
+	"GIT_AUTHOR_NAME=refuse-on-red", "GIT_AUTHOR_EMAIL=refuse-on-red@example.invalid",
+	"GIT_COMMITTER_NAME=refuse-on-red", "GIT_COMMITTER_EMAIL=refuse-on-red@example.invalid",
+}
+
 // refuseOnRedRepo is a throwaway repository with a base commit and a branch commit.
 type refuseOnRedRepo struct {
 	dir  string
@@ -43,8 +50,9 @@ type refuseOnRedRepo struct {
 }
 
 type refuseOnRedChange struct {
-	files   [][2]string
-	message string
+	baseFiles [][2]string // committed with the base, so outside the change under test
+	files     [][2]string
+	message   string
 }
 
 func refuseOnRedWrite(t *testing.T, root, rel, content string) {
@@ -62,9 +70,7 @@ func (r *refuseOnRedRepo) git(t *testing.T, args ...string) string {
 	t.Helper()
 	cmd := exec.Command("git", args...)
 	cmd.Dir = r.dir
-	cmd.Env = append(os.Environ(),
-		"GIT_AUTHOR_NAME=refuse-on-red", "GIT_AUTHOR_EMAIL=refuse-on-red@example.invalid",
-		"GIT_COMMITTER_NAME=refuse-on-red", "GIT_COMMITTER_EMAIL=refuse-on-red@example.invalid")
+	cmd.Env = append(os.Environ(), refuseOnRedIdentity...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
@@ -77,7 +83,10 @@ func newRefuseOnRedRepo(t *testing.T, change refuseOnRedChange) *refuseOnRedRepo
 	r := &refuseOnRedRepo{dir: t.TempDir()}
 	r.git(t, "init", "-q")
 	refuseOnRedWrite(t, r.dir, "base.txt", "base\n")
-	r.git(t, "add", "base.txt")
+	for _, f := range change.baseFiles {
+		refuseOnRedWrite(t, r.dir, f[0], f[1])
+	}
+	r.git(t, "add", ".")
 	r.git(t, "commit", "-q", "-m", "base")
 	r.base = r.git(t, "rev-parse", "HEAD")
 	for _, f := range change.files {
@@ -92,11 +101,10 @@ func refuseOnRedRun(t *testing.T, r *refuseOnRedRepo, env []string, args ...stri
 	t.Helper()
 	cmd := exec.Command("bash", append([]string{refuseOnRedAbs(t)}, args...)...)
 	cmd.Dir = r.dir
-	// apply mode commits; give the script the same identity r.git uses so the run does
-	// not depend on the machine's (or CI runner's) global git config.
-	cmd.Env = append(os.Environ(),
-		"GIT_AUTHOR_NAME=refuse-on-red", "GIT_AUTHOR_EMAIL=refuse-on-red@example.invalid",
-		"GIT_COMMITTER_NAME=refuse-on-red", "GIT_COMMITTER_EMAIL=refuse-on-red@example.invalid")
+	// The script commits in apply mode: hide the host's git config, so a missing
+	// identity fails here as it does on a CI runner.
+	cmd.Env = append(os.Environ(), "GIT_CONFIG_GLOBAL=/dev/null", "GIT_CONFIG_NOSYSTEM=1")
+	cmd.Env = append(cmd.Env, refuseOnRedIdentity...)
 	cmd.Env = append(cmd.Env, env...)
 	var out, errb bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errb
@@ -158,6 +166,43 @@ func refuseOnRedRecorder(t *testing.T, r *refuseOnRedRepo) (string, string) {
 		t.Fatal(err)
 	}
 	return rec, ran
+}
+
+// refuseOnRedKgen writes a REFUSE_LIST_RUN runner that behaves like kgen -refuse: it
+// writes one file per card under dirac/support/refused/ and fails when that file exists,
+// as refuseCard reports "-unrefuse it first". It returns the runner and its call log.
+func refuseOnRedKgen(t *testing.T, r *refuseOnRedRepo) (string, string) {
+	t.Helper()
+	dir := t.TempDir()
+	ran := filepath.Join(dir, "ran.log")
+	rec := filepath.Join(dir, "kgen.sh")
+	refused := filepath.Join(r.dir, "dirac", "support", "refused")
+	body := `#!/bin/sh
+for a; do last=$a; done
+printf '%s\n' "$last" >> "` + ran + `"
+card=$(printf '%s\n' "$last" | sed -n 's/.*-refuse "\(.*\)" -why .*/\1/p')
+[ -n "$card" ] || { echo "no card in: $last" >&2; exit 2; }
+f="` + refused + `/$(printf '%s\n' "$card" | tr ' /' '--').txt"
+if [ -e "$f" ]; then
+	echo "$f exists: -unrefuse it first" >&2
+	exit 1
+fi
+mkdir -p "` + refused + `"
+printf 'refused: %s\n' "$last" > "$f"
+`
+	if err := os.WriteFile(rec, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return rec, ran
+}
+
+func refuseOnRedCalls(t *testing.T, ran string) []string {
+	t.Helper()
+	b, err := os.ReadFile(ran)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return strings.Split(strings.TrimSpace(string(b)), "\n")
 }
 
 func refuseOnRedCleanLogs() map[string]string {
@@ -253,6 +298,49 @@ func TestRefuseOnRed(t *testing.T) {
 		}
 	})
 
+	// A CI runner has systemd-run but no user bus (11-28, PR #5773's fast job): the cap
+	// must drop to nothing there instead of failing every kfuzz run.
+	t.Run("no-user-bus-runs-uncapped", func(t *testing.T) {
+		r := newRefuseOnRedRepo(t, refuseOnRedChange{
+			files:   [][2]string{{refuseOnRedEngineGo, "package rules\n"}},
+			message: "fix(rules): keep the card\n\n" + refuseOnRedRule + "\n",
+		})
+		bin := t.TempDir()
+		refuseOnRedWrite(t, bin, "systemd-run", "#!/bin/sh\necho 'Failed to connect to bus: No medium found' >&2\nexit 1\n")
+		if err := os.Chmod(filepath.Join(bin, "systemd-run"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		// The spy records the Go limits each kfuzz run sees. The ambient values differ
+		// from the cap's, so seeing 4 and 3GiB means the script set them.
+		limits := filepath.Join(bin, "limits.log")
+		refuseOnRedWrite(t, bin, "spy.sh", "printf '%s %s\\n' \"$GOMAXPROCS\" \"$GOMEMLIMIT\" >>\""+limits+"\"\nexec \"$@\"\n")
+		stub := refuseOnRedStub(t, refuseOnRedCleanLogs())
+		spied := "REFUSE_ON_RED_KFUZZ=sh " + filepath.Join(bin, "spy.sh") + " " + strings.TrimPrefix(stub[0], "REFUSE_ON_RED_KFUZZ=")
+		env := append(refuseOnRedEnv([]string{spied}), "GOMAXPROCS=1", "GOMEMLIMIT=1GiB",
+			"PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+		if p, err := exec.Command("env", env[len(env)-1], "sh", "-c", "command -v systemd-run").Output(); err != nil || strings.TrimSpace(string(p)) != filepath.Join(bin, "systemd-run") {
+			t.Fatalf("the failing systemd-run is not first on PATH: %q, %v", p, err)
+		}
+		out, errs, code := refuseOnRedRun(t, r, env, r.base)
+		if code != 0 {
+			t.Fatalf("exit %d, stdout %q, stderr:\n%s", code, out, errs)
+		}
+		if got, want := refuseOnRedLast(out), "refuse-on-red: lockstep holds (2 pairs a slice)"; got != want {
+			t.Fatalf("last stdout line = %q, want %q", got, want)
+		}
+		seen, err := os.ReadFile(limits)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got, want := string(seen), strings.Repeat("4 3GiB\n", 4); got != want {
+			t.Fatalf("kfuzz saw GOMAXPROCS and GOMEMLIMIT = %q, want %q", got, want)
+		}
+		const note = "refuse-on-red: cannot start a systemd scope; kfuzz runs without the memory and CPU cap\n"
+		if errs != note {
+			t.Fatalf("stderr = %q, want the one-line uncapped note", errs)
+		}
+	})
+
 	t.Run("report-only-prints-commands-and-commits-nothing", func(t *testing.T) {
 		r := newRefuseOnRedRepo(t, refuseOnRedChange{
 			files:   [][2]string{{refuseOnRedEngineGo, "package rules\n"}},
@@ -304,6 +392,11 @@ func TestRefuseOnRed(t *testing.T) {
 		if got, want := r.git(t, "log", "-1", "--format=%s"), "dirac: refuse 1 cards the rules fix diverges on"; got != want {
 			t.Fatalf("commit subject = %q, want %q", got, want)
 		}
+		// The script's commit must use the fixture's identity, never one git guessed.
+		const identity = "refuse-on-red@example.invalid refuse-on-red@example.invalid"
+		if got := r.git(t, "log", "-1", "--format=%ae %ce"); got != identity {
+			t.Fatalf("commit author and committer = %q, want %q", got, identity)
+		}
 		if body := r.git(t, "log", "-1", "--format=%b"); !strings.Contains(body, refuseOnRedRule) {
 			t.Fatalf("commit body = %q, want the rule line", body)
 		}
@@ -316,6 +409,136 @@ func TestRefuseOnRed(t *testing.T) {
 		}
 		if !strings.Contains(string(ranCommands), `-refuse "Card A"`) {
 			t.Fatalf("recorder saw:\n%s", ranCommands)
+		}
+	})
+
+	t.Run("apply-same-card-on-two-slices-refused-once", func(t *testing.T) {
+		r := newRefuseOnRedRepo(t, refuseOnRedChange{
+			files:   [][2]string{{refuseOnRedEngineGo, "package rules\n"}},
+			message: "fix(rules): keep the card\n\n" + refuseOnRedRule + "\n",
+		})
+		// One card chosen on both surfaces. kgen -refuse fails on a card already
+		// refused, so the second command must not run.
+		logs := refuseOnRedCleanLogs()
+		logs["fdn-autopay"] = "pair 0 seed 1 ok\nbad-game\t7\t907\tdivergent\tlife\tCard A\t\tPlains\n"
+		logs["fdn-full"] = "pair 0 seed 1 ok\nbad-game\t3\t903\tdivergent\tlife\tCard A\t\tPlains\n"
+		rec, ran := refuseOnRedKgen(t, r)
+		env := append(refuseOnRedEnv(refuseOnRedStub(t, logs)),
+			"REFUSE_ON_RED=apply", "REFUSE_LIST_RUN="+rec)
+		out, errs, code := refuseOnRedRun(t, r, env, r.base)
+		if code != 0 {
+			t.Fatalf("exit %d, stdout:\n%s\nstderr:\n%s", code, out, errs)
+		}
+		if got, want := refuseOnRedLast(out), "refuse-on-red: refused 1 cards"; got != want {
+			t.Fatalf("last stdout line = %q, want %q", got, want)
+		}
+		calls := refuseOnRedCalls(t, ran)
+		if len(calls) != 1 {
+			t.Fatalf("the runner was called %d times, want once:\n%s", len(calls), strings.Join(calls, "\n"))
+		}
+		if !strings.Contains(calls[0], `-refuse "Card A"`) {
+			t.Fatalf("the single call = %q, want Card A", calls[0])
+		}
+		if status := r.git(t, "status", "--porcelain"); status != "" {
+			t.Fatalf("apply left the tree dirty:\n%s", status)
+		}
+		if got, want := r.git(t, "show", "--name-only", "--format=", "HEAD"), "dirac/support/refused/Card-A.txt"; got != want {
+			t.Fatalf("the refusal commit holds %q, want %q", got, want)
+		}
+		if n := r.git(t, "rev-list", "--count", "HEAD"); n != "3" {
+			t.Fatalf("apply made %s commits, want one refusal on the two-commit branch", n)
+		}
+	})
+
+	t.Run("apply-partly-overlapping-cards-refuses-the-new-one", func(t *testing.T) {
+		r := newRefuseOnRedRepo(t, refuseOnRedChange{
+			files:   [][2]string{{refuseOnRedEngineGo, "package rules\n"}},
+			message: "fix(rules): keep the cards\n\n" + refuseOnRedRule + "\n",
+		})
+		// A is chosen on both surfaces; B only on the second. De-duplicating must
+		// drop the repeated A, never B.
+		logs := refuseOnRedCleanLogs()
+		logs["fdn-autopay"] = "pair 0 seed 1 ok\nbad-game\t7\t907\tdivergent\tlife\tCard A\t\tPlains\n"
+		logs["fdn-full"] = "pair 0 seed 1 ok\n" +
+			"bad-game\t3\t903\tdivergent\tlife\tCard A\t\tPlains\n" +
+			"bad-game\t5\t905\tdivergent\tlife\tCard B\t\tIsland\n"
+		rec, ran := refuseOnRedKgen(t, r)
+		env := append(refuseOnRedEnv(refuseOnRedStub(t, logs)),
+			"REFUSE_ON_RED=apply", "REFUSE_LIST_RUN="+rec)
+		out, errs, code := refuseOnRedRun(t, r, env, r.base)
+		if code != 0 {
+			t.Fatalf("exit %d, stdout:\n%s\nstderr:\n%s", code, out, errs)
+		}
+		if got, want := refuseOnRedLast(out), "refuse-on-red: refused 2 cards"; got != want {
+			t.Fatalf("last stdout line = %q, want %q", got, want)
+		}
+		calls := refuseOnRedCalls(t, ran)
+		if len(calls) != 2 {
+			t.Fatalf("the runner was called %d times, want twice:\n%s", len(calls), strings.Join(calls, "\n"))
+		}
+		if !strings.Contains(calls[0], `-refuse "Card A"`) || !strings.Contains(calls[1], `-refuse "Card B"`) {
+			t.Fatalf("calls = %q, want Card A then Card B", calls)
+		}
+		if status := r.git(t, "status", "--porcelain"); status != "" {
+			t.Fatalf("apply left the tree dirty:\n%s", status)
+		}
+		files := r.git(t, "show", "--name-only", "--format=", "HEAD")
+		for _, want := range []string{"dirac/support/refused/Card-A.txt", "dirac/support/refused/Card-B.txt"} {
+			if !strings.Contains(files, want) {
+				t.Fatalf("the refusal commit holds %q, want %q", files, want)
+			}
+		}
+	})
+
+	t.Run("apply-leaves-other-staged-files-uncommitted", func(t *testing.T) {
+		r := newRefuseOnRedRepo(t, refuseOnRedChange{
+			files:   [][2]string{{refuseOnRedEngineGo, "package rules\n"}},
+			message: "fix(rules): keep the card\n\n" + refuseOnRedRule + "\n",
+		})
+		refuseOnRedWrite(t, r.dir, "unrelated.txt", "mine\n")
+		r.git(t, "add", "unrelated.txt")
+		if status := r.git(t, "status", "--porcelain"); status != "A  unrelated.txt" {
+			t.Fatalf("precondition: unrelated.txt is not staged: %q", status)
+		}
+		logs := refuseOnRedCleanLogs()
+		logs["fdn-autopay"] = refuseOnRedBadGame
+		rec, _ := refuseOnRedRecorder(t, r)
+		env := append(refuseOnRedEnv(refuseOnRedStub(t, logs)),
+			"REFUSE_ON_RED=apply", "REFUSE_LIST_RUN="+rec)
+		out, errs, code := refuseOnRedRun(t, r, env, r.base)
+		if code != 0 {
+			t.Fatalf("exit %d, stdout:\n%s\nstderr:\n%s", code, out, errs)
+		}
+		if got, want := r.git(t, "show", "--name-only", "--format=", "HEAD"), "dirac/support/refused/card.txt"; got != want {
+			t.Fatalf("the refusal commit holds %q, want %q", got, want)
+		}
+		if status := r.git(t, "status", "--porcelain"); status != "A  unrelated.txt" {
+			t.Fatalf("status after apply = %q, want unrelated.txt still staged", status)
+		}
+	})
+
+	t.Run("apply-without-refusals-exit-1", func(t *testing.T) {
+		r := newRefuseOnRedRepo(t, refuseOnRedChange{
+			baseFiles: [][2]string{{"dirac/support/refused/old.txt", "old\n"}},
+			files:     [][2]string{{refuseOnRedEngineGo, "package rules\n"}},
+			message:   "fix(rules): keep the card\n\n" + refuseOnRedRule + "\n",
+		})
+		// Something else is staged, and the runner (`true`) writes no refusal.
+		refuseOnRedWrite(t, r.dir, "unrelated.txt", "mine\n")
+		r.git(t, "add", "unrelated.txt")
+		logs := refuseOnRedCleanLogs()
+		logs["fdn-autopay"] = refuseOnRedBadGame
+		env := append(refuseOnRedEnv(refuseOnRedStub(t, logs)),
+			"REFUSE_ON_RED=apply", "REFUSE_LIST_RUN=true")
+		out, errs, code := refuseOnRedRun(t, r, env, r.base)
+		if code != 1 {
+			t.Fatalf("exit %d, want 1; stdout:\n%s\nstderr:\n%s", code, out, errs)
+		}
+		if got, want := refuseOnRedLast(out), "refuse-on-red: needs a person: apply produced no staged refusals"; got != want {
+			t.Fatalf("last stdout line = %q, want %q", got, want)
+		}
+		if n := r.git(t, "rev-list", "--count", "HEAD"); n != "2" {
+			t.Fatalf("the failed run committed: %s commits, want 2", n)
 		}
 	})
 
