@@ -87,16 +87,29 @@ find "$root/tree" -mindepth 1 -maxdepth 1 -type d -mtime +2 -exec rm -rf {} + 2>
 find "$root/tree" -mindepth 1 -maxdepth 1 -type f -name '*.lock' -mtime +2 -delete 2>/dev/null || true
 # Disk pressure (11-17 22:50: metal's / hit 100%, and runners died "No space left on device" mid-step). Nothing else
 # trims what this box's runners write: the trees above (a full copy per table key, dozens a day) and the shared Go
-# cache. At CI_DISK_TRIM_PCT (65) percent used, remove trees not used for 3 h and Go cache files not used for 6 h.
-# Both are safe while jobs run: a job's .cards is hard links (it keeps its data if its tree goes), and go refreshes
-# a cache entry's mtime at most hourly when it uses it, so a 6 h idle entry is not live work.
+# cache. At CI_DISK_TRIM_PCT (65) percent used, remove trees not used for 3 h. That is safe while jobs run: a job's
+# .cards is hard links (it keeps its data if its tree goes).
 # 65, not 85: the owned box's cross-engine farm stops launching at 70% used, so a trim that waits for 85% starves it.
+#
+# The shared Go cache is trimmed by mtime only as a last resort: entries unused CI_GOCACHE_TRIM_MIN (1440, one
+# day) when / passes CI_GOCACHE_TRIM_PCT (90). It used to run at 6 h and 65%, and that false-REDded pull requests
+# (11-28 run 46154534694: fast's precompile step failed with 33 "could not import ... /go-build/<hex>-d: no such
+# file or directory" lines, then the next build on the box paid a cold cache). Deleting a cache file a live job
+# on the same box has resolved and is about to open is a race whatever the age; the fleet hit the same class on
+# 10-06 at 6 h/80% and moved to 24 h/90%. Go's own trim is the steady-state bound: it drops entries unused 5
+# days, at most once a day (cmd/go/internal/cache), far beyond any 6 h job. The 1-day trim here only reclaims
+# what that has not, rarely; the bounded retry in scripts/ci-retry-cache.sh covers the residual race.
 used=$(df --output=pcent / | tail -1 | tr -dc 0-9)
 if [ "${used:-0}" -ge "${CI_DISK_TRIM_PCT:-65}" ]; then
-  echo "ci-corpus: / is ${used}% used; trimming idle corpus trees and Go cache"
+  echo "ci-corpus: / is ${used}% used; trimming idle corpus trees"
   find "$root/tree" -mindepth 1 -maxdepth 1 -type d ! -path "$tree" -mmin +180 -exec rm -rf {} + 2>/dev/null || true
-  gc=$(go env GOCACHE 2>/dev/null || true)
-  [ -n "$gc" ] && [ -d "$gc" ] && find "$gc" -type f -mmin +360 -delete 2>/dev/null || true
+  if [ "${used:-0}" -ge "${CI_GOCACHE_TRIM_PCT:-90}" ]; then
+    gc=$(go env GOCACHE 2>/dev/null || true)
+    if [ -n "$gc" ] && [ -d "$gc" ]; then
+      find "$gc" -type f -mmin +"${CI_GOCACHE_TRIM_MIN:-1440}" -delete 2>/dev/null || true
+      echo "ci-corpus: / is ${used}% used; dropped Go cache entries idle ${CI_GOCACHE_TRIM_MIN:-1440} min+ (Go trims at 5 days itself)"
+    fi
+  fi
   df -h / | tail -1
 fi
 # .cards is a real directory of hard links to the tree, not a symlink: filepath.WalkDir does not follow a symlink at
