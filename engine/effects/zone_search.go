@@ -70,7 +70,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to sta
 	// one Note, an empty pool, no options -- never a full-library search.
 	cfdPool, cfdActive, cfdResolved := searchChooseFromDefined(h, c, cz)
 	for targetIndex, owner := range players {
-		c.Search.Target = targetIndex
+		cz := beginSearchOwner(h, c, sa, cz, targetIndex) // zone_search_opponent.go
 		// Forge's explicit Optional$ confirmation (ChangeZoneEffect's
 		// confirmAction gate, which runs BEFORE the fetch list is consulted):
 		// a hidden-origin search whose script carries the marker asks this
@@ -1001,6 +1001,9 @@ func chooserPlayer(h Host, c *Ctx, spec string) (state.PlayerID, bool) {
 // names whose library is searched, not who searches -- so it falls back to
 // the controller, as does an unbound or dead Chooser$ referent on that shape.
 func searchChooser(h Host, c *Ctx, cz *ChangeZoneParams, owner state.PlayerID) state.PlayerID {
+	if cz.searchAnswerer != 0 {
+		return state.PlayerID(cz.searchAnswerer - 1) // the chosen opponent
+	}
 	if spec := cz.Chooser; spec != "" {
 		if p, ok := chooserPlayer(h, c, spec); ok {
 			return p

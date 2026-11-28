@@ -502,32 +502,14 @@ func twoPilesPlayer(h Host, c *Ctx, sa *cards.SA, role, spec string) (state.Play
 // twoPilesAskOpponent is the CR 801.5b ask: the spell's controller picks
 // WHICH opponent separates or picks (Forge's chooseSingleEntityForEffect
 // over activator.getOpponents(), the same shape putCounterTribute's
-// tribute-payer ask). Options are the live opponents in seat order. The
-// no-host stand-in and the fallback for a non-candidate answer are the
-// first candidate -- the exact pick botpolicy's clamp answers (its "player"
-// arm only overrides "vote").
+// tribute-payer ask), posed through askOpponentSeat.
 func twoPilesAskOpponent(h Host, c *Ctx, sa *cards.SA, role string, cands []state.PlayerID) state.PlayerID {
-	g := h.Game()
 	prompt := "Choose an opponent to separate the piles"
 	if role == "Chooser" {
 		prompt = "Choose an opponent to pick a pile"
 	}
-	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
-		Min: 1, Max: 1, Source: c.Source, ResumeKind: "twopiles_opponent",
-		ResumeSA: sa, Prompt: prompt}
-	for _, p := range cands {
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-			Kind: "player", Label: g.SeatFacingName(p), Player: p})
-	}
-	pick := cands[0]
-	if ans, ok := AskTape(h, d); ok && len(ans) > 0 {
-		for _, p := range cands {
-			if ans[0].Player == p {
-				return p
-			}
-		}
-	}
-	return pick
+	return askOpponentSeat(h, c, &decision.Decision{ResumeKind: "twopiles_opponent",
+		ResumeSA: sa, Prompt: prompt}, cands)
 }
 
 // splitSet splits the offered-order card set on the answered pile-A ids:
