@@ -70,6 +70,9 @@ type config struct {
 	// imports holds the decks POST /api/games submitted (podimport.go); nil
 	// refuses a request that carries one.
 	imports *deckImports
+	// deckDemandLog is -deck-demand-log: append each checked deck's
+	// unsupported card names to <dir>/demand/unsupported.jsonl (demandlog.go).
+	deckDemandLog bool
 	// formatsRaw is the -format flag: a comma-separated table-format list,
 	// table i taking formats[(i-1) mod n]. "constructed" (the default) and
 	// "commander" are the two names — the smallest thing that lets a person
@@ -420,6 +423,7 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.DurationVar(&c.pace, "pace", 50*time.Millisecond, "sleep after every decision; 0 = as fast as possible")
 	fs.DurationVar(&c.cooldown, "cooldown", 5*time.Second, "pause between matches on a perpetual table")
 	fs.StringVar(&c.dir, "dir", "gorged-data", "persistence directory")
+	fs.BoolVar(&c.deckDemandLog, "deck-demand-log", false, "append the names of the cards a checked deck needs that this engine cannot play to <dir>/demand/unsupported.jsonl (names and the UTC day only; no deck, address or identity)")
 	fs.StringVar(&c.feedback, "feedback", "feedback", "directory player bug reports are written to (kept OUT of -dir, which deploys wipe)")
 	fs.StringVar(&c.artDir, "art-dir", "", "durable card-art cache directory (default <dir>/art, which deploy scripts wipe with the persistence dir)")
 	fs.StringVar(&c.spectator, "spectator", "public", "spectator visibility: public (default, every hand hidden) or omniscient (every hand visible)")
@@ -661,6 +665,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		load = reservedLoader(reg, load, a.decks, c.policyPools[a.policy])
 	}
 	c.imports = newDeckImports(reg)
+	c.imports.engine, c.imports.demand = c.engine, c.demandLog()
 	load = c.imports.loader(load)
 	// -events chains the event store's deck loader in front of the ordinary
 	// loaders and hands serve the relay the registry's OnMatchEnd will run
@@ -701,6 +706,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		return err
 	}
 	opts := httpapi.Options{Web: c.offerSBV2(c.offerManaBrew(webFS())), Decks: deckCatalogue, BotPolicies: buildBotPolicyList(c.botPolicy, c.botPolicies), Engine: c.capabilityEngine(), NoManualMana: c.diracOn()}
+	opts.CheckDeck = c.checkDeck
 	var gate *seatGate
 	if len(c.humans) > 0 {
 		// Arm Options.Seat with a real token check — one opaque

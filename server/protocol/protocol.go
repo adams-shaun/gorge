@@ -288,6 +288,9 @@ type ErrorBody struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 	Head    uint64 `json:"head,omitempty"`
+	// Deck is set only on a deck_refused reply: the report on the first
+	// submitted deck the server refused.
+	Deck *DeckReport `json:"deck,omitempty"`
 }
 
 // MatchInfo is one row of a table's match list, from its sidecar.

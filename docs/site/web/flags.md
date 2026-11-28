@@ -31,6 +31,7 @@ The table is generated from the flag set of the `cmd/gorged` binary; `TestFlagsD
 | `-commander-ratings-field` | `blended` | which field of -commander-ratings to rate by |
 | `-commander-seats` | `0` | seats per commander table; 0 = -seats |
 | `-cooldown` | `5s` | pause between matches on a perpetual table |
+| `-deck-demand-log` | `false` | append the names of the cards a checked deck needs that this engine cannot play to <dir>/demand/unsupported.jsonl (names and the UTC day only; no deck, address or identity) |
 | `-decks directory` | `testkit/testutil/decks` | directory of deck JSON files; with -engine dirac the default is the first -dirac-sets set's bench decks |
 | `-dir` | `gorged-data` | persistence directory |
 | `-dirac-sets` | `fdn` | with -engine dirac: comma-separated card sets, tried in order for each game (built by make dirac-tables) |
