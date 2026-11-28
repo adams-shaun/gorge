@@ -234,10 +234,8 @@ func (e *Engine) queueGrantedFlanking(id state.ObjID, o *state.Object, ev events
 	if f == nil {
 		return
 	}
-	for _, t := range f.Triggers {
-		if isFlankingMarker(t) {
-			return // printed path owns this creature's flanking
-		}
+	if pileHasFlankingMarker(o, f) {
+		return // printed path owns this creature's flanking
 	}
 	instances := e.flankingInstances(id)
 	if instances == 0 {
@@ -349,31 +347,43 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 		if isRoom(o) && !o.DoorUnlocked(int(o.FaceIdx)) {
 			return
 		}
-		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
-			return
-		}
-		for ti, t := range e.printedTriggersOf(o, f) {
-			switch t.ModeKind() {
-			case cards.TriggerAttackerBlocked, cards.TriggerAttackerBlockedOnce:
-				if alreadyBlocked {
-					continue // CR 509.3c: the attacker was already blocked.
-				}
-			case cards.TriggerAttackerBlockedByCreature:
-				if byEffect {
+		flankSeen := false
+		for fc := range blockWalkFaces(o, f) {
+			if !o.Unlocked && !e.faceMayTrigger(fc.face, ev.Kind) {
+				continue
+			}
+			for ti, t := range e.printedTriggersOf(o, fc.face) {
+				switch t.ModeKind() {
+				case cards.TriggerAttackerBlocked, cards.TriggerAttackerBlockedOnce:
+					if alreadyBlocked {
+						continue // CR 509.3c: the attacker was already blocked.
+					}
+				case cards.TriggerAttackerBlockedByCreature:
+					if byEffect {
+						continue
+					}
+				default:
 					continue
 				}
-			default:
-				continue
+				if tokenInert != 0 && id == tokenInert && triggerAnchoredAtBlocker(t) {
+					// CR 509.4: the entering token never blocked, so its own
+					// blocker-side line ("whenever this creature blocks a
+					// creature", the ValidBlocker$-anchored shape both modes
+					// carry -- Brimaz's own block trigger is the AttackerBlocked
+					// one) never fires off its own entry.
+					continue
+				}
+				if isFlankingMarker(t) {
+					// The first printed marker in the pile fires every
+					// derived flanking instance (CR 702.25b), so an under
+					// card's marker after it adds none.
+					if fc.merged > 0 && flankSeen {
+						continue
+					}
+					flankSeen = true
+				}
+				e.queueAttackerBlockedTrigger(t, id, o.Controller, ti, fc, false, 0, ev)
 			}
-			if tokenInert != 0 && id == tokenInert && triggerAnchoredAtBlocker(t) {
-				// CR 509.4: the entering token never blocked, so its own
-				// blocker-side line ("whenever this creature blocks a
-				// creature", the ValidBlocker$-anchored shape both modes
-				// carry -- Brimaz's own block trigger is the AttackerBlocked
-				// one) never fires off its own entry.
-				continue
-			}
-			e.queueAttackerBlockedTrigger(t, id, o.Controller, ti, false, 0, ev)
 		}
 	})
 	e.checkGrantedAttackerBlockedTriggers(ev, byEffect, tokenInert, alreadyBlocked)
@@ -397,7 +407,7 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 // recipient for a grant) and idx is its face Triggers index, or -1 for a
 // grant. granted/grantor/Execute carry the GrantTriggerPush provenance a
 // granted instance needs and are left zero for a printed one.
-func (e *Engine) queueAttackerBlockedTrigger(t cards.Trigger, source state.ObjID, controller state.PlayerID, idx int, granted bool, grantor state.ObjID, ev events.Event) {
+func (e *Engine) queueAttackerBlockedTrigger(t cards.Trigger, source state.ObjID, controller state.PlayerID, idx int, fc triggerFace, granted bool, grantor state.ObjID, ev events.Event) {
 	switch t.ModeKind() {
 	case cards.TriggerAttackerBlocked, cards.TriggerAttackerBlockedByCreature, cards.TriggerAttackerBlockedOnce:
 	default:
@@ -411,7 +421,7 @@ func (e *Engine) queueAttackerBlockedTrigger(t cards.Trigger, source state.ObjID
 	if !e.zoneGate(t, source, ev) || !e.phaseGate(t) {
 		return
 	}
-	key := triggerKey{Source: source, Idx: idx}
+	key := blockTriggerKey(source, idx, fc)
 	if e.triggerFireCount == nil {
 		e.triggerFireCount = map[triggerKey]int32{}
 	}
@@ -498,6 +508,7 @@ func (e *Engine) queueAttackerBlockedTrigger(t cards.Trigger, source state.ObjID
 					SA:         t.Effect,
 					Granted:    granted,
 					Grantor:    grantor,
+					Merged:     fc.merged,
 					Execute:    t.ParamStr(cards.PKExecute),
 					Ctx:        effects.NewCtx(source, controller, ctx),
 				}, ev, nil)
@@ -523,6 +534,7 @@ func (e *Engine) queueAttackerBlockedTrigger(t cards.Trigger, source state.ObjID
 			SA:         t.Effect,
 			Granted:    granted,
 			Grantor:    grantor,
+			Merged:     fc.merged,
 			Execute:    t.ParamStr(cards.PKExecute),
 			Ctx:        effects.NewCtx(source, controller, e.attackerBlockedCtx(t, pr[0], pr[1], ev)),
 		}, ev, nil)
@@ -628,7 +640,7 @@ func (e *Engine) checkGrantedAttackerBlockedTriggers(ev events.Event, byEffect b
 			if inert != 0 && id == inert && triggerAnchoredAtBlocker(t) {
 				return // CR 509.4: the entering token never blocked.
 			}
-			e.queueAttackerBlockedTrigger(t, id, o.Controller, -1, true, grantorID, ev)
+			e.queueAttackerBlockedTrigger(t, id, o.Controller, -1, triggerFace{}, true, grantorID, ev)
 		})
 	}
 }
@@ -648,11 +660,13 @@ func (e *Engine) checkAttackerUnblockedTriggers() {
 		if isRoom(o) && !o.DoorUnlocked(int(o.FaceIdx)) {
 			return
 		}
-		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
-			return
-		}
-		for ti, t := range e.printedTriggersOf(o, f) {
-			e.queueAttackerUnblockedTrigger(t, id, o.Controller, ti, false, 0, nil, ev)
+		for fc := range blockWalkFaces(o, f) {
+			if !o.Unlocked && !e.faceMayTrigger(fc.face, ev.Kind) {
+				continue
+			}
+			for ti, t := range e.printedTriggersOf(o, fc.face) {
+				e.queueAttackerUnblockedTrigger(t, id, o.Controller, ti, fc, false, 0, nil, ev)
+			}
 		}
 	})
 	e.checkGrantedAttackerUnblockedTriggers(ev)
@@ -693,7 +707,7 @@ func (e *Engine) checkGrantedAttackerUnblockedTriggers(ev events.Event) {
 			if o == nil || !e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source) {
 				return
 			}
-			e.queueAttackerUnblockedTrigger(t, id, o.Controller, -1, true, grantorID, grantFace.SVars, ev)
+			e.queueAttackerUnblockedTrigger(t, id, o.Controller, -1, triggerFace{}, true, grantorID, grantFace.SVars, ev)
 		})
 	}
 }
@@ -705,13 +719,13 @@ func (e *Engine) checkGrantedAttackerUnblockedTriggers(ev events.Event) {
 // owning SVar table, supplied for a granted instance (the GRANTOR's table) and
 // nil for a printed one; it is what a CheckSVar$/SVarCompare$ clause on the
 // line is evaluated against at fire time.
-func (e *Engine) queueAttackerUnblockedTrigger(t cards.Trigger, source state.ObjID, controller state.PlayerID, idx int, granted bool, grantor state.ObjID, ownedSVars map[string]string, ev events.Event) {
+func (e *Engine) queueAttackerUnblockedTrigger(t cards.Trigger, source state.ObjID, controller state.PlayerID, idx int, fc triggerFace, granted bool, grantor state.ObjID, ownedSVars map[string]string, ev events.Event) {
 	if t.Mode != "AttackerUnblocked" || t.Effect == nil ||
 		!e.zoneGate(t, source, ev) || !e.phaseGate(t) ||
 		!e.triggerConditionHoldsWithSVars(t, source, controller, nil, ownedSVars) {
 		return
 	}
-	key := triggerKey{Source: source, Idx: idx}
+	key := blockTriggerKey(source, idx, fc)
 	if e.triggerFireCount == nil {
 		e.triggerFireCount = map[triggerKey]int32{}
 	}
@@ -753,7 +767,7 @@ func (e *Engine) queueAttackerUnblockedTrigger(t cards.Trigger, source state.Obj
 			e.triggerFireCount[key]++
 			e.queueTrigger(e, pendingTrigger{
 				Source: source, Controller: controller, Idx: idx, SA: t.Effect,
-				Granted: granted, Grantor: grantor, Execute: t.ParamStr(cards.PKExecute),
+				Granted: granted, Grantor: grantor, Execute: t.ParamStr(cards.PKExecute), Merged: fc.merged,
 				Ctx: effects.NewCtx(source, controller, effects.CtxInit{
 					Remembered: []state.Target{{Obj: aid}}, Captured: []state.Target{{Obj: aid}},
 					TriggerContext: effects.TriggerContext{
@@ -818,92 +832,96 @@ func (e *Engine) checkAttackerUnblockedOnceTriggers() {
 		if isRoom(o) && !o.DoorUnlocked(int(o.FaceIdx)) {
 			return
 		}
-		if !o.Unlocked && !e.faceMayTrigger(f, events.DeclareBlockers) {
-			return
-		}
-		for ti, t := range e.printedTriggersOf(o, f) {
-			if t.Mode != "AttackerUnblockedOnce" {
+		for fc := range blockWalkFaces(o, f) {
+			if !o.Unlocked && !e.faceMayTrigger(fc.face, events.DeclareBlockers) {
 				continue
 			}
-			if t.Effect == nil {
-				continue
-			}
-			if !e.zoneGate(t, id, events.Event{Kind: events.DeclareBlockers}) || !e.phaseGate(t) {
-				continue
-			}
-			key := triggerKey{Source: id, Idx: ti}
-			if e.triggerFireCount == nil {
-				e.triggerFireCount = map[triggerKey]int32{}
-			}
-			if e.triggerFireCount[key] >= maxTriggerFires {
-				continue // cascade bound: see maxTriggerFires.
-			}
-			if !e.triggerGameActivationLimitAllows(t, key) {
-				continue // GameActivationLimit$: already triggered enough this game.
-			}
-			if !e.triggerActivationLimitAllows(t, key) {
-				continue
-			}
-			// The limit gates above are READ-ONLY: a combat with no matching
-			// unblocked attacker queues nothing and must not consume a use.
-			// The counts commit below, when the instance is actually appended.
-			if e.unblockedOnceFired == nil {
-				e.unblockedOnceFired = map[triggerKey]combatFires{}
-			}
-			if e.unblockedOnceFired[key] == stamp {
-				continue // already fired this combat.
-			}
-
-			// Scan the battlefield for the unblocked attackers this trigger's
-			// defender is being attacked by, whose controller is an opponent of
-			// the trigger controller. The first match decides the fire; the
-			// matching attackers (in battlefield walk order) are remembered.
-			defenderSpec := t.ParamStr(cards.PKValidDefenders)
-			attackerSpec := t.ParamStr(cards.PKValidAttackingPlayer)
-			var attackerIDs []state.ObjID
-			for _, p := range e.G.AliveFrom(0) {
-				for _, bid := range e.G.Zone(state.ZBattlefield, p) {
-					b := e.G.Obj(bid)
-					if b == nil || !b.IsAttacking || len(b.BlockedBy) != 0 {
-						continue
-					}
-					if defenderSpec != "" && !effects.MatchesPlayerSpec(e.G, defenderSpec, b.Attacking, o.Controller) {
-						continue
-					}
-					if attackerSpec != "" && !effects.MatchesPlayerSpec(e.G, attackerSpec, e.controllerOf(bid), o.Controller) {
-						continue
-					}
-					attackerIDs = append(attackerIDs, bid)
+			for ti, t := range e.printedTriggersOf(o, fc.face) {
+				if t.Mode != "AttackerUnblockedOnce" {
+					continue
 				}
-			}
-			if len(attackerIDs) == 0 {
-				continue
-			}
-			firstCtrl := e.controllerOf(attackerIDs[0])
+				if t.Effect == nil {
+					continue
+				}
+				if !e.zoneGate(t, id, events.Event{Kind: events.DeclareBlockers}) || !e.phaseGate(t) {
+					continue
+				}
+				key := blockTriggerKey(id, ti, fc)
+				if e.triggerFireCount == nil {
+					e.triggerFireCount = map[triggerKey]int32{}
+				}
+				if e.triggerFireCount[key] >= maxTriggerFires {
+					continue // cascade bound: see maxTriggerFires.
+				}
+				if !e.triggerGameActivationLimitAllows(t, key) {
+					continue // GameActivationLimit$: already triggered enough this game.
+				}
+				if !e.triggerActivationLimitAllows(t, key) {
+					continue
+				}
+				// The limit gates above are READ-ONLY: a combat with no matching
+				// unblocked attacker queues nothing and must not consume a use.
+				// The counts commit below, when the instance is actually appended.
+				if e.unblockedOnceFired == nil {
+					e.unblockedOnceFired = map[triggerKey]combatFires{}
+				}
+				if e.unblockedOnceFired[key] == stamp {
+					continue // already fired this combat.
+				}
 
-			remembered := make([]state.Target, 0, len(attackerIDs))
-			for _, aid := range attackerIDs {
-				remembered = append(remembered, state.Target{Obj: aid})
+				// Scan the battlefield for the unblocked attackers this trigger's
+				// defender is being attacked by, whose controller is an opponent of
+				// the trigger controller. The first match decides the fire; the
+				// matching attackers (in battlefield walk order) are remembered.
+				defenderSpec := t.ParamStr(cards.PKValidDefenders)
+				attackerSpec := t.ParamStr(cards.PKValidAttackingPlayer)
+				var attackerIDs []state.ObjID
+				for _, p := range e.G.AliveFrom(0) {
+					for _, bid := range e.G.Zone(state.ZBattlefield, p) {
+						b := e.G.Obj(bid)
+						if b == nil || !b.IsAttacking || len(b.BlockedBy) != 0 {
+							continue
+						}
+						if defenderSpec != "" && !effects.MatchesPlayerSpec(e.G, defenderSpec, b.Attacking, o.Controller) {
+							continue
+						}
+						if attackerSpec != "" && !effects.MatchesPlayerSpec(e.G, attackerSpec, e.controllerOf(bid), o.Controller) {
+							continue
+						}
+						attackerIDs = append(attackerIDs, bid)
+					}
+				}
+				if len(attackerIDs) == 0 {
+					continue
+				}
+				firstCtrl := e.controllerOf(attackerIDs[0])
+
+				remembered := make([]state.Target, 0, len(attackerIDs))
+				for _, aid := range attackerIDs {
+					remembered = append(remembered, state.Target{Obj: aid})
+				}
+				e.reserveTriggerLimits(t, key)
+				e.unblockedOnceFired[key] = stamp
+				e.triggerFireCount[key]++
+				e.queueTrigger(e, pendingTrigger{
+					Source:     id,
+					Controller: o.Controller,
+					Idx:        ti,
+					SA:         t.Effect,
+					Merged:     fc.merged,
+					Execute:    blockMergedExecute(t, fc),
+					Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{
+						Remembered: remembered,
+						Captured:   remembered,
+						TriggerContext: effects.TriggerContext{
+							TriggerCard:     attackerIDs[0],
+							TriggerSource:   attackerIDs[0],
+							AttackingPlayer: pt(firstCtrl),
+							DefendingPlayer: pt(o.Controller),
+						},
+					}),
+				}, events.Event{Kind: events.DeclareBlockers}, nil)
 			}
-			e.reserveTriggerLimits(t, key)
-			e.unblockedOnceFired[key] = stamp
-			e.triggerFireCount[key]++
-			e.queueTrigger(e, pendingTrigger{
-				Source:     id,
-				Controller: o.Controller,
-				Idx:        ti,
-				SA:         t.Effect,
-				Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{
-					Remembered: remembered,
-					Captured:   remembered,
-					TriggerContext: effects.TriggerContext{
-						TriggerCard:     attackerIDs[0],
-						TriggerSource:   attackerIDs[0],
-						AttackingPlayer: pt(firstCtrl),
-						DefendingPlayer: pt(o.Controller),
-					},
-				}),
-			}, events.Event{Kind: events.DeclareBlockers}, nil)
 		}
 	})
 }
@@ -979,14 +997,16 @@ func (e *Engine) checkBlocksTriggers(ev events.Event) {
 		if isRoom(o) && !o.DoorUnlocked(int(o.FaceIdx)) {
 			return
 		}
-		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
-			return
-		}
-		for ti, t := range e.printedTriggersOf(o, f) {
-			if t.Mode != "Blocks" {
+		for fc := range blockWalkFaces(o, f) {
+			if !o.Unlocked && !e.faceMayTrigger(fc.face, ev.Kind) {
 				continue
 			}
-			e.queueBlocksTrigger(t, id, o.Controller, ti, ev)
+			for ti, t := range e.printedTriggersOf(o, fc.face) {
+				if t.Mode != "Blocks" {
+					continue
+				}
+				e.queueBlocksTrigger(t, id, o.Controller, ti, fc, ev)
+			}
 		}
 	})
 	e.checkEffectCombatTriggers(ev, "Blocks")
@@ -997,7 +1017,7 @@ func (e *Engine) checkBlocksTriggers(ev events.Event) {
 // index) and an Effect-delivered registration (checkEffectCombatTriggers; id
 // the registration's source, idx -1) share it so their gates and referent
 // capture cannot drift apart.
-func (e *Engine) queueBlocksTrigger(t cards.Trigger, id state.ObjID, controller state.PlayerID, ti int, ev events.Event) {
+func (e *Engine) queueBlocksTrigger(t cards.Trigger, id state.ObjID, controller state.PlayerID, ti int, fc triggerFace, ev events.Event) {
 	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
 	if !e.zoneGate(t, id, ev) || !e.phaseGate(t) {
 		return
@@ -1005,7 +1025,7 @@ func (e *Engine) queueBlocksTrigger(t cards.Trigger, id state.ObjID, controller 
 	if !e.triggerConditionHoldsAs(t, id, controller) {
 		return
 	}
-	key := triggerKey{Source: id, Idx: ti}
+	key := blockTriggerKey(id, ti, fc)
 	if e.triggerFireCount == nil {
 		e.triggerFireCount = map[triggerKey]int32{}
 	}
@@ -1039,6 +1059,8 @@ func (e *Engine) queueBlocksTrigger(t cards.Trigger, id state.ObjID, controller 
 			Controller: controller,
 			Idx:        ti,
 			SA:         t.Effect,
+			Merged:     fc.merged,
+			Execute:    blockMergedExecute(t, fc),
 			Ctx: effects.NewCtx(id, controller, effects.CtxInit{
 				Remembered: []state.Target{{Obj: attacker}},
 				Captured:   []state.Target{{Obj: attacker}},
@@ -1091,11 +1113,11 @@ func (e *Engine) checkEffectCombatTriggers(ev events.Event, modes ...string) {
 		n := len(e.pendingTriggers)
 		switch t.Mode {
 		case "Blocks":
-			e.queueBlocksTrigger(t, dt.Source, dt.Controller, -1, ev)
+			e.queueBlocksTrigger(t, dt.Source, dt.Controller, -1, triggerFace{}, ev)
 		case "AttackerUnblocked":
-			e.queueAttackerUnblockedTrigger(t, dt.Source, dt.Controller, -1, false, 0, src.Face().SVars, ev)
+			e.queueAttackerUnblockedTrigger(t, dt.Source, dt.Controller, -1, triggerFace{}, false, 0, src.Face().SVars, ev)
 		default:
-			e.queueAttackerBlockedTrigger(t, dt.Source, dt.Controller, -1, false, 0, ev)
+			e.queueAttackerBlockedTrigger(t, dt.Source, dt.Controller, -1, triggerFace{}, false, 0, ev)
 		}
 		e.clearEffectMatchScope()
 		// The queued instances resolve as the registration's own ability
