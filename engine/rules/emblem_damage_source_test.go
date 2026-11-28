@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -120,5 +121,50 @@ func TestEmblemDamageIsFromASourceItsOwnerControls(t *testing.T) {
 	}
 	if !seen {
 		t.Fatal("no damage provenance recorded")
+	}
+}
+
+// TestEmblemDamageReplacementOrderKeepsTheEmblemAsSource: with two competing
+// replacements the damage is parked for the CR 616.1 order choice, whose
+// lifelink rider reads the emblem, not the lifelinking card that made it.
+func TestEmblemDamageReplacementOrderKeepsTheEmblemAsSource(t *testing.T) {
+	t.Parallel()
+	var life0, life1 int32
+	e, _, _ := emblemUpkeep(t, func(e *Engine) {
+		onBoard(t, e, 0, emblemOwnPitSrc)
+		onBoard(t, e, 0, emblemOwnPitSrc)
+		life0, life1 = e.G.Players[0].Life, e.G.Players[1].Life
+	})
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement {
+		t.Fatalf("precondition: want a replacement-order ask, got %+v", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	if got := life0 - e.G.Players[0].Life; got != 5 {
+		t.Errorf("emblem owner lost %d life, want 5 (1 plus 2 twice)", got)
+	}
+	if got := e.G.Players[1].Life - life1; got != 0 {
+		t.Errorf("creator's life changed by %d, want 0: the emblem has no lifelink", got)
+	}
+}
+
+// emblemMirrorSrc drains the controller of whatever source damages its owner,
+// in place of that damage.
+const emblemMirrorSrc = "Name:Test Mirror\nManaCost:2 W\nTypes:Enchantment\n" +
+	"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidTarget$ You | ReplaceWith$ Drain\n" +
+	"SVar:Drain:DB$ LoseLife | Defined$ ReplacedSourceController | LifeAmount$ 4\n" +
+	"Oracle:x\n"
+
+// TestEmblemDamageReplacementBodyReadsTheEmblemsController: a replacement body
+// naming the damage source's controller names the emblem's owner.
+func TestEmblemDamageReplacementBodyReadsTheEmblemsController(t *testing.T) {
+	t.Parallel()
+	var life0, life1 int32
+	e, _, _ := emblemUpkeep(t, func(e *Engine) {
+		onBoard(t, e, 0, emblemMirrorSrc)
+		life0, life1 = e.G.Players[0].Life, e.G.Players[1].Life
+	})
+	if got0, got1 := life0-e.G.Players[0].Life, life1-e.G.Players[1].Life; got0 != 4 || got1 != 0 {
+		t.Errorf("life lost: owner %d, creator %d; want 4 and 0", got0, got1)
 	}
 }
