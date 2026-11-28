@@ -48,6 +48,9 @@ func (s *State) eachStaticOf(k *prep, keep []bool, f func(st statSrc) bool) {
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()
 		if keep != nil && !keep[s.cardAt(sl)] {
+			if !s.pileStatics(k, sl, keep, 0, false, f) {
+				return // CR 702.140d: a pile's under cards (kw_mutateunion.go)
+			}
 			continue
 		}
 		lost := s.genLost(k, sl)
@@ -64,7 +67,7 @@ func (s *State) eachStaticOf(k *prep, keep []bool, f func(st statSrc) bool) {
 				}
 			}
 		}
-		if !s.pileStatics(k, sl, keep, 0, f) {
+		if !s.pileStatics(k, sl, keep, 0, false, f) {
 			return // CR 702.140d: a pile's under cards (kw_mutateunion.go)
 		}
 	}

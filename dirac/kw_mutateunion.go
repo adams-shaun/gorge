@@ -16,8 +16,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     when the pile leaves). Only abilities: an under card's types add no
 //     legendary bit.
 //   - keywords: kwGen and the layer-6 walk's base read pileKw.
-//   - statics: eachStaticOf and eachStaticC walk pileStatics after the top
-//     card; the class gates read statClsAt.
+//   - statics: eachStaticOf, eachStaticC, eachStaticTS and mayPlayZones walk
+//     pileStatics after the top card; the class gates read statClsAt. A
+//     top-card swap that stays on the battlefield resubscribes the pile
+//     (subscribeTop); phasing drops and restores it.
 //   - triggers: slotTriggers walks pileTriggers after the printed walk
 //     (trig_mutates.go already walks the pile for TrigMutates).
 //   - activated abilities: pileActivations offers each under card's
@@ -27,7 +29,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 // Every arm is gated on pileAt: a table with no Mutate card and no merge op
 // never walks the cold region. A pile that has lost its abilities loses the
-// under cards' too (CR 613.1f: they are its abilities).
+// under cards' too, keeping what the top card's walk keeps (CR 613.1f: they
+// are its abilities).
 
 // pileAt is the record of the merged permanent at sl, nil when sl is not a
 // pile or the table builds none.
@@ -84,8 +87,21 @@ func (s *State) pileSubscribe(k *prep, sl Slot, r *mergeRec, on bool) {
 	}
 }
 
+// subscribeTop is subscribe for a top-card swap on a permanent that stays on
+// the battlefield (a transform, a door, a copy layer, a face-down turn): the
+// top's unsubscribe clears a trigger-event, static or grant bit an under card
+// of a pile at sl shares, so the under cards' subscriptions are restored
+// after either half of the swap.
+func (s *State) subscribeTop(k *prep, sl Slot, pc *pcard, on bool) {
+	s.subscribe(sl, pc, on)
+	if r := s.pileAt(k, sl); r != nil {
+		s.pileSubscribe(k, sl, r, true)
+	}
+}
+
 // pileUnsubscribe drops the under cards' subscriptions as the pile at sl
-// leaves the battlefield (removePerm, before mergeLeave splits the record).
+// leaves the battlefield (removePerm, before mergeLeave splits the record) or
+// phases out (CR 702.26b; phaseIn's subscribeTop restores them).
 func (s *State) pileUnsubscribe(k *prep, sl Slot) {
 	if r := s.pileAt(k, sl); r != nil {
 		s.pileSubscribe(k, sl, r, false)
@@ -94,13 +110,18 @@ func (s *State) pileUnsubscribe(k *prep, sl Slot) {
 
 // pileStatics calls f for each static and replacement ability the under cards
 // of the pile at sl print, in pile order, as the static walks call it for the
-// top card: keep (nil: all) filters by card, cls (0: all) by static class. It
-// reports false when f stopped the walk.
-func (s *State) pileStatics(k *prep, sl Slot, keep []bool, cls uint16, f func(st statSrc) bool) bool {
+// top card: keep (nil: all) filters by card, cls (0: all) by static class.
+// A pile that has lost its abilities keeps what the caller's top walk keeps
+// (CR 613.1f): with layered, the effects that began before layer 6
+// (keptOnLossAt, eachStaticC's rule); without, only an override-gated one
+// (ovGateKeptOnLoss, eachStaticOf's). It reports false when f stopped the
+// walk.
+func (s *State) pileStatics(k *prep, sl Slot, keep []bool, cls uint16, layered bool, f func(st statSrc) bool) bool {
 	r := s.pileAt(k, sl)
-	if r == nil || s.genLost(k, sl) {
+	if r == nil {
 		return true
 	}
+	lost := s.genLost(k, sl)
 	p := &s.perms[sl]
 	for j := 0; j < int(r.n); j++ {
 		c := s.underCard(r, j)
@@ -110,6 +131,9 @@ func (s *State) pileStatics(k *prep, sl Slot, keep []bool, cls uint16, f func(st
 		cd := &k.t.Cards[c]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
+			if lost && !(layered && s.keptOnLossAt(k, sl, a) || !layered && s.ovGateKeptOnLoss(k, sl, a)) {
+				continue
+			}
 			if a.Kind == kop.AbStatic || a.Kind == kop.AbReplacement {
 				if !f(statSrc{a: a, sl: sl, ctrl: p.ctrl, obj: p.obj}) {
 					return false

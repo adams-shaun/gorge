@@ -652,7 +652,7 @@ func (s *State) turnFaceDownExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	}
 	c := s.cardAt(sl)
-	s.subscribe(sl, &k.cards[c], false)
+	s.subscribeTop(k, sl, &k.cards[c], false)
 	p := &s.perms[sl]
 	p.gty = kop.TCreature | gtyFaceDown
 	p.ovr.flags |= ovGenTy

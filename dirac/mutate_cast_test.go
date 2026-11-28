@@ -482,6 +482,93 @@ func TestMutateAbilityUnion(t *testing.T) {
 		}
 	})
 
+	t.Run("phased out", func(t *testing.T) {
+		sc, b, other := pile(t)
+		sl := sc.slot(b)
+		sc.s.phaseOut(sc.k, sl, false)
+		// CR 702.26b: a phased-out pile is treated as though it does not
+		// exist, so its under card's anthem stops
+		if p, tg := sc.s.pt(sc.k, sc.slot(other)); p != 1 || tg != 3 {
+			t.Fatalf("other bird %d/%d with the pile phased out, want 1/3", p, tg)
+		}
+		sc.s.phaseIn(sc.k, sl)
+		if p, tg := sc.s.pt(sc.k, sc.slot(other)); p != 2 || tg != 4 {
+			t.Fatalf("other bird %d/%d after the pile phases in, want 2/4", p, tg)
+		}
+	})
+
+	t.Run("top swap keeps the under static", func(t *testing.T) {
+		// a DFC top whose front prints a static and whose back prints
+		// none: the front's unsubscribe clears the static bit the under
+		// viper shares (subscribeTop restores it)
+		tt := *tbl
+		tt.Cards = append([]kop.CardDef(nil), tbl.Cards...)
+		creatureF := tt.Cards[viper].Abilities[0].Static.Filter
+		front := CardID(len(tt.Cards))
+		back := front + 1
+		tt.Cards = append(tt.Cards,
+			kop.CardDef{Name: "Test Turning Bird", Types: kop.TCreature, Power: 1, Toughness: 3,
+				FaceMode: kop.FaceTransform, Faces: []CardID{front, back},
+				Abilities: []kop.Ability{{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatContinuous, Filter: creatureF}}}},
+			kop.CardDef{Name: "Test Turned Bird", Types: kop.TCreature, Power: 1, Toughness: 3,
+				FaceMode: kop.FaceTransform, Faces: []CardID{front, back}, Face: 1})
+		sc := newScenTable(t, &tt, Config{NoElide: true})
+		sc.lands(0, v.Forest, 2)
+		b := sc.perm(front, 0)
+		other := sc.perm(bird, 0)
+		mutateCast(t, sc, sc.hand(viper, 0), b, false)
+		resolveStack(t, sc)
+		sl := sc.slot(b)
+		if rec := sc.s.mergeRecOf(b); rec == nil || rec.n != 1 || sc.s.cardAt(sl) != front {
+			t.Fatalf("precondition: the turning bird is not the top of a one-under pile")
+		}
+		if p, tg := sc.s.pt(sc.k, sc.slot(other)); p != 2 || tg != 4 {
+			t.Fatalf("precondition: other bird %d/%d, want 2/4", p, tg)
+		}
+		sc.s.transformObj(sc.k, b)
+		if c := sc.s.cardAt(sl); c != back {
+			t.Fatalf("precondition: top %d after the transform, want the back face %d", c, back)
+		}
+		if p, tg := sc.s.pt(sc.k, sc.slot(other)); p != 2 || tg != 4 {
+			t.Fatalf("other bird %d/%d after the top transformed, want 2/4 from the under viper", p, tg)
+		}
+	})
+
+	t.Run("under tap-extra", func(t *testing.T) {
+		// eachTapExtra walks eachStaticOf over the cards printing a
+		// StatTapExtra: an under card that prints one is read though the
+		// top does not
+		tt := *tbl
+		tt.Cards = append([]kop.CardDef(nil), tbl.Cards...)
+		tt.Filters = append([]kop.Filter(nil), tbl.Filters...)
+		none := kop.FilterID(len(tt.Filters))
+		tt.Filters = append(tt.Filters, kop.Filter{Types: kop.TPlaneswalker, Ctrl: kop.CtrlYou})
+		tapper := CardID(len(tt.Cards))
+		tc := tt.Cards[viper]
+		tc.Name, tc.Keywords = "Test Tap Viper", 0
+		tc.Abilities = []kop.Ability{{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatTapExtra, B: 1, Filter: none}}}
+		tt.Cards = append(tt.Cards, tc)
+		sc := newScenTable(t, &tt, Config{NoElide: true})
+		sc.lands(0, v.Forest, 2)
+		b := sc.perm(bird, 0)
+		mutateCast(t, sc, sc.hand(tapper, 0), b, false)
+		resolveStack(t, sc)
+		sl := sc.slot(b)
+		if sc.s.cardAt(sl) != bird || sc.k.tapExtraCard[bird] || !sc.k.tapExtraCard[tapper] {
+			t.Fatalf("precondition: want a plain bird on top of the tap-extra viper")
+		}
+		n := 0
+		sc.s.eachTapExtra(sc.k, func(st statSrc) bool {
+			if st.sl == sl && st.a == &tt.Cards[tapper].Abilities[0] {
+				n++
+			}
+			return true
+		})
+		if n != 1 {
+			t.Fatalf("eachTapExtra saw the under card's tap-extra %d times, want 1", n)
+		}
+	})
+
 	t.Run("split clears the pile's abilities", func(t *testing.T) {
 		sc, b, other := pile(t)
 		sl := sc.slot(b)
