@@ -204,9 +204,11 @@ const xFoldBoundCap int32 = 64
 // cannot charge until it is folded: a printed {X} pip (Cost.X, Elenda and
 // Azor's "Cost$ X W U B"), an announced PayLife<X> part (LifeX Spec X,
 // Vizkopa Confessor's "pay any amount of life"), or a CollectEvidence<X> part
-// whose amount names the announced X (Incinerator of the Guilty). The other
-// announced parts (Sac<X/Spec>, PayEnergy<X>, SubCounter<X/Kind>) are NOT this
-// shape: the trigger window has no settle for them, and they keep the
+// whose amount names the announced X (Incinerator of the Guilty), or an
+// announced Sac<X/Spec> part (Sephiroth, One-Winged Angel's "sacrifice any
+// number of other creatures"; the fold makes it a literal Sac<X/Spec> the
+// component settle pays). The other announced parts (SubCounter<X/Kind>) are
+// NOT this shape: the trigger window has no settle for them, and they keep the
 // decline-only hard-decline convention (the non-mana-settle follow-up family).
 func costCarriesUnfoldedX(c Cost) bool {
 	if c.X > 0 {
@@ -222,7 +224,17 @@ func costCarriesUnfoldedX(c Cost) bool {
 			return true
 		}
 	}
-	return costCarriesEvidenceX(c)
+	return costCarriesEvidenceX(c) || costCarriesSacX(c)
+}
+
+// costCarriesSacX reports whether a Sac part is an announced Sac<X/Spec>.
+func costCarriesSacX(c Cost) bool {
+	for _, part := range c.Sac {
+		if part.Announced {
+			return true
+		}
+	}
+	return false
 }
 
 // foldCostX folds a chosen X into the cost, once per unfolded shape: the
@@ -252,7 +264,39 @@ func foldCostX(c Cost, x int32) Cost {
 		}
 		out.Evidence = ev
 	}
+	if costCarriesSacX(out) {
+		// An announced sacrifice becomes a literal Sac<X/Spec>, on a copied
+		// slice (the parsed cost is shared).
+		sac := append([]CostPart(nil), out.Sac...)
+		for i := range sac {
+			if sac[i].Announced {
+				sac[i].N = x
+				sac[i].Announced = false
+			}
+		}
+		out.Sac = sac
+	}
 	return out
+}
+
+// triggeredCostSacXBound is the most permanents the window's announced
+// sacrifices can name together: each announced part pays X, so the shared
+// candidate count divided over them (capped at xFoldBoundCap).
+func (e *Engine) triggeredCostSacXBound(tc *triggeredEffectCost) int32 {
+	parts, n := int32(0), int32(0)
+	for i, part := range tc.amount.Sac {
+		if !part.Announced {
+			continue
+		}
+		parts++
+		if c := int32(len(e.triggeredMandatoryCandidatesWith(tc, i, part, nil))); parts == 1 || c < n {
+			n = c
+		}
+	}
+	if parts > 1 {
+		n /= parts
+	}
+	return min(n, xFoldBoundCap)
 }
 
 // costCarriesEvidenceX reports whether an Evidence part names the announced X
@@ -1148,6 +1192,13 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 			bound = total
 		}
 	}
+	sacX := costCarriesSacX(tc.amount)
+	if sacX {
+		// CR 118.3: the permanents an announced sacrifice may name bound X.
+		if n := e.triggeredCostSacXBound(tc); bound < 0 || n < bound {
+			bound = n
+		}
+	}
 	if bound < 0 {
 		return false
 	}
@@ -1155,6 +1206,20 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 	for x := int32(0); x <= bound; x++ {
 		v := foldCostX(tc.amount, x)
 		priced := v
+		if sacX {
+			// Cost.Priceable is false for a Sac part: the folded sacrifice is
+			// gated by the component window's payable check, X = 0 offered
+			// (its follow-up pay ask declines a zero count, keeping option 0
+			// the decline-equivalent), as the evidence arm below does.
+			if x > 0 && !evidenceX {
+				probe := *tc
+				probe.amount = v
+				if !e.triggeredCostComponentsPayable(&probe) {
+					continue
+				}
+			}
+			priced.Sac = nil
+		}
 		if evidenceX {
 			// Cost.Priceable is false for an Evidence part, so the folded
 			// cost's evidence half is gated by the component window's own
@@ -1169,6 +1234,7 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 				}
 			}
 			priced.Evidence = nil
+			priced.Sac = nil
 		}
 		if !pay.EnergyPayable(e.G, tc.player, &priced) || !pay.CostPayablePool(asPayer(e), tc.player, tc.source, pay.SAOther, priced, pot, e.G.Players[tc.player].ManaUnits()) {
 			continue
@@ -1438,10 +1504,8 @@ func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
 	if amt.Tap || amt.X != 0 {
 		return false
 	}
-	for _, part := range amt.Sac {
-		if part.Announced {
-			return false
-		}
+	if costCarriesSacX(amt) {
+		return false // the announced count folds first (triggeredCostXAsk)
 	}
 	// Every component outside the settleable set keeps the decline-only ask
 	// (PayEnergy, AddCounter, PutToLib, Behold, Reveal, the dyn-tap
