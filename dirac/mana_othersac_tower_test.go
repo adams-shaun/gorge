@@ -58,14 +58,29 @@ func otherSacTowerScen(t *testing.T, extra ...string) (*scen, Obj, uint8) {
 // (planOtherSacSource, kop.OtherSacPlanProduction) defers the same
 // production, so the planned other-sacrifice arm (actOtherSacAfford) prices no Tower unit. The positive
 // control pays the {1}{B} with a Swamp, so the probe can see an offer.
-// (Beside a second creature the kernel's tap-another script walk still
-// prices the Tower where gorge's prefix search does not; Phyrexian Tower
-// stays refused by name for that, a ticket of its own.)
+//
+// Beside a Carrion Feeder the activation IS offered, in both engines: gorge's
+// planner still declines it (source:last_resort), but its census misses the
+// Tower, so PotentialPaymentPlans prices it with the prefix script "activate
+// the Tower, its Sacrifice a creature: Add {B}{B} ability, sacrifice the
+// Feeder" (potentialCensusFallback -> potentialPrefixScript), and the oracle
+// adds that scripted play to gorge's offers (dirac/oracle/gorge.go, prScript).
+// The kernel's tap-another script walk prices the same line. (The posed
+// priority decision alone does not list it: askPriority walks with no pending
+// decision, so autoPayOffer's census arm runs no search; the oracle's merge is
+// the surface the kernel mirrors, as in the script_prefix_sac_breaks_present_gate
+// repro, Sliver Hive funded by the Tower's sacrifice of another creature.)
 func TestOtherSacPlanDefersTowerProduction(t *testing.T) {
 	t.Run("Konrad alone", func(t *testing.T) {
 		sc, konrad, ab := otherSacTowerScen(t)
 		if sc.activateOffered(konrad, ab) {
 			t.Fatal("the activation is offered: the Tower's {B}{B} is planned where gorge defers it")
+		}
+	})
+	t.Run("beside a Carrion Feeder", func(t *testing.T) {
+		sc, konrad, ab := otherSacTowerScen(t, "Carrion Feeder")
+		if !sc.activateOffered(konrad, ab) {
+			t.Fatal("the activation is withheld though gorge's prefix script (the Tower's {B}{B}, sacrificing the Feeder) prices it")
 		}
 	})
 	t.Run("a Swamp pays it", func(t *testing.T) {
