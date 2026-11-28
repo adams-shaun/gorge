@@ -13,12 +13,13 @@ import (
 // more than one member under an op whose run can ask. It keeps a one-member
 // set under the same op, a multi-member set under an op that never asks, and
 // the all-player Sacrifice and Discard the kernel walks on the repNext chain
-// (CR 101.4).
+// (CR 101.4). The opponents of one player pass under any op (setOpponentOf);
+// the same complement spelled Non<ref> does not.
 func TestDefinedSetSuspendGuard(t *testing.T) {
 	const two = "Defined$ You & Opponent"             // SetController SetEachOpponent SetUnion
 	const non = "Defined$ NonTriggeredCardController" // SetTriggerPlayer SetPlayersComplement
 	const one = "Defined$ CardController"             // SetSelf SetControllerOf
-	const opp = "Defined$ TriggeredCardOpponent"      // SetTriggerPlayer SetPlayersComplement, one player in a duel
+	const opp = "Defined$ TriggeredCardOpponent"      // SetTriggerPlayer SetPlayersComplement, the exempt set
 	ab := func(line string) string { return definedSetSrc("A:AB$ " + line) }
 	trig := func(line string) string {
 		return definedSetSrc("T:Mode$ SpellCast | ValidCard$ Card | TriggerZones$ Battlefield | Execute$ ProbeTrig",

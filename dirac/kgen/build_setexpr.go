@@ -47,6 +47,20 @@ func kopWalksSet(ki *kop.Instr, players bool) bool {
 	return false
 }
 
+// walksSet refuses set n under ki when the set can hold more than one member
+// and the kernel would not walk them all. The opponents of one player pass
+// (lower_definedset.go setOpponentOf says why, and what that leaves open). An
+// n the card does not have is internSet's refusal.
+func (cb *cardBuilder) walksSet(n int, ki *kop.Instr) error {
+	if n < 0 || n >= len(cb.c.Sets) {
+		return nil
+	}
+	if s := cb.c.Sets[n]; !s.One && !s.OneOpps && !kopWalksSet(ki, s.Players) {
+		return fmt.Errorf("Defined$ set of more than one member on kop %s: a member's ask would end the walk", ki.Op)
+	}
+	return nil
+}
+
 // setSubjRef is an rSet's kop ref: RefSet as an instruction's subject, a
 // refusal anywhere else (a value, a condition, a side input).
 func (cb *cardBuilder) setSubjRef() (kop.Ref, error) {
@@ -84,10 +98,8 @@ func (cb *cardBuilder) setRef(pc int, in lInstr, ki *kop.Instr) error {
 	case pc > 0xff:
 		return fmt.Errorf("Defined$ set at pc %d", pc)
 	}
-	if n := in.Obj.N; n >= 0 && n < len(cb.c.Sets) { // internSet refuses the rest
-		if s := cb.c.Sets[n]; !s.One && !kopWalksSet(ki, s.Players) {
-			return fmt.Errorf("Defined$ set of more than one member on kop %s: a member's ask would end the walk", ki.Op)
-		}
+	if err := cb.walksSet(in.Obj.N, ki); err != nil {
+		return err
 	}
 	id, err := cb.internSet(in.Obj.N)
 	if err != nil {

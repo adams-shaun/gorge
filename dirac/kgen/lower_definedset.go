@@ -21,13 +21,14 @@ import (
 // different order or with different duplicates from gorge refuses.
 
 // lSet is one set expression of a card: a postfix program over lSetOps, and
-// what it can hold by construction (setTerm's marks), which the builder's
-// walk guard reads. Neither mark prints: they follow from the program and the
-// ability's target specs, both already in the LIR.
+// setTerm's marks, which the builder's walk guard reads (build_setexpr.go).
+// No mark prints: each follows from the program and the ability's target
+// specs, both already in the LIR.
 type lSet struct {
 	Ops     []lSetOp
 	Players bool // it holds players only
 	One     bool // it holds at most one member
+	OneOpps bool // it is exactly the opponents of one player
 }
 
 // lSetOp is one step of an lSet: its kind, its argument (a target slot) and,
@@ -97,6 +98,7 @@ type setTerm struct {
 	one     bool // it holds at most one member
 	you     bool // it is exactly the resolving controller
 	notYou  bool // it never holds the resolving controller
+	oneOpps bool // it is exactly the opponents of one player
 }
 
 func (t setTerm) then(ops ...lSetOp) []lSetOp {
@@ -138,7 +140,7 @@ func (lc *lowerCtx) definedSet(v string) (lRef, error) {
 		}
 		return lRef{}, refuse("Defined$ %q: %s", v, err.Error())
 	}
-	set := lSet{Ops: t.ops, Players: t.players, One: t.one}
+	set := lSet{Ops: t.ops, Players: t.players, One: t.one, OneOpps: t.oneOpps}
 	if d, ok := set.kopSetExpr().SetDepth(); !ok || d > kop.MaxSetDepth {
 		return lRef{}, refuse("Defined$ %q: a set program deeper than the kernel's %d", v, kop.MaxSetDepth)
 	}
@@ -368,9 +370,10 @@ var definedSetOpponent = map[string]string{
 }
 
 // setOpponentOf is the opponents of one player: every other player still in
-// the game, at any seat count. It is marked one for the walk guard
-// (build_setexpr.go kopWalksSet) by its duel size, dirac's two seats; a pod's
-// further opponents are not guarded.
+// the game, at any seat count. The walk guard lets exactly this set through
+// under any op (build_setexpr.go walksSet): Bounty Board's Draw reads it in a
+// Commander precon pods play. In a pod it holds several players, so there a
+// member's ask still ends the walk: a known gap the guard does not close.
 func (lc *lowerCtx) setOpponentOf(ref string) (setTerm, error) {
 	t, err := lc.setTerm(ref, false)
 	if err != nil {
@@ -379,7 +382,7 @@ func (lc *lowerCtx) setOpponentOf(ref string) (setTerm, error) {
 	if !t.players || !t.one {
 		return setTerm{}, fmt.Errorf("the opponents of %q, which is not one player", ref)
 	}
-	return setTerm{ops: t.then(lSetOp{Kind: kop.SetPlayersComplement}), players: true, one: true}, nil
+	return setTerm{ops: t.then(lSetOp{Kind: kop.SetPlayersComplement}), players: true, oneOpps: true}, nil
 }
 
 // definedSetSuffix are gorge's whole-value controller and owner spellings
