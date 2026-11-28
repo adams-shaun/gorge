@@ -908,6 +908,7 @@ func cloneFieldsEngineContinuation2(c, e *Engine, sp *Spare, remap *cloneRemap) 
 	c.etbLandPlayer = e.etbLandPlayer
 	c.etbLandPerm = e.etbLandPerm
 	c.etbLandFrom = e.etbLandFrom
+	c.etbLandLogged = e.etbLandLogged
 	if e.riotMove != nil {
 		p0 := *e.riotMove
 		p0.IDs = append([]state.ObjID(nil), e.riotMove.IDs...)
