@@ -884,13 +884,95 @@ var DebugNoPainDamage bool
 type painAvail struct {
 	on     bool
 	n      uint8
-	only   uint8    // bit g: group g is pain-only (no normal alternative)
-	budget uint8    // pain a plan may take: life - 1
-	w      [6]uint8 // the pain one unit of the group takes (its painN)
-	mask   [6]uint8 // the group's painful colours
-	prim   [6]uint8 // the group's normal alternative's colours (a painland's {C}, Haunted Screen's {W}{B})
+	budget uint8  // pain a plan may take: life - 1
+	held   uint16 // the held wide taps' mana, still counted in avail.total
+	key    [6]painKey
 	cnt    [6]uint8
-	ec     [6]uint8 // the extra {C} the group's normal ability brings (a modal source)
+}
+
+// painKey is what the painful sources of one painAvail group share.
+type painKey struct {
+	mask uint8                   // the painful colours; a pain-only source's whole production, {C} included
+	prim uint8                   // the normal alternative's colours (a painland's {C}, Haunted Screen's {W}{B})
+	only bool                    // pain-only: no normal alternative
+	w    uint8                   // the pain one activation takes (painN)
+	ec   uint8                   // the extra {C} the normal ability brings (a modal source)
+	amt  uint8                   // a pain-only source's mana per tap
+	xo   [kop.NumManaKinds]uint8 // and the TapExtra beside it
+}
+
+// tapSize is the mana one tap of a pain-only group's source makes.
+func (key *painKey) tapSize() int {
+	n := int(key.amt)
+	for _, x := range key.xo {
+		n += int(x)
+	}
+	return n
+}
+
+// wide reports a pain-only tap that is not one coloured mana (Ancient Tomb's
+// {C}{C}, a tap beside a TapExtra): its group holds the whole tap, so it
+// takes only a source the census counted (avail.painIn).
+func (key *painKey) wide() bool {
+	return key.only && (key.mask&(1<<kop.C) != 0 || key.tapSize() > 1)
+}
+
+// painKeyOf is the group of the painful source at sl: painTightAt files it
+// there and removeTightPain finds it there. modal splits the groups by the
+// normal ability's {C} extra.
+func (s *State) painKeyOf(k *prep, sl Slot, pc *pcard, p uint8, modal bool) painKey {
+	key := painKey{mask: uint8(pc.painCol) & 0x1f, prim: uint8(pc.manaCol) & 0x3f, only: pc.painOnly, w: pc.painN}
+	if pc.painOnly {
+		key.mask, key.prim, key.amt = uint8(pc.painCol)&0x3f, 0, max(pc.manaN, 1)
+		_, key.xo, _ = s.srcExtraPainPick(k, sl, pc) // addPainAvail's xp
+	}
+	if modal && s.painAvailMask(pc, p)&^(1<<kop.C) != 0 {
+		key.ec = s.painExtraC(k, sl, pc)
+	}
+	return key
+}
+
+// find is the group of key, pa.n when none is.
+func (pa *painAvail) find(key *painKey) uint8 {
+	g := uint8(0)
+	for ; g < pa.n; g++ {
+		if pa.key[g] == *key {
+			break
+		}
+	}
+	return g
+}
+
+// holdPainTaps takes pain-only group g's taps out of a's unit groups: only the
+// budget's splits (addPainTaps) add them back. A wide tap's mana stays in
+// a.total, which counts every census source's tap for the readers of a total
+// (an {X} ceiling, a filter's wide fee); pa.held is what painAffords takes off.
+func (a *avail) holdPainTaps(pa *painAvail, g uint8) {
+	key, cnt := &pa.key[g], uint16(pa.cnt[g])
+	if !key.wide() {
+		a.removeWide(key.mask, cnt)
+		return
+	}
+	total := a.total
+	a.takeWide(key.mask, cnt*uint16(key.amt))
+	for c, x := range key.xo {
+		if x != 0 {
+			a.takeWide(1<<c, cnt*uint16(x))
+		}
+	}
+	pa.held += uint16(total - a.total)
+	a.total = total
+}
+
+// addPainTaps adds n of a pain-only group's taps to a: each its source's mana
+// and TapExtra.
+func (a *avail) addPainTaps(key *painKey, n uint8) {
+	a.addUnits(key.mask, uint8(min(int(n)*int(key.amt), 255)))
+	for c, x := range key.xo {
+		if x != 0 {
+			a.addUnits(1<<c, uint8(min(int(n)*int(x), 255)))
+		}
+	}
 }
 
 // painTight rebuilds a's painful units as a painAvail when every painful
@@ -964,6 +1046,10 @@ func (s *State) painTightAt(k *prep, p uint8, a *avail, eff int) {
 		if int(pc.painN) >= life {
 			continue // its pain alone is lethal: painAvailMask already withheld its colours
 		}
+		key := s.painKeyOf(k, sl, pc, p, modal)
+		if key.wide() && !a.painIn.has(sl) {
+			continue // the census counted none of its tap (held out, deferred)
+		}
 		if k.gen != nil && k.gen.anyTapExtra {
 			r, _, stall := s.srcExtraPainPick(k, sl, pc)
 			if stall {
@@ -972,33 +1058,13 @@ func (s *State) painTightAt(k *prep, p uint8, a *avail, eff int) {
 			rpAny = rpAny || r > 0
 		}
 		sum += int(pc.painN)
-		pm := uint8(pc.painCol) & 0x1f
-		prim := uint8(pc.manaCol) & 0x3f
-		var ob uint8
-		if pc.painOnly {
-			ob = 1
-			prim = 0
-		}
-		var ec uint8
-		if modal && s.painAvailMask(pc, p)&^(1<<kop.C) != 0 {
-			ec = s.painExtraC(k, sl, pc)
-		}
-		g := uint8(0)
-		for ; g < pa.n; g++ {
-			if pa.mask[g] == pm && pa.prim[g] == prim && pa.only>>g&1 == ob && pa.ec[g] == ec && pa.w[g] == pc.painN {
-				break
-			}
-		}
+		g := pa.find(&key)
 		if g == pa.n {
-			if int(pa.n) == len(pa.mask) {
+			if int(pa.n) == len(pa.key) {
 				s.painTightBail(modal)
 				return // an exotic board: keep the per-unit count
 			}
-			pa.mask[g] = pm
-			pa.prim[g] = prim
-			pa.only |= ob << g
-			pa.ec[g] = ec
-			pa.w[g] = pc.painN
+			pa.key[g] = key
 			pa.n++
 		}
 		pa.cnt[g]++
@@ -1014,20 +1080,17 @@ func (s *State) painTightAt(k *prep, p uint8, a *avail, eff int) {
 	}
 	pa.budget = uint8(min(eff-1, 255))
 	// take the painful colours back out of a: each painland unit is its
-	// normal ability's, each pain-only unit none
+	// normal ability's, each pain-only source none, its TapExtra included
 	for g := uint8(0); g < pa.n; g++ {
-		only := pa.only>>g&1 != 0
-		prim := pa.prim[g]
-		full := pa.mask[g]
-		if !only {
-			full |= prim
+		key := &pa.key[g]
+		if key.only {
+			a.holdPainTaps(&pa, g)
+			continue
 		}
-		a.remove(full, pa.cnt[g])
-		if !only {
-			a.addUnits(prim, pa.cnt[g])
-			if pa.ec[g] != 0 {
-				a.addUnits(1<<kop.C, pa.ec[g]*pa.cnt[g]) // the normal ability's own extra
-			}
+		a.remove(key.mask|key.prim, pa.cnt[g])
+		a.addUnits(key.prim, pa.cnt[g])
+		if key.ec != 0 {
+			a.addUnits(1<<kop.C, key.ec*pa.cnt[g]) // the normal ability's own extra
 		}
 	}
 	pa.on = true
@@ -1042,41 +1105,42 @@ func (s *State) painTightBail(modal bool) {
 	}
 }
 
-// painAffords is affordsPlain under a painful budget: some split of the
-// budget over the groups (x[g] units of group g making a colour, at most
-// the budget in all) leaves a Hall-feasible avail. A board with too many
-// splits answers no past the cap.
+// painAffords is affordsPlain (with anyColor, affordsAnyColorPlain) under a
+// painful budget: some split of the budget over the groups (x[g] units of
+// group g making a colour, at most the budget in all) leaves a feasible avail.
+// A board with too many splits answers no past the cap.
 //
 //go:noinline
-func (a *avail) painAffords(cost *kop.ManaCost, pipMask uint8, extra int) bool {
+func (a *avail) painAffords(cost *kop.ManaCost, pipMask uint8, extra int, anyColor bool) bool {
 	pa := &a.pain
 	var x [6]uint8
 	tries := 0
 	for {
 		used := 0
 		for g := uint8(0); g < pa.n; g++ {
-			used += int(x[g]) * int(pa.w[g])
+			used += int(x[g]) * int(pa.key[g].w)
 		}
 		if used <= int(pa.budget) {
 			t := *a
 			t.pain.on = false
+			t.total -= int(pa.held)
 			for g := uint8(0); g < pa.n; g++ {
 				if x[g] == 0 {
 					continue
 				}
-				if pa.only>>g&1 != 0 {
-					t.addUnits(pa.mask[g], x[g])
+				if key := &pa.key[g]; key.only {
+					t.addPainTaps(key, x[g])
 				} else {
 					// painTight holds the group's normal units under prim
 					// and its modal extra's under {C}, not both under prim.
-					t.remove(pa.prim[g], x[g])
-					if pa.ec[g] != 0 {
-						t.remove(1<<kop.C, x[g]*pa.ec[g])
+					t.remove(key.prim, x[g])
+					if key.ec != 0 {
+						t.remove(1<<kop.C, x[g]*key.ec)
 					}
-					t.addUnits(pa.mask[g]|pa.prim[g], x[g])
+					t.addUnits(key.mask|key.prim, x[g])
 				}
 			}
-			if t.hallPlain(cost, pipMask, extra) {
+			if anyColor && t.anyColorUnits(cost, extra) || !anyColor && t.hallPlain(cost, pipMask, extra) {
 				return true
 			}
 		}

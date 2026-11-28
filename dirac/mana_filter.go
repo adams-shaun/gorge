@@ -724,7 +724,7 @@ func (s *State) faceFeePainCol(t avail, feeCol uint8) bool {
 		return false
 	}
 	for g := uint8(0); g < pa.n; g++ {
-		if pa.cnt[g] != 0 && pa.mask[g]&feeCol != 0 {
+		if pa.cnt[g] != 0 && pa.key[g].mask&feeCol != 0 {
 			return true
 		}
 	}

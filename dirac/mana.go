@@ -96,6 +96,9 @@ type avail struct {
 	// then held out of mask/cnt and affordsPlain enumerates how many of
 	// each group may make one
 	pain painAvail
+	// painIn: the pain-only sources whose tap addPainAvail counted here;
+	// painTight holds a wide tap (painKey.wide) only for one of them
+	painIn slotMask
 	// life: the payer's life, read only by a Phyrexian pip's two-life face
 	// (affordsTb; set when the table has one: prep.phyMana)
 	life int16
@@ -468,6 +471,7 @@ func (s *State) availForExcluding(k *prep, p uint8, a *avail, ex slotMask) {
 // when withDeferred is set (availForCapped).
 func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferred bool) {
 	a.total, a.n, a.nOne, a.nModal, a.pain.on = 0, 0, 0, 0, false
+	a.painIn = slotMask{}
 	a.nExcl, a.xMax = 0, 0 // the two-face lands of an earlier census on this avail (addAltExcl) are not this one's
 	a.capped = withDeferred
 	pl := &s.pl[p]
@@ -598,7 +602,7 @@ func (a *avail) affordsPlain(cost *kop.ManaCost, pipMask uint8, extra int) bool 
 		return a.exclAffords(0, cost, pipMask, extra, false)
 	}
 	if a.pain.on {
-		return a.painAffords(cost, pipMask, extra)
+		return a.painAffords(cost, pipMask, extra, false)
 	}
 	return a.hallPlain(cost, pipMask, extra)
 }
@@ -677,6 +681,14 @@ func (a *avail) affordsAnyColorPlain(cost *kop.ManaCost, extra int) bool {
 	if a.nExcl != 0 {
 		return a.exclAffords(0, cost, 0, extra, true)
 	}
+	if a.pain.on && a.pain.held != 0 {
+		return a.painAffords(cost, 0, extra, true) // a held wide tap stands only in the guard's splits
+	}
+	return a.anyColorUnits(cost, extra)
+}
+
+// anyColorUnits is affordsAnyColorPlain over a's units alone.
+func (a *avail) anyColorUnits(cost *kop.ManaCost, extra int) bool {
 	tot := int(cost.Generic) + extra
 	for _, n := range cost.Pips {
 		tot += int(n)
@@ -806,8 +818,8 @@ func (a *avail) censusTotal() int {
 	t := a.total
 	if a.pain.on {
 		for g := uint8(0); g < a.pain.n; g++ {
-			if a.pain.only>>g&1 != 0 {
-				t += int(a.pain.cnt[g])
+			if key := &a.pain.key[g]; key.only && !key.wide() {
+				t += int(a.pain.cnt[g]) // a wide tap never left a.total (holdPainTaps)
 			}
 		}
 	}
