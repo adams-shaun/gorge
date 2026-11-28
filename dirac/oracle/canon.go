@@ -316,10 +316,15 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 // ChGenRingBearer lowering, choose:other over the creature, and the kind stays
 // out of ChooseKinds because its position is the choose ordinal. Soulbond's
 // partner pick (effPair's "pair", CR 702.95a) is the kernel's ChGenPair, the
-// same choose:other over the creature.
+// same choose:other over the creature. MoveCounter's amount pick
+// (effects' "move_counter", CR 122.5) is the kernel's ChMoveCounterAny,
+// choose:other with the option index as the mode.
 func (g *GorgeSide) chooseOtherAction(o *decision.Option) (Canon, bool) {
-	if o.Kind == "ring_bearer" || o.Kind == "pair" {
+	switch o.Kind {
+	case "ring_bearer", "pair":
 		return Pack(ActChoose+chooseOther, g.id.ref(g.E.G, o.Obj), RefNone, 0), true
+	case "move_counter":
+		return Pack(ActChoose+chooseOther, RefNone, RefNone, uint8(o.Index)), o.Index < 256
 	}
 	g.Stats.note(&g.Stats.Unknown, "choose/"+o.Kind+" (as choose:other)")
 	if o.Obj != 0 {
