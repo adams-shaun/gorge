@@ -1,0 +1,17 @@
+{
+  "card": "Gimbal, Gremlin Prodigy",
+  "class": "options",
+  "why": "the engines offer different options",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 1,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "gimbal_gremlin_prodigy_options_differ"
+  },
+  "evidence": [
+    "ev-tail-40-c029"
+  ]
+}
