@@ -109,3 +109,19 @@ func TestCreateGameResponseCarriesDeckReports(t *testing.T) {
 		t.Fatalf("a response with no submitted seats carries decks: %s", empty)
 	}
 }
+
+// TestCreateGameResponseNamesEngine: the create response always names its
+// engine and leaves engine_reason out when there is none.
+func TestCreateGameResponseNamesEngine(t *testing.T) {
+	raw, err := json.Marshal(CreateGameResponse{Table: "g1", Engine: "dirac", EngineReason: ""})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := string(raw); !strings.Contains(s, `"engine":"dirac"`) || strings.Contains(s, "engine_reason") {
+		t.Fatalf("response %s, want engine dirac and no engine_reason", s)
+	}
+	raw, _ = json.Marshal(CreateGameResponse{Engine: "gorge", EngineReason: "a paired bot needs gorge"})
+	if !strings.Contains(string(raw), `"engine_reason":"a paired bot needs gorge"`) {
+		t.Fatalf("response %s carries no engine_reason", raw)
+	}
+}

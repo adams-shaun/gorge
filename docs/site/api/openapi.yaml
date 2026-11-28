@@ -626,6 +626,12 @@ components:
           items:
             $ref: "#/components/schemas/DeckReport"
           type: "array"
+        engine:
+          description: "Engine names the engine the table runs on: gorge or dirac."
+          type: "string"
+        engine_reason:
+          description: "EngineReason, under gorged -route-pods-dirac, says why a table runs on gorge rather than dirac; empty otherwise."
+          type: "string"
         join:
           description: "Join is the base-relative path the human opens to sit in the seat, carrying the seat and its token: /t/\u003ctable\u003e?seat=N\u0026token=…."
           type: "string"
@@ -650,6 +656,7 @@ components:
           type: "string"
       required:
         - "bot_policy"
+        - "engine"
         - "join"
         - "match"
         - "seat"
@@ -4424,7 +4431,7 @@ paths:
       x-gorge-requires: "-feedback DIR"
   "/api/games":
     post:
-      description: "Builds and starts a fresh single-match table (`g1`, `g2`, ...) seating the caller against a hosted bot, and returns the human seat's bearer token. The token is returned only here. A seat in `decks` names either `deck` (ManaBrew deck JSON) or `text` (a plain-text decklist of `1 Sol Ring` lines with an optional `Commander` section, at most 65536 bytes), never both. Armed by gorged -vsbot; otherwise this answers 404. A seat may set `substitute` to accept the same at-most-three replacements; the 200 response's `decks` lists one report per submitted seat, in seat order."
+      description: "Builds and starts a fresh single-match table (`g1`, `g2`, ...) seating the caller against a hosted bot, and returns the human seat's bearer token. The token is returned only here. A seat in `decks` names either `deck` (ManaBrew deck JSON) or `text` (a plain-text decklist of `1 Sol Ring` lines with an optional `Commander` section, at most 65536 bytes), never both. Armed by gorged -vsbot; otherwise this answers 404. A seat may set `substitute` to accept the same at-most-three replacements; the 200 response's `decks` lists one report per submitted seat, in seat order. The 200 response's `engine` names the engine the table runs on (`gorge` or `dirac`); under gorged -route-pods-dirac a 4-seat commander pod whose every deck dirac plays runs on dirac, and `engine_reason` says, as one line, why a table runs on gorge instead."
       operationId: "createGame"
       requestBody:
         content:
@@ -4454,6 +4461,7 @@ paths:
                   summary: "a new constructed game"
                   value:
                     bot_policy: "bot"
+                    engine: "gorge"
                     join: "/t/g1?seat=0\u0026token=35a0e9899091aad02f0406553ca7082b"
                     match: 1
                     seat: 0
