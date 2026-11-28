@@ -92,7 +92,7 @@ func (s *State) mayPlayPrefixPays(k *prep, p uint8, c CardID, o Obj, anyColor bo
 	// does (castAffordsR), as affordsFor alone leaves them out
 	var av avail
 	s.availWindowFor(k, p, &av)
-	if k.sacOnlyMana {
+	if s.sacOnlyLive(k) {
 		s.availTappedSac(k, p, &av)
 	}
 	return s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, &av)

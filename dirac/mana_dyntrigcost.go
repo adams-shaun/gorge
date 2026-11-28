@@ -218,7 +218,7 @@ func (s *State) anyLiveSource(k *prep, p uint8, d *payDesc) bool {
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pc := s.manaPCGen(k, sl)
-		if s.canTapForManaPC(k, sl, pc) || k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc) {
+		if s.canTapForManaPC(k, sl, pc) || s.sacOnlyLive(k) && s.canSacOnlyForMana(k, sl, pc) {
 			return true
 		}
 		if s.storeSourceCounts(k, p, sl) {

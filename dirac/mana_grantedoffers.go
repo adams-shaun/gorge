@@ -317,7 +317,7 @@ func (s *State) grantIdx(k *prep, sl Slot) int {
 //
 //go:noinline
 func (s *State) ownSacGrantTap(k *prep, sl Slot) *pcard {
-	if k.gen == nil || !k.sacOnlyMana {
+	if k.gen == nil || !s.sacOnlyLive(k) {
 		return nil
 	}
 	var gi [maxGrants]int16
@@ -393,7 +393,7 @@ func (s *State) planGrantsPhase2(k *prep, p uint8, pk *planner, i int, sl Slot, 
 // printed plan pays is planned as gorge does (the grant is the prefix
 // search's alternative), and the grant joins only when that plan fails.
 func (s *State) planOwnSacGrant(k *prep, pc *pcard, sl Slot) *pcard {
-	if !k.sacOnlyMana || !pc.manaSacOnly {
+	if !s.sacOnlyLive(k) || !pc.manaSacOnly {
 		return nil
 	}
 	return s.ownSacGrantTap(k, sl)
@@ -880,7 +880,7 @@ func (s *State) availGrantJoin(k *prep, sl Slot, pc *pcard, a *avail, gi *[maxGr
 	var pMask, pN uint8
 	pOne := false
 	spawnNoTap := false
-	if own && k.sacOnlyMana && pc.manaSacOnly {
+	if own && s.sacOnlyLive(k) && pc.manaSacOnly {
 		pMask, pN = mask, n
 		pOne = pc.manaOne
 		ownFace = grantUnit{}
@@ -891,7 +891,7 @@ func (s *State) availGrantJoin(k *prep, sl Slot, pc *pcard, a *avail, gi *[maxGr
 	// ability, then is sacrificed (CR 602.2, 605.1a), so that grant is a unit
 	// of its own beside the tap's, the sacrifice made once.
 	var su, gu grantUnit
-	ownSac := own && k.sacOnlyMana && pc.manaSacOnly
+	ownSac := own && s.sacOnlyLive(k) && pc.manaSacOnly
 	tapsNot := false
 	if ownSac {
 		// the mirror shape: a printed sacrifice-only ability (Eldrazi Spawn's
@@ -1745,7 +1745,7 @@ func (g *grantSrch) gapFree(t *State, i int) bool {
 	if g.ca[i] || t.grantTapOK(g.k, sl) || t.grantSacOK(g.k, sl) {
 		return true
 	}
-	return g.k.sacOnlyMana && t.canSacOnlyNow(g.k, sl, t.manaPCGen(g.k, sl))
+	return t.sacOnlyLive(g.k) && t.canSacOnlyNow(g.k, sl, t.manaPCGen(g.k, sl))
 }
 
 // gapVisit is visit's per-gap body: candidate i's branches, found when one
@@ -1876,7 +1876,7 @@ func (g *grantSrch) gapAbilities(t *State, i int, sl Slot, grants, fok, tx bool,
 					mask, n = srcMask(base), base.manaN
 				}
 			}
-			if ppc := t.manaPCGen(g.k, sl); g.k.sacOnlyMana && ppc.manaSacOnly {
+			if ppc := t.manaPCGen(g.k, sl); t.sacOnlyLive(g.k) && ppc.manaSacOnly {
 				// a printed sacrifice-only ability (an Eldrazi Spawn's) beside a
 				// tap grant: the step sacrifices the source (CR 605.1a)
 				if g.sacBranch(t, i, sl, -1, ppc, mask, alts == 1) {
