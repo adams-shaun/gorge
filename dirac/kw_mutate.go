@@ -182,12 +182,17 @@ func (s *State) mergeFold(k *prep, surv, src Obj, top bool, amount uint8) bool {
 		p := &s.perms[sl]
 		got := s.objs[src].card
 		s.touchSl(sl)
-		if p.ovr.flags&ovCopy != 0 {
-			// transformObj's copy arm: the copy's Face() is its template, so
-			// only the underlying card moves.
+		if p.ovr.flags&ovCopy != 0 && s.copyTop(sl, NoSlot).kind != copyNone {
+			// CR 730.2c: a copy effect applied to the pile keeps applying
+			// (transformObj's copy arm), so only the underlying card moves.
 			sob.card = got
 		} else {
-			s.subscribe(sl, &k.cards[p.card], false)
+			// CR 730.2a (gorge's mutateTopCopiable): an ovCopy with no live
+			// copy layer is the old top's own token-copy basis
+			// (cloneTokenBasis), and it leaves the pile with that component.
+			s.subscribe(sl, &k.cards[s.cardAt(sl)], false)
+			p.ovr.flags &^= ovCopy
+			p.ovr.copyOf = 0
 			sob.card, p.card = got, got
 			s.subscribe(sl, &k.cards[got], true)
 			s.subscribeGrants(k, sl)

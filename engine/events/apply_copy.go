@@ -52,6 +52,7 @@ func foldMutate(g *state.Game, e *Event) {
 		// Both token tests ride the snapshot too: the statuses are exchanged
 		// with the cards.
 		wasToken, srcIsToken := survivor.IsToken, src.IsToken || src.IsCopy
+		srcBasis, srcBack, srcNonLegendary := src.CopyFace, src.CopyFaceBack, src.CopyNonLegendary
 		parked := g.AddObject(oldCard, owner)
 		parked.Zone = state.ZCeased
 		parked.IsToken = wasToken
@@ -65,6 +66,7 @@ func foldMutate(g *state.Game, e *Event) {
 		// topped by a real card must shed both marks, or engine/rules/sba.go's
 		// ceaseDeadTokens would cease the card in the graveyard.
 		survivor.IsToken, survivor.IsCopy = srcIsToken, false
+		mutateTopCopiable(survivor, srcBasis, srcBack, srcNonLegendary)
 		// The cards changed objects: the survivor's ID now carries the
 		// mutating card and parkedID the demoted one. A commander's
 		// designation is an attribute of the card (CR 903.3), so a
@@ -507,6 +509,23 @@ func foldCloneStatic(g *state.Game, e *Event) {
 			o.SetCopyFace(&face)
 		}
 	}
+}
+
+// mutateTopCopiable gives a top-merged pile its new top component's own
+// copiable values (CR 730.2a): the mutating object's copy basis and its
+// non-legendary rider replace the demoted top's. A copy effect applied to the
+// pile keeps applying (CR 730.2c), so with a live CloneLayers stack the new
+// top's basis goes where the effect's end restores from (TokenBasis) instead
+// of replacing the effect's face.
+func mutateTopCopiable(o *state.Object, basis, back *cards.Face, nonLegendary bool) {
+	o.CopyNonLegendary = nonLegendary
+	if len(o.CloneLayers) > 0 {
+		o.TokenBasis, o.TokenBasisBack, o.TokenBasisSaved = basis, back, true
+		return
+	}
+	o.SetCopyFace(basis)
+	o.CopyFaceBack = back
+	o.TokenBasis, o.TokenBasisBack, o.TokenBasisSaved = nil, nil, false
 }
 
 // foldClonePermanent folds Kind ClonePermanent into state.
