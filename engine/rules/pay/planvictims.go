@@ -1,6 +1,7 @@
 package pay
 
 import (
+	"cmp"
 	"slices"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -46,13 +47,15 @@ func planVictimReserve(acts []decision.PaymentActivation, extra ...[]state.ObjID
 
 // planVictimGate is the planner search's Env.Fundable: whether every
 // other-sacrifice step among a paying set's units can name its own victim, by
-// AssignPlanVictims itself. A board with fewer free victims than the set has
-// such steps (two altars, one creature), or whose only victim is a source the
-// set spends, then leaves the search to rank the sets it can fund: a second
-// other-sacrifice source never removes a way to pay (CR 601.2g-h). Adding
-// units only adds steps and takes candidates away, so no superset of a refused
-// set is fundable either.
-func planVictimGate(e Engine, p state.PlayerID, kept, tapped, gone []state.ObjID) func([]Alt) bool {
+// fundPlanVictims itself, so another member of a class stands in for a
+// witness's unit that is the only victim. A board with fewer free victims than
+// the set has such steps (two altars, one creature), or whose only victim is a
+// source every member choice spends, then leaves the search to rank the sets it
+// can fund: a second other-sacrifice source never removes a way to pay
+// (CR 601.2g-h). Adding units only adds steps and takes candidates away, so no
+// superset of a refused set is fundable either. choices and classes are the
+// tables of the search it gates.
+func planVictimGate(e Engine, p state.PlayerID, choices [][]Alt, classes []Class, kept, tapped, gone []state.ObjID) func([]Alt) bool {
 	return func(chosen []Alt) bool {
 		if !slices.ContainsFunc(chosen, func(a Alt) bool { return a.Consequence.SacrificeOthers }) {
 			return true
@@ -62,16 +65,16 @@ func planVictimGate(e Engine, p state.PlayerID, kept, tapped, gone []state.ObjID
 			plan.Activations[i] = chosen[i].Activation
 			plan.Activations[i].Consequence = chosen[i].Consequence.Wire()
 		}
-		return AssignPlanVictims(e, p, &plan, slices.Concat(kept, tapped), gone)
+		return fundPlanVictims(e, p, &plan, choices, classes, slices.Concat(kept, tapped), gone)
 	}
 }
 
 // AssignPlanVictims names the victims of every other-sacrifice step of plan,
 // in step order, by the fixed ranking, never an object the plan otherwise
 // spends (a source, a kept or gone object, an earlier step's victim). It
-// reports false when some step cannot be funded with distinct victims; the
-// plan is then not offered. A plan with no such step is untouched.
-func AssignPlanVictims(e Engine, p state.PlayerID, plan *decision.PaymentPlan, kept, gone []state.ObjID) bool {
+// returns the index of the first step it cannot fund with distinct victims,
+// -1 when every step has its victims. A plan with no such step is untouched.
+func AssignPlanVictims(e Engine, p state.PlayerID, plan *decision.PaymentPlan, kept, gone []state.ObjID) int {
 	var reserved map[state.ObjID]bool
 	var units []WindowUnit
 	for i := range plan.Activations {
@@ -85,18 +88,115 @@ func AssignPlanVictims(e Engine, p state.PlayerID, plan *decision.PaymentPlan, k
 		}
 		part, ok := stepSacPart(e, p, units, *pa)
 		if !ok {
-			return false
+			return i
 		}
 		victims := PaymentPlanSacrificeVictims(e, p, pa.Source, part, int(part.N), reserved)
 		if victims == nil {
-			return false
+			return i
 		}
 		pa.Sacrifices = victims
 		for _, v := range victims {
 			reserved[v] = true
 		}
 	}
+	return -1
+}
+
+// fundPlanVictims names plan's victims, first changing which members of a
+// class the plan taps when the witness's choice leaves a step none: the search
+// fixes how MANY units of each class pay, so any member of the class pays the
+// same (CR 601.2g-h). Each swap untaps one victim candidate and taps a member
+// that is none (swapPlanMember). It reports false when no member choice funds
+// every step; the plan is then not offered. choices and classes are the
+// tables of the search that materialized plan.
+func fundPlanVictims(e Engine, p state.PlayerID, plan *decision.PaymentPlan, choices [][]Alt, classes []Class, kept, gone []state.ObjID) bool {
+	for range len(plan.Activations) + 1 {
+		short := AssignPlanVictims(e, p, plan, kept, gone)
+		if short < 0 {
+			return true
+		}
+		if !swapPlanMember(e, p, plan, short, choices, classes, kept, gone) {
+			break
+		}
+	}
+	return false
+}
+
+// swapPlanMember frees one victim for the unfunded step short: among the plan's
+// sources that step could sacrifice and whose class has an unused member it
+// could not, the victim ranking picks the one to free, and that class's
+// lowest-id such member takes its step. The steps return to census order, the
+// witness order. It reports false when no source can be exchanged.
+func swapPlanMember(e Engine, p state.PlayerID, plan *decision.PaymentPlan, short int, choices [][]Alt, classes []Class, kept, gone []state.ObjID) bool {
+	step := plan.Activations[short]
+	part, ok := stepSacPart(e, p, PaymentPlanQueryUnits(e, p), step)
+	if !ok {
+		return false
+	}
+	cands := ManaSacrificeCandidates(e, p, step.Source, part)
+	reserved := planVictimReserve(plan.Activations, kept, gone)
+	for _, a := range plan.Activations[:short] {
+		for _, v := range a.Sacrifices {
+			reserved[v] = true
+		}
+	}
+	position := make(map[state.ObjID]int, len(choices))
+	for i, alts := range choices {
+		if len(alts) != 0 {
+			position[alts[0].Activation.Source] = i
+		}
+	}
+	// spare maps each source that can be freed to the unit replacing it.
+	spare := map[state.ObjID]int{}
+	for _, a := range plan.Activations {
+		v := a.Source
+		if !slices.Contains(cands, v) || slices.Contains(kept, v) || slices.Contains(gone, v) {
+			continue
+		}
+		if m, ok := spareMember(plan.Activations, choices, classes, position[v], cands); ok {
+			spare[v] = m
+		}
+	}
+	for v := range spare {
+		delete(reserved, v)
+	}
+	freed := PaymentPlanSacrificeVictims(e, p, step.Source, part, 1, reserved)
+	if freed == nil {
+		return false
+	}
+	at := slices.IndexFunc(plan.Activations, func(a decision.PaymentActivation) bool { return a.Source == freed[0] })
+	old, m := plan.Activations[at], spare[freed[0]]
+	alt := slices.IndexFunc(choices[position[freed[0]]], func(x Alt) bool {
+		return x.Activation.Ability == old.Ability && x.Activation.Produces == old.Produces
+	})
+	if alt < 0 {
+		return false
+	}
+	next := choices[m][alt].Activation
+	next.Consequence = choices[m][alt].Consequence.Wire()
+	plan.Activations[at] = next
+	slices.SortStableFunc(plan.Activations, func(x, y decision.PaymentActivation) int {
+		return cmp.Compare(position[x.Source], position[y.Source])
+	})
 	return true
+}
+
+// spareMember is the lowest-id unit of the class of the unit at position at
+// that no step of acts taps and that is not among cands.
+func spareMember(acts []decision.PaymentActivation, choices [][]Alt, classes []Class, at int, cands []state.ObjID) (int, bool) {
+	k := slices.IndexFunc(classes, func(c Class) bool { return slices.Contains(c.Members, at) })
+	if k < 0 {
+		return 0, false
+	}
+	best, bestID := -1, state.ObjID(0)
+	for _, m := range classes[k].Members {
+		id := choices[m][0].Activation.Source
+		used := slices.ContainsFunc(acts, func(a decision.PaymentActivation) bool { return a.Source == id })
+		if !used && !slices.Contains(cands, id) && (best < 0 || id < bestID) {
+			best, bestID = m, id
+		}
+	}
+	return best, best >= 0
 }
 
 // PlanVictimsLegal reports whether every other-sacrifice step from index
