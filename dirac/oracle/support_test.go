@@ -3,11 +3,13 @@ package oracle
 import (
 	"cmp"
 	"errors"
+	"flag"
 	"fmt"
 	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -269,13 +271,128 @@ func changedRefused(t *testing.T, base string) map[string]bool {
 	return changed
 }
 
+// refusedShards is how many top-level tests the refusal check is dealt into:
+// one entry's pool search can run for 42 s (Whim of Volrath's tail-02 hunt,
+// 11-27) and the whole list is ~178 s of leaf searches, which no cost deal can
+// put inside a lane's share of the package cap as one test. Entry i plays in
+// shard i % refusedShards. The precheck's lanes, CI and regen-main name the
+// shards (^TestRefusedEntriesStillDiverge[0-9]+$); the dirac gate names the
+// parent, TestRefusedEntriesStillDiverge, which checks every entry itself.
+const refusedShards = 8
+
 // TestRefusedEntriesStillDiverge: a card may be refused only while it diverges. A
 // clean replay of an entry's repro is not staleness, since games shift as gorge moves:
 // the card's pool is searched for another game that implicates it, and only finding
 // none fails. DIRAC_UPDATE_SUPPORT=1 writes the newer game into the entry.
 // KERNEL_REFUSED_BASE=<rev> checks only the entries that differ from rev, at most
-// refusedGateSample of them; KERNEL_REFUSED_SAMPLE=<n> checks n of all of them.
+// refusedGateSample of them; KERNEL_REFUSED_SAMPLE=<n> checks n of all of them
+// (the same sample in every shard, each checking its own entries of it).
+//
+// The parent checks the entries of every shard this run's -run does not also
+// select: all of them under the dirac gate's ^TestRefusedEntriesStillDiverge$,
+// none in a whole-package run or under an unanchored "RefusedEntriesStillDiverge"
+// (the shards check them), so no entry is replayed twice in one process. A deal
+// that lists the package's tests by name drops the parent
+// (scripts/ci-oracle-shard.sh, test-targets.sh oracle_chunked): the shards it
+// also deals cover it.
 func TestRefusedEntriesStillDiverge(t *testing.T) {
+	run := ""
+	if f := flag.Lookup("test.run"); f != nil {
+		run = f.Value.String()
+	}
+	left := refusedShardsLeft(run)
+	if len(left) == 0 {
+		t.Log("every shard TestRefusedEntriesStillDiverge0..7 runs in this process: they check the entries")
+		return
+	}
+	refusedEntries(t, func(i int) bool { return left[i%refusedShards] })
+}
+
+func TestRefusedEntriesStillDiverge0(t *testing.T) { refusedEntriesShard(t, 0) }
+func TestRefusedEntriesStillDiverge1(t *testing.T) { refusedEntriesShard(t, 1) }
+func TestRefusedEntriesStillDiverge2(t *testing.T) { refusedEntriesShard(t, 2) }
+func TestRefusedEntriesStillDiverge3(t *testing.T) { refusedEntriesShard(t, 3) }
+func TestRefusedEntriesStillDiverge4(t *testing.T) { refusedEntriesShard(t, 4) }
+func TestRefusedEntriesStillDiverge5(t *testing.T) { refusedEntriesShard(t, 5) }
+func TestRefusedEntriesStillDiverge6(t *testing.T) { refusedEntriesShard(t, 6) }
+func TestRefusedEntriesStillDiverge7(t *testing.T) { refusedEntriesShard(t, 7) }
+
+// refusedShardsLeft is the shards a -run pattern does not select by their
+// top-level names (go's matching: each top-level '|' alternative's first
+// '/'-separated element, unanchored; an empty or invalid one selects every
+// test, so none is left).
+func refusedShardsLeft(run string) map[int]bool {
+	re, err := regexp.Compile(topRunElem(run))
+	if err != nil {
+		return nil
+	}
+	left := map[int]bool{}
+	for i := range refusedShards {
+		if !re.MatchString("TestRefusedEntriesStillDiverge" + strconv.Itoa(i)) {
+			left[i] = true
+		}
+	}
+	return left
+}
+
+// topRunElem is the part of a -run pattern that matches top-level names, split
+// as the testing package splits it: on '|' and '/' outside brackets and
+// parentheses, a '|' ending an alternative. It is every alternative's first
+// '/'-separated element, joined by '|'.
+func topRunElem(run string) string {
+	var alts []string
+	cs, ps, from, cut := 0, 0, 0, -1
+	for i := 0; i < len(run); i++ {
+		switch run[i] {
+		case '[':
+			cs++
+		case ']':
+			if cs > 0 {
+				cs--
+			}
+		case '(':
+			if cs == 0 {
+				ps++
+			}
+		case ')':
+			if cs == 0 && ps > 0 {
+				ps--
+			}
+		case '\\':
+			i++
+		case '/':
+			if cs == 0 && ps == 0 && cut < 0 {
+				cut = i
+			}
+		case '|':
+			if cs == 0 && ps == 0 {
+				alts = append(alts, firstElem(run[from:i], cut-from))
+				from, cut = i+1, -1
+			}
+		}
+	}
+	return strings.Join(append(alts, firstElem(run[from:], cut-from)), "|")
+}
+
+// firstElem is alt up to cut, its first top-level '/' (none when cut < 0).
+func firstElem(alt string, cut int) string {
+	if cut < 0 {
+		return alt
+	}
+	return alt[:cut]
+}
+
+// refusedEntriesShard checks the entries with i % refusedShards == shard. The
+// shards run in parallel: each writes only its own entries' files, and a
+// land-grant entry replays in an isolate child, so no shard flips a global
+// another one reads.
+func refusedEntriesShard(t *testing.T, shard int) {
+	t.Parallel()
+	refusedEntries(t, func(i int) bool { return i%refusedShards == shard })
+}
+
+// refusedEntries checks the refused entries whose index mine selects.
+func refusedEntries(t *testing.T, mine func(i int) bool) {
 	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
 	if err != nil {
 		t.Fatal(err)
@@ -292,6 +409,9 @@ func TestRefusedEntriesStillDiverge(t *testing.T) {
 	}
 	for i := range entries {
 		e := &entries[i]
+		if !mine(i) {
+			continue
+		}
 		if only != nil && !only[cardset.SupportSlug(e.Card)] {
 			continue
 		}
