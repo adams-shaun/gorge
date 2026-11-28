@@ -307,7 +307,7 @@ func (w *legalWalk) commandZoneWalk() {
 			continue
 		}
 		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
-		if raw := pay.RawBaseCost(asPayer(e), p, id); targetsAvailable && (w.offerCastable(p, id, raw, spellScope(""), false) || w.reducedOptionalCastable(p, id, raw)) {
+		if raw := pay.RawBaseCost(asPayer(e), p, id); targetsAvailable && (w.offerCastableCommander(p, id, raw) || w.reducedOptionalCastable(p, id, raw)) {
 			w.add("cast", w.castLabel(f), id)
 		}
 		if targetsAvailable {
@@ -369,6 +369,21 @@ func (w *legalWalk) commandZoneWalk() {
 		// the {3}, exactly what beginCast charges for this mode.
 		w.appendFaceDownCast(p, id, f, sorcery)
 	}
+}
+
+// offerCastableCommander is the command-zone plain cast offer's gate
+// (CR 903.8): offerCastable's question plus the CR 702.51a/702.126a tapped-
+// permanent credit reaching the commander tax -- convoke and improvise pay
+// the spell's total cost and the tax is part of that total, so a spare
+// untapped creature or artifact pays the {2} as it pays the printed
+// generic. The credit enters as extra offer reductions composed after the
+// gate adds the tax to the generic (convokeTaxOfferCredit); the payment's
+// convokeAsk prices the announcement over the same taxed total, so the
+// offer and the charge cannot disagree about it. A card with neither
+// keyword gets the ordinary offerCastable composition unchanged.
+func (w *legalWalk) offerCastableCommander(p state.PlayerID, id state.ObjID, base Cost) bool {
+	extra := w.e.convokeTaxOfferCredit(p, id, base, w.e.commanderTaxAmount(p, id))
+	return w.e.offerCastableUsingExtra(w.costStatics.get(), p, id, &base, spellScope(""), false, w.pricing(), extra)
 }
 
 // graveyardCastsWalk is the graveyard alternative-cast section (harmonize,
