@@ -37,7 +37,28 @@ const (
 	SetAttached      SetOpKind = 14 // declared: what the source is attached to
 	SetSacrificed    SetOpKind = 15 // declared: what the cost sacrificed
 	SetDiscarded     SetOpKind = 16 // declared: what the cost discarded
+	SetRefBase       SetOpKind = 17 // the one object or player Ref Arg names, read as an op's subject is (a SetRefBaseOK ref)
+	SetBattlefield   SetOpKind = 18 // every permanent on the battlefield, in object index order (SetAndFilter narrows it)
 )
+
+// SetRefBaseOK reports whether SetRefBase may wrap r: a referent that names
+// at most one object or player, which the kernel's subject read (dirac
+// refCode) answers as gorge reads its Defined$ spelling, each proven by its
+// atom (dirac/oracle TestAtomDiffSetRefBases). The group referents (the
+// remembered set, the attacker group, the target unions, RefEach) are not
+// admitted, nor are RefSacrificed and RefDiscarded (the subject read names
+// nobody for them, where gorge names the cards the cost paid) and RefChosen
+// (it reads the first chosen card, where gorge's ChosenCard names every
+// card the choice picked).
+func SetRefBaseOK(r Ref) bool {
+	switch r {
+	case RefSelf, RefController, RefTriggerObj, RefTriggerPlayer, RefTriggerSource,
+		RefAttached, RefAttachedCtrl, RefEnchantedCtrl, RefResChosenPlayer,
+		RefDefendingPlayer, RefTriggerObjOwner, RefTriggerTgtCtrl:
+		return true
+	}
+	return false
+}
 
 // The combinators.
 const (
@@ -72,7 +93,7 @@ type SetRef struct {
 }
 
 // SetPushes reports whether k pushes a base (it pops nothing).
-func (k SetOpKind) SetPushes() bool { return k >= SetTarget && k <= SetDiscarded }
+func (k SetOpKind) SetPushes() bool { return k >= SetTarget && k <= SetBattlefield }
 
 // SetArity is the number of sets k pops: 0 for a base, 2 for SetUnion, 1
 // for every other combinator.
@@ -92,7 +113,7 @@ func (k SetOpKind) SetArity() int {
 func (e SetExpr) SetDepth() (int, bool) {
 	d, deep := 0, 0
 	for _, op := range e {
-		if op.Kind == SetNone || op.Kind > SetSpawnerOf || op.Kind > SetDiscarded && op.Kind < SetAndFilter {
+		if op.Kind == SetNone || op.Kind > SetSpawnerOf || op.Kind > SetBattlefield && op.Kind < SetAndFilter {
 			return 0, false
 		}
 		n := op.Kind.SetArity()
@@ -113,6 +134,7 @@ var setOpNames = [...]string{
 	SetTriggerSource: "SetTriggerSource", SetEachOpponent: "SetEachOpponent", SetEachPlayer: "SetEachPlayer",
 	SetRemembered: "SetRemembered", SetImprinted: "SetImprinted", SetExiledWith: "SetExiledWith",
 	SetChosen: "SetChosen", SetAttached: "SetAttached", SetSacrificed: "SetSacrificed", SetDiscarded: "SetDiscarded",
+	SetRefBase: "SetRefBase", SetBattlefield: "SetBattlefield",
 	SetAndFilter: "SetAndFilter", SetUnion: "SetUnion", SetPlayersComplement: "SetPlayersComplement",
 	SetControllerOf: "SetControllerOf", SetOwnerOf: "SetOwnerOf", SetLKIOf: "SetLKIOf", SetSpawnerOf: "SetSpawnerOf",
 }
