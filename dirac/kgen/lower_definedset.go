@@ -385,9 +385,10 @@ var definedSetOpponent = map[string]string{
 // setOpponentOf is the opponents of one player: every other player still in
 // the game, at any seat count. The walk guard lets exactly this set through
 // under Draw only (build_setexpr.go walksSet): Bounty Board's Draw reads it in
-// a Commander precon pods play. In a pod it holds several players, so there a
-// Draw member's ask (a replacement) still ends the walk: a known gap the guard
-// does not close. Every other asking op over it is refused.
+// a Commander precon pods play. In a pod it holds several players, and a Draw
+// member's ask (dredge, a replacement) leaves the rest to OpDraw's resumable
+// loop (dirac value_setexpr.go execSet). Every other asking op over it is
+// refused.
 func (lc *lowerCtx) setOpponentOf(ref string) (setTerm, error) {
 	t, err := lc.setTerm(ref, false)
 	if err != nil {

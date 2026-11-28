@@ -59,8 +59,8 @@ func kopRunsSetObject(op kop.Op) bool {
 // walksSet refuses set n under ki when the set can hold an object the kernel
 // would not run as gorge does (kopRunsSetObject), or more than one member and
 // the kernel would not walk them all. The opponents of one player pass under
-// Draw only (lower_definedset.go setOpponentOf says why, and what that leaves
-// open). An n the card does not have is internSet's refusal.
+// Draw only (lower_definedset.go setOpponentOf says why). An n the card does
+// not have is internSet's refusal.
 func (cb *cardBuilder) walksSet(n int, ki *kop.Instr) error {
 	if n < 0 || n >= len(cb.c.Sets) {
 		return nil
