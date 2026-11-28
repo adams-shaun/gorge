@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { startPlayVsBot } from './playvsbot';
 import { setBasePathForTests, withBase } from './basepath';
@@ -47,6 +48,25 @@ describe('startPlayVsBot', () => {
     expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ format: 'commander', mulligans: 6 });
     await startPlayVsBot('constructed', '', '', 6, '', 'off');
     expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toEqual({ format: 'constructed', mulligans: 6, paired_bot: 'off' });
+  });
+
+  it('posts a four-seat Commander pod body equal to the shared fixture', async () => {
+    setBasePathForTests('');
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ table: 'g1', match: 1, seed: 7, seat: 0, token: 'tok', join: '/t/g1?seat=0&token=tok' }),
+    });
+    const fixture = JSON.parse(readFileSync(new URL('../../../server/gorged/testdata/web-create-pod.json', import.meta.url), 'utf8'));
+    expect(fixture.seats).toBe(4);
+    await startPlayVsBot('commander', 'h', 'b', 6, '', '', 4);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(fixture);
+    await startPlayVsBot('commander', 'h', 'b', 6, 'bot', 'off', 3);
+    expect(fetchMock.mock.calls[1][1].body).toBe(
+      JSON.stringify({ format: 'commander', bot_policy: 'bot', mulligans: 6, paired_bot: 'off', seats: 3, humans: 1 }),
+    );
+    await startPlayVsBot('commander', 'h', 'b', 6, '', '', 2);
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toEqual({ format: 'commander', human_deck: 'h', bot_deck: 'b', mulligans: 6 });
   });
 
   it('propagates a server rejection so the panel can render it', async () => {
