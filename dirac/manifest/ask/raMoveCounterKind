@@ -1,0 +1,5 @@
+family: ask
+name: raMoveCounterKind
+value: next
+status: active
+doc: OpMoveCounterKind: the kind pick of gorge's "move_counter_kind" KChoose (Nesting Grounds' move a counter of a chosen kind among the kinds the origin holds, CR 122.5; ctr_movekind.go)
