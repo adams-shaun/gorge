@@ -203,6 +203,25 @@ def lane_procs(run_procs, lanes):
     return min(max(share, 2), run_procs)
 
 
+
+# The floor of a lane's GOMEMLIMIT share: a lone replay's live heap; below it the GC would run near-continuously.
+LANE_MEM_FLOOR_MIB = 256
+
+
+def lane_memlimit(run_limit, lanes):
+    """Each oracle lane's GOMEMLIMIT: its even share of the run's (a "<N>GiB" or "<N>MiB" string), at least
+    LANE_MEM_FLOOR_MIB; a limit it cannot read is returned as it is.
+
+    The lanes run side by side in the run's one scope (MemoryMax 8G, GOMEMLIMIT 6GiB locally). Each lane took
+    the run's whole limit, so none of 12 lanes' GC pushed back before the scope's sum reached MemoryMax: the
+    local targeted run at 984093e993 (2026-11-27) was OOM-killed 44 s into its lanes at an 8G peak, twice."""
+    m = re.fullmatch(r"([0-9]+)(GiB|MiB)", run_limit or "")
+    if not m:
+        return run_limit
+    total = int(m.group(1)) * (1024 if m.group(2) == "GiB" else 1)
+    return "%dMiB" % max(total // max(lanes, 1), LANE_MEM_FLOOR_MIB)
+
+
 RULES = "./engine/rules"
 ORACLE = "./dirac/oracle"
 ARCHTEST = "./internal/archtest"
@@ -1155,6 +1174,9 @@ def main(argv=None):
     n = sub.add_parser("laneprocs")
     n.add_argument("--procs", required=True, type=int, help="the run's GOMAXPROCS")
     n.add_argument("--lanes", required=True, type=int, help="the oracle lanes that run side by side")
+    o = sub.add_parser("lanemem")
+    o.add_argument("--limit", required=True, help="the run's GOMEMLIMIT")
+    o.add_argument("--lanes", required=True, type=int, help="the oracle lanes that run side by side")
     a = ap.parse_args(argv)
     pk = [p for p in a.pkgs.split(",") if p] if hasattr(a, "pkgs") else []
     if a.cmd == "verdict":
@@ -1174,6 +1196,9 @@ def main(argv=None):
         return 0
     if a.cmd == "laneprocs":
         print(lane_procs(a.procs, a.lanes))
+        return 0
+    if a.cmd == "lanemem":
+        print(lane_memlimit(a.limit, a.lanes))
         return 0
     return cmd_select(a)
 
