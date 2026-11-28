@@ -129,6 +129,7 @@ Terravore
 Thallid Soothsayer
 Thaumatic Compass
 Vampiric Tutor
+Wakeroot Elemental
 War Dance
 Weatherseed Faeries
 Windrider Wizard

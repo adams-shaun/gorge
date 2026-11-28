@@ -240,6 +240,7 @@ Knight of Stromgald
 Knight of the White Orchid
 Kraul Foragers
 Kraul Warrior
+Krosan Druid
 Kuldotha Flamefiend
 Leaf Arrow
 Leapfrog
@@ -396,6 +397,7 @@ Shivan Oasis
 Sigil of the New Dawn
 Silumgar Assassin
 Silverback Ape
+Skarrg, the Rage Pits
 Skeletal Changeling
 Skitterbeam Battalion
 Skittering Precursor

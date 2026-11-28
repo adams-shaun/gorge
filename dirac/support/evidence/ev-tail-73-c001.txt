@@ -329,6 +329,7 @@ Pestilent Cauldron
 Phantasmal Sphere
 Pheres-Band Warchief
 Phyrexian Crusader
+Phyrexian Tower
 Pilgrim of the Fires
 Pillage
 Pitfall Trap

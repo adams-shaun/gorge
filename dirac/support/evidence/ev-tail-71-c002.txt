@@ -358,6 +358,7 @@ Vent Sentinel
 Viashino Firstblade
 Vodalian Soldiers
 Voltaic Brawler
+Wakeroot Elemental
 Wanderer's Twig
 Wandering Ones
 Wave of Terror
