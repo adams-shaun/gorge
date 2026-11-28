@@ -404,5 +404,123 @@ class TestPodEvidence(unittest.TestCase):
         self.assertEqual(pods, {"pod-cmd5": 10})
 
 
+def pod_bad_verdict(games, clean, divergent, unmodelled):
+    return (f"hosted-cmdr: {games} games (0 refused-card, 0 refused-pair, 0 error), {clean} clean, "
+            f"{divergent} divergent, {unmodelled} unmodelled [], 0 capacity [], 0 hang")
+
+
+def pod_bad_game(pair, impl, sources, decks):
+    return f"bad-game\t{pair}\t{pair + 100}\tdivergent\tstate life\t{impl}\t{sources}\t{decks}"
+
+
+class TestPodCredit(unittest.TestCase):
+    """pod-credit reads a finished pod run and counts, per crediting rule, the evidence rows a bad
+    game holds back; it writes nothing."""
+
+    POOL = "pod-hosted-cmdr"
+    ROWS = {"autopay.m0": ["C0\t4", "C1\t4", "C2\t4"], "autopay.m1": ["C3\t4", "C4\t4", "C5\t4"],
+            "full.m0": ["C6\t4", "C7\t4"], "full.m1": ["C8\t4", "C9\t4", "C0\t4"]}
+    BAD = {"full.m0": [pod_bad_game(3, "C0", "C1", "C0|C1|C2|C3|Island|Zed")],
+           "autopay.m1": [pod_bad_game(5, "", "C4", "C4|C5|C0|Forest")]}
+
+    def setUp(self):
+        self.mod = load_module()
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.top = os.path.join(self.tmp.name, "root")
+        self.out = os.path.join(self.tmp.name, "out")
+        os.makedirs(os.path.join(self.top, "dirac/support/evidence"))
+        os.makedirs(os.path.join(self.top, "dirac/support/refused"))
+        os.makedirs(self.out)
+        with open(os.path.join(self.top, "dirac/support/evidence", self.POOL + ".txt"), "w") as f:
+            f.write("C9\t4\n")
+        for form, rows in self.ROWS.items():
+            bad = self.BAD.get(form, [])
+            stem = os.path.join(self.out, f"{self.POOL}.{form}")
+            with open(stem + ".rc", "w") as f:
+                f.write("1\n" if bad else "0\n")
+            with open(stem + ".evidence", "w") as f:
+                f.write("".join(r + "\n" for r in rows))
+            with open(stem + ".out", "w") as f:
+                f.write(pod_bad_verdict(20, 20 - len(bad), len(bad), 0) + "\n" + "".join(b + "\n" for b in bad))
+
+    def snapshot(self):
+        snap = {}
+        for path in sorted(glob.glob(os.path.join(self.top, "**"), recursive=True)):
+            if os.path.isfile(path):
+                with open(path, "rb") as f:
+                    snap[path] = f.read()
+            else:
+                snap[path] = None
+        return snap
+
+    def credit(self):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = self.mod.pod_credit(self.top, self.out, [self.POOL])
+        return rc, buf.getvalue().splitlines()
+
+    def parse(self, lines):
+        got = {}
+        for line in lines:
+            parts = line.split()
+            self.assertEqual(parts[:2], ["pod-credit", self.POOL], line)
+            kv = dict(p.split("=", 1) for p in parts[2:])
+            rule = kv.pop("rule")
+            got[rule] = {k: int(v) for k, v in kv.items()}
+        return got
+
+    def test_three_rules(self):
+        # Precondition: ten distinct names over the four forms, two bad games, and one name
+        # (C9) already landed.
+        names = {self.mod.row_name(r) for r in self.mod.evidence_rows(self.out, self.POOL)}
+        self.assertEqual(len(names), 10)
+        before = self.snapshot()
+        rc, lines = self.credit()
+        self.assertEqual(rc, 0)
+        got = self.parse(lines)
+        self.assertEqual(list(got), ["table", "implicated", "first"])
+        self.assertEqual(got["table"], {"rows": 10, "held": 6, "credited": 4, "new": 3})
+        self.assertEqual(got["implicated"], {"rows": 10, "held": 3, "credited": 7, "new": 6})
+        self.assertEqual(got["first"], {"rows": 10, "held": 1, "credited": 9, "new": 8})
+        self.assertGreaterEqual(got["table"]["held"], got["implicated"]["held"])
+        self.assertGreaterEqual(got["implicated"]["held"], got["first"]["held"])
+        self.assertEqual(self.snapshot(), before, "pod-credit writes nothing under dirac/support")
+
+    def test_refused_name_is_not_a_row(self):
+        with open(os.path.join(self.top, "dirac/support/refused/c8.json"), "w") as f:
+            json.dump({"card": "C8"}, f)
+        _, lines = self.credit()
+        self.assertEqual(self.parse(lines)["first"], {"rows": 9, "held": 1, "credited": 8, "new": 7})
+
+    def test_all_passed_holds_nothing(self):
+        for form in self.ROWS:
+            stem = os.path.join(self.out, f"{self.POOL}.{form}")
+            with open(stem + ".rc", "w") as f:
+                f.write("0\n")
+            with open(stem + ".out", "w") as f:
+                f.write(pod_bad_verdict(20, 20, 0, 0) + "\n")
+        rc, lines = self.credit()
+        self.assertEqual(rc, 0)
+        for rule, c in self.parse(lines).items():
+            self.assertEqual(c, {"rows": 10, "held": 0, "credited": 10, "new": 9}, rule)
+
+    def test_unknown_game_is_unfinished(self):
+        with open(os.path.join(self.out, f"{self.POOL}.full.m0.out"), "a") as f:
+            f.write("unknown-game\t9\t109\tchoose/x\n")
+        before = self.snapshot()
+        rc, lines = self.credit()
+        self.assertEqual(rc, 1)
+        self.assertEqual(lines, [f"pod-credit {self.POOL} rule={r} unfinished" for r in ("table", "implicated", "first")])
+        self.assertEqual(self.snapshot(), before)
+
+    def test_bad_game_count_mismatch_is_unfinished(self):
+        with open(os.path.join(self.out, f"{self.POOL}.full.m0.out"), "w") as f:
+            f.write(pod_bad_verdict(20, 18, 2, 0) + "\n" + self.BAD["full.m0"][0] + "\n")
+        rc, lines = self.credit()
+        self.assertEqual(rc, 1)
+        self.assertTrue(all(l.endswith(" unfinished") for l in lines), lines)
+
+
 if __name__ == "__main__":
     unittest.main()
