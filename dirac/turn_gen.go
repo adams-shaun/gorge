@@ -508,10 +508,13 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 		defer func() { s.res.e.ctrl = was }()
 	}
 	if isDrawProgram {
+		// res.e is the body's own entry (built above) and restoreRes replaces
+		// it whole, so the binding is never undone: an undo would unbind a
+		// parked body (drawBodyResAsked compares the entry, so the second
+		// seat's resolution finished under its ask) and write the body's
+		// value over the restored outer entry.
 		if ds := s.drawState(); len(ds) > 0 && ds[0].active {
-			was := s.res.e.trigPl
 			s.res.e.trigPl = ds[0].p
-			defer func() { s.res.e.trigPl = was }()
 		}
 	}
 	for i := int(pc); i < len(prog); i++ {

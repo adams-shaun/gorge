@@ -307,15 +307,17 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		c.Remembered = nil
 		clearEventRemembered(h, c)
 	}
-	// A sweep whose ChangeType$ reads the source's own choice (ChosenColor,
-	// ChosenType) is matched once, before any card moves (CR 608.2h: the
-	// answer is determined only once, when the effect is applied): the
-	// source's choice is cleared as it leaves the battlefield, so a sweep
-	// that moves its own source first (Dromar, the Banisher returning
-	// itself and every other creature of the chosen colour) must not stop
-	// matching the rest. Keyed by zone, so a card one origin's move puts into
-	// a later origin zone is not visited twice.
-	if triggeredSet == nil && preMatched == nil && changeZoneAllReadsSourceChoice(spec) {
+	// A sweep whose ChangeType$ reads what its own moves destroy is matched
+	// once, before any card moves (CR 608.2h: the answer is determined only
+	// once, when the effect is applied). The source's choice (ChosenColor,
+	// ChosenType) is cleared as it leaves the battlefield, so a sweep that
+	// moves its own source first (Dromar, the Banisher returning itself and
+	// every other creature of the chosen colour) must not stop matching the
+	// rest; an attachment (EnchantedBy, AttachedTo) ends as either side
+	// leaves, so Mark of Eviction's creature and Auras leave together.
+	// Keyed by zone, so a card one origin's move puts into a later origin zone
+	// is not visited twice.
+	if triggeredSet == nil && preMatched == nil && changeZoneAllReadsMovedState(spec) {
 		matches = changeZoneAllPreMatch(g, from, players, matches)
 	}
 	// RandomOrder$ True (Gríma, Saruman's Footman's
@@ -650,14 +652,14 @@ var effChangeZoneAllCodes = state.NewStrCodes(
 	state.StrEntry[effChangeZoneAllCode]{Key: "0", Val: effChangeZoneAllTop},
 )
 
-// changeZoneAllReadsSourceChoice reports whether a ChangeType$ spec reads
-// the source's recorded choice: some "."/"+"/","-separated word is
-// ChosenColor or ChosenType.
-func changeZoneAllReadsSourceChoice(spec string) bool {
-	for _, w := range strings.FieldsFunc(spec, func(r rune) bool { return r == '.' || r == '+' || r == ',' }) {
-		if w == "ChosenColor" || w == "ChosenType" {
-			return true
-		}
-	}
-	return false
+// changeZoneAllMovedStateWords are the ChangeType$ words whose answer a
+// sweep's own moves change: the source's recorded choice and the attachment
+// relations.
+var changeZoneAllMovedStateWords = []string{"ChosenColor", "ChosenType", "EnchantedBy", "EquippedBy", "AttachedBy", "AttachedTo"}
+
+// changeZoneAllReadsMovedState reports whether a ChangeType$ spec holds one of
+// those words ("."/"+"/","/space-separated).
+func changeZoneAllReadsMovedState(spec string) bool {
+	return slices.ContainsFunc(strings.FieldsFunc(spec, func(r rune) bool { return r == '.' || r == '+' || r == ',' || r == ' ' }),
+		func(w string) bool { return slices.Contains(changeZoneAllMovedStateWords, w) })
 }

@@ -586,15 +586,18 @@ func (s *State) sacAnyManaGap(k *prep, p uint8) bool {
 // windowPricesRestr: gorge's window probe prices restricted mana ability a of the source
 // at sl for a payment its restriction admits (castWindowRestrictedSpendable), so the
 // census holds its units (The Emperor of Palamecia's {U} or {R} for a noncreature
-// spell). An amount read off the board is priced only when it is positive; one that
-// resolves to zero adds nothing and gorge's probe never lists the ability
-// (manaAbilityYieldsNothing, dynManaYieldsNothing: Nardole, Resourceful Cyborg with no
-// counter), so no production is left unpriced and the census stays complete.
+// spell). An amount read off the board is priced only when it is positive: at zero
+// gorge builds no unit. What that means differs per census. The target window's
+// excluded-source read still counts the restricted ability as unpriced
+// (castWindowSourceExcluded; Nardole, Resourceful Cyborg with no counter), so
+// windowCensusComplete is false. The planner census the madness proofs mirror
+// skips an ability that yields nothing, so madnessDeferProofClass also reads
+// dynManaYieldsNothing.
 func (s *State) windowPricesRestr(k *prep, sl Slot, a *kop.Ability) bool {
 	if !restrSrcAb(a) {
 		return false
 	}
-	return a.AFlags&kop.AfManaDynamic == 0 || s.dynManaN(k, a, sl) > 0 || s.dynManaYieldsNothing(k, a, sl)
+	return a.AFlags&kop.AfManaDynamic == 0 || s.dynManaN(k, a, sl) > 0
 }
 
 // windowCensusComplete reports whether gorge's window census prices every source of
@@ -673,7 +676,8 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 				// fails to price (kop.AfLatent; the same gate sacAnyManaGap reads)
 				if a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 &&
 					(a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && s.restrSrcAdmits(k, e.ctrl, sl, a, &d) &&
-					!s.windowPricesRestr(k, sl, a) {
+					!s.windowPricesRestr(k, sl, a) &&
+					!(k.gen.anyCantAct && s.actForbidden(k, sl, true)) { // a locked one is off gorge's probe
 					return false
 				}
 				// An unpriced each-colour source (Bloom Tender): the probe admits its
