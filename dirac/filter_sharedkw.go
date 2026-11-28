@@ -35,8 +35,10 @@ func filterChainEqual(t *kop.Table, a, b kop.FilterID) bool {
 //
 //go:noinline
 func (s *State) hasLandwalkSpec(k *prep, sl Slot, spec kop.FilterID) bool {
-	if f := k.t.Cards[s.cardAt(sl)].Landwalk; f != 0 && !s.genLost(k, sl) &&
-		!s.landwalkRemoved(k, sl, f, 0) && filterChainEqual(k.t, f, spec) {
+	if s.pilePrints(k, sl, func(cd *kop.CardDef) bool { // a pile's every card (CR 702.140e)
+		f := cd.Landwalk
+		return f != 0 && !s.landwalkRemoved(k, sl, f, 0) && filterChainEqual(k.t, f, spec)
+	}) && !s.genLost(k, sl) {
 		return true
 	}
 	lts, lost := s.lossAt(k, sl)
@@ -78,7 +80,8 @@ func (s *State) hasLandwalkSpec(k *prep, sl Slot, spec kop.FilterID) bool {
 //
 //go:noinline
 func (s *State) hasProtQuality(k *prep, sl Slot, spec kop.FilterID) bool {
-	if f := k.t.Cards[s.cardAt(sl)].ProtFrom; f != 0 && !s.genLost(k, sl) && filterChainEqual(k.t, f, spec) {
+	if s.pilePrints(k, sl, func(cd *kop.CardDef) bool { return cd.ProtFrom != 0 && filterChainEqual(k.t, cd.ProtFrom, spec) }) &&
+		!s.genLost(k, sl) { // a pile's every card (CR 702.140e)
 		return true
 	}
 	lts, lost := s.lossAt(k, sl)
