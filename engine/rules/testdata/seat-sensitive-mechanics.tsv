@@ -8,9 +8,9 @@ dethrone	702.105	Dethrone	gap
 each-opponent	102.2,102.3	EachOpponent	gap
 encore	702.141	Encore	TestEncoreCreatesOneDelayedTriggerForAllOpponentTokens TestEncoreTokenOnceLatchWithAkimMakesOneBird
 extra-turns	500.7	ExtraTurn	gap
-goad	701.15	Goad	TestGoadKarazikarEnforcesEveryGoaderAtDeclaration
-initiative	726	Initiative	gap
+goad	701.15	Goad	TestCR701_15bGoadedCreatureAttacksANonGoader TestCR701_15cTwoGoadersLeaveTheThirdOpponent TestGoadKarazikarEnforcesEveryGoaderAtDeclaration
+initiative	726	Initiative	TestCR726_2InitiativeMovesToTheAttackersController TestCR726_4DepartedInitiativeHolderHandsItOn
 melee	702.121	Melee	gap
-monarch	725	Monarch	gap
-myriad	702.116	Myriad	gap
+monarch	725	Monarch	TestCR725_2MonarchCrownFollowsCombatDamage TestCR725_4DepartedMonarchGoesToTheActivePlayer
+myriad	702.116	Myriad	TestCR702_116aMyriadCopiesAttackEachOtherOpponent
 vote	701.38	Vot(e|ing)	TestCirdanVoteTallySurvivesChangeZoneSuspension TestMobVerdictPlayerBallotDamageAndDrawPerVote
