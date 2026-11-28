@@ -5,7 +5,9 @@ import "testing"
 // A planned other-sacrifice payment may spend the spell's only target: CR
 // 601.2c-h announces the target before the costs are paid, and gorge's
 // payment planner names the victim before the target is asked. The kernel's
-// keep-targets census withheld the cast instead.
+// keep-targets census withheld the cast instead. Each recording takes the
+// offered cast and must be served whole: both sides pay it by sacrificing the
+// target, and it fizzles (CR 608.2b).
 //
 // tail-71 pair 67, decision 263, seed 7626018148801502969, surface autopay:
 // Ashnod's Altar sacrifices Mephitic Ooze, Clinging Darkness's only target,
@@ -17,7 +19,7 @@ import "testing"
 // the plan sacrifices Molten Hydra, Thunderous Might's only target.
 func TestMBCSacOnlyTargetLockstep(t *testing.T) {
 	t.Parallel()
-	stdReproNamed(t, "altar_victim_is_the_only_target_cast_offer")
-	stdReproNamed(t, "altar_victim_is_the_only_target_two_casts")
-	stdReproNamed(t, "altar_victim_is_the_only_aura_target_cast_offer")
+	stdReproNamedServed(t, "altar_victim_is_the_only_target_cast_offer")
+	stdReproNamedServed(t, "altar_victim_is_the_only_target_two_casts")
+	stdReproNamedServed(t, "altar_victim_is_the_only_aura_target_cast_offer")
 }

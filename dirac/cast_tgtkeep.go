@@ -37,12 +37,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // read, and the tier-1 census runs in the planner's plain mode (script_gen.go
 // plainOptions) — gorge's payment planner prices a plan its own census pays.
 //
-// planned is true when the offer is the cast's own planned payment: the build
-// announces its targets before bsPay (cast.go buildProgram), so a cost may
-// sacrifice the target it has already announced (CR 601.2c-h) and the census
-// must price that victim (availSansObj). A kicked, surged or potential-line
-// read prices a payment made before the target is chosen, where the victim is
-// not available, so it passes false and keeps the hold-out.
+// planned is true when the offer is the cast's own planned payment
+// (FeatPlannedCast): the build announces its targets before bsPay (cast.go
+// buildProgram), so a source gorge's payment plan uses may sacrifice the target
+// already announced (CR 601.2c-h) and the census must price that victim
+// (fodderOnlySources). A kicked, surged or potential-line read passes false and
+// keeps every hold-out.
 func (s *State) witnessKeepsTargets(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost, planned bool) bool {
 	sp := tspec(k, c, spellAb(k, c), 0)
 	if sp == nil {
@@ -111,8 +111,7 @@ func (s *State) witnessKeepsTargets(k *prep, p uint8, c CardID, o Obj, cost *kop
 // specKeepsTarget is witnessKeepsTargets' per-spec read over the offer's
 // census (availX holds availGaps): true when sp has no legal target, a target
 // no mana activation takes, or one candidate whose whole production the plan
-// can do without. planned passes through to availSansObj: a planned payment
-// may spend the target it has already announced (CR 601.2c-h).
+// can do without. planned passes through to availSansObj.
 func (s *State) specKeepsTarget(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cost *kop.ManaCost, planned bool) bool {
 	var buf [MaxOptions]TCode
 	n := s.targetCands(k, sp, p, NoSlot, o, &buf)
@@ -164,13 +163,11 @@ func (s *State) specKeepsTarget(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cos
 // only when painTight left the units alone keeps the budget model's count
 // exact (a binding summed life guard is still the conservative answer).
 //
-// planned skips the fodder-only hold-out: the cast's own payment is made after
-// its targets are announced (CR 601.2c-h), so a sacrifice-another source may
-// take the announced target as its victim. The hold-out is the potential
-// read's, where the source must be tapped before the target is chosen.
+// A sacrifice-another source with no other fodder is held out too
+// (fodderOnlySources, which planned narrows).
 func (s *State) availSansObj(k *prep, p uint8, o Obj, a *avail, planned bool) {
 	sl := s.objs[o].slot
-	if fm := s.fodderOnlySources(k, p, sl); !planned && fm.any() {
+	if fm := s.fodderOnlySources(k, p, sl, planned); fm.any() {
 		// a sacrifice-another source whose one fodder is the target has no
 		// unit once the plan takes the target for its own cost (CR 601.2c)
 		held := s.ctrlM[p]
@@ -311,7 +308,12 @@ func (s *State) setTkPrefix(on bool) {
 // color") whose only sacrifice candidate is the permanent at slot t. A cast
 // that targets t cannot also fund its cost by sacrificing t, so gorge's prefix
 // search (potential_script.go targetsGone) finds no script through them.
-func (s *State) fodderOnlySources(k *prep, p uint8, t Slot) slotMask {
+//
+// A planned read leaves out the sources gorge's payment plan uses
+// (planOtherSacSource, a plain creature victim): that plan pays after the
+// targets are announced, so it may take the announced one (CR 601.2c-h). Every
+// other sacrifice source (the Kaleidoscope's Prism token) stays held.
+func (s *State) fodderOnlySources(k *prep, p uint8, t Slot, planned bool) slotMask {
 	var fm slotMask
 	var cs [MaxPerm]Slot
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
@@ -320,6 +322,9 @@ func (s *State) fodderOnlySources(k *prep, p uint8, t Slot) slotMask {
 		// Tower's {T}: Add {C}) still has a unit without the target: masking
 		// it whole would withhold a cast gorge's search funds through it
 		if sl == t || k.tapXAbOf(s.cardAt(sl)).Cost.Flags&kop.CostSac == 0 || k.tapXSecond(s.cardAt(sl)) {
+			continue
+		}
+		if planned && s.planOtherSacSource(k, sl) {
 			continue
 		}
 		if s.tapXCands(k, p, sl, &cs) == 1 && cs[0] == t {
