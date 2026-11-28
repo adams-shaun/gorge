@@ -1462,7 +1462,7 @@ func (s *State) twobridLowers(k *prep, p uint8, c CardID, o Obj, anyColor bool) 
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
 	cost = s.mayRiderCost(cost, anyColor)
 	d := payDesc{class: pdSpell, card: c, og: s.restrOriginOfObj(o)}
-	if s.affordsUngrantedCast(k, p, &cost, d) {
+	if s.affordsUngrantedCast(k, p, o, &cost, d) {
 		return true, s.twobridSpentReader(k, p, o) // the planner prices it; FeatPlannedCast offers it
 	}
 	return true, k.gen != nil && (len(k.gen.grantPC) != 0 || s.scriptSourceLive(k, p) || k.gen.anyFilt && s.filtOnly(k, p)) && s.affordsFor(k, p, &cost)
