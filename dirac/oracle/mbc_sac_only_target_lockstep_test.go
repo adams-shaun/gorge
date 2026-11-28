@@ -19,15 +19,15 @@ import "testing"
 // the plan sacrifices Molten Hydra, Thunderous Might's only target.
 // tail-71 pair 73, decision 336, seed 10402651278048062844, surface autopay:
 // two altars and one creature, Captivating Gyre's only target: the planner
-// drops the altar whose step cannot name a fresh victim and re-searches, so
-// one altar and four lands fund the cast and both engines offer it (the
-// game's option lists must match at that decision too; the cast itself is not
-// taken there — gorge asks its optional target while the kernel completes the
-// scripted cast without asking, an ask-shape divergence of its own ticket).
+// ranks only sets that name a victim per sacrifice step, so one altar and
+// four lands fund the cast and both engines offer it (the game's option lists
+// must match at that decision too; the cast itself is not taken there — gorge
+// asks its optional target while the kernel completes the scripted cast
+// without asking, an ask-shape divergence of its own ticket).
 func TestMBCSacOnlyTargetLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamedServed(t, "altar_victim_is_the_only_target_cast_offer")
 	stdReproNamedServed(t, "altar_victim_is_the_only_target_two_casts")
 	stdReproNamedServed(t, "altar_victim_is_the_only_aura_target_cast_offer")
-	stdReproNamedServed(t, "altar_victim_two_altars_one_target_no_cast")
+	stdReproNamedServed(t, "altar_victim_two_altars_one_target_cast_offer")
 }

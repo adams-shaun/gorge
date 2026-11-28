@@ -44,11 +44,27 @@ func planVictimReserve(acts []decision.PaymentActivation, extra ...[]state.ObjID
 	return reserved
 }
 
-// planVictimDropLimit bounds the drop-and-re-search passes planPaymentCostResolved
-// runs when the search's best keeps pricing other-sacrifice steps the board
-// cannot fund with distinct victims. A board rarely carries more than a couple
-// of such sources; past the limit the outcome is the unfunded best's own.
-const planVictimDropLimit = 8
+// planVictimGate is the planner search's Env.Fundable: whether every
+// other-sacrifice step among a paying set's units can name its own victim, by
+// AssignPlanVictims itself. A board with fewer free victims than the set has
+// such steps (two altars, one creature), or whose only victim is a source the
+// set spends, then leaves the search to rank the sets it can fund: a second
+// other-sacrifice source never removes a way to pay (CR 601.2g-h). Adding
+// units only adds steps and takes candidates away, so no superset of a refused
+// set is fundable either.
+func planVictimGate(e Engine, p state.PlayerID, kept, tapped, gone []state.ObjID) func([]Alt) bool {
+	return func(chosen []Alt) bool {
+		if !slices.ContainsFunc(chosen, func(a Alt) bool { return a.Consequence.SacrificeOthers }) {
+			return true
+		}
+		plan := decision.PaymentPlan{Activations: make([]decision.PaymentActivation, len(chosen))}
+		for i := range chosen {
+			plan.Activations[i] = chosen[i].Activation
+			plan.Activations[i].Consequence = chosen[i].Consequence.Wire()
+		}
+		return AssignPlanVictims(e, p, &plan, slices.Concat(kept, tapped), gone)
+	}
+}
 
 // AssignPlanVictims names the victims of every other-sacrifice step of plan,
 // in step order, by the fixed ranking, never an object the plan otherwise
@@ -56,15 +72,6 @@ const planVictimDropLimit = 8
 // reports false when some step cannot be funded with distinct victims; the
 // plan is then not offered. A plan with no such step is untouched.
 func AssignPlanVictims(e Engine, p state.PlayerID, plan *decision.PaymentPlan, kept, gone []state.ObjID) bool {
-	return planVictimFailures(e, p, plan, kept, gone) == nil
-}
-
-// planVictimFailures is AssignPlanVictims naming its failures: it assigns the
-// victims of every fundable step and returns the sources of the steps that
-// cannot get a fresh victim (an unresolvable step shape counts as its source's
-// failure). It returns nil when the plan is fundable as it stands.
-func planVictimFailures(e Engine, p state.PlayerID, plan *decision.PaymentPlan, kept, gone []state.ObjID) []state.ObjID {
-	var failing []state.ObjID
 	var reserved map[state.ObjID]bool
 	var units []WindowUnit
 	for i := range plan.Activations {
@@ -78,20 +85,18 @@ func planVictimFailures(e Engine, p state.PlayerID, plan *decision.PaymentPlan, 
 		}
 		part, ok := stepSacPart(e, p, units, *pa)
 		if !ok {
-			failing = append(failing, pa.Source)
-			continue
+			return false
 		}
 		victims := PaymentPlanSacrificeVictims(e, p, pa.Source, part, int(part.N), reserved)
 		if victims == nil {
-			failing = append(failing, pa.Source)
-			continue
+			return false
 		}
 		pa.Sacrifices = victims
 		for _, v := range victims {
 			reserved[v] = true
 		}
 	}
-	return failing
+	return true
 }
 
 // PlanVictimsLegal reports whether every other-sacrifice step from index

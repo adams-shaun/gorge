@@ -281,6 +281,11 @@ type Env struct {
 	// Settle pays cost out of pool (the pool plus everything the chosen
 	// units produced) with life available and reports the pool left.
 	Settle func(c Cost, pool state.Mana, life int32) (after state.Mana, ok bool)
+	// Fundable, when set, reports whether the board can pay the consequences
+	// of a paying set's steps (planVictimGate). A set it refuses is no plan,
+	// and it must refuse every superset of that set too: the walk extends
+	// neither.
+	Fundable func(chosen []Alt) bool
 	// Verify turns on the count-rank cross-check (the walk-cache verify mode).
 	Verify bool
 }
@@ -807,6 +812,9 @@ func (s *Search) complete() bool {
 		return true
 	}
 	chosen := s.materialize()
+	if s.unfundable(chosen) {
+		return true
+	}
 	after, ok := s.env.Settle(s.cost, ManaAdd(s.pool, s.produced), s.life)
 	if !ok {
 		return false
@@ -820,6 +828,11 @@ func (s *Search) complete() bool {
 		s.recordBest(plan, r)
 	}
 	return true
+}
+
+// unfundable reports a paying set Env.Fundable refuses.
+func (s *Search) unfundable(chosen []Alt) bool {
+	return s.env.Fundable != nil && !s.env.Fundable(chosen)
 }
 
 // recordBest makes plan/r the walk's best. The candidate's activations and
@@ -878,6 +891,9 @@ func (s *Search) completeKeep() bool {
 		return true
 	}
 	chosen := s.materialize()
+	if s.unfundable(chosen) {
+		return true
+	}
 	after, ok := s.env.Settle(s.cost, ManaAdd(s.pool, s.produced), s.life)
 	if !ok {
 		return false

@@ -311,15 +311,14 @@ func (s *State) setTkPrefix(on bool) {
 //
 // A planned read releases the sources gorge's payment plan uses
 // (planOtherSacSource, a plain creature victim): that plan pays after the
-// targets are announced, so it may take the announced one (CR 601.2c-h). It
-// never spends the same victim twice (pay.planVictimFailures drops the
-// surplus step's source and re-searches), so two planned sources over one
-// victim still fund the cast through one of them (two Ashnod's Altars beside
-// Captivating Gyre's only target: one altar and the lands pay it). Every
-// other sacrifice source (the Kaleidoscope's Prism token) stays held.
+// targets are announced, so it may take the announced one (CR 601.2c-h). Its
+// search admits only sets that name a victim per step (pay.planVictimGate), so
+// two planned sources over one victim still fund the cast through whichever
+// one pays (two Ashnod's Altars beside Captivating Gyre's only target: one
+// altar and the lands). Every other sacrifice source (the Kaleidoscope's
+// Prism token) stays held.
 func (s *State) fodderOnlySources(k *prep, p uint8, t Slot, planned bool) slotMask {
 	var fm, byPlan slotMask
-	nByPlan := 0
 	var cs [MaxPerm]Slot
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
 		sl := b.first()
@@ -333,16 +332,10 @@ func (s *State) fodderOnlySources(k *prep, p uint8, t Slot, planned bool) slotMa
 			fm = fm.with(sl)
 			if planned && s.planOtherSacSource(k, sl) {
 				byPlan = byPlan.with(sl)
-				nByPlan++
 			}
 		}
 	}
-	if nByPlan >= 1 {
-		// the plan never names one victim for two steps, so releasing the
-		// whole planned group still leaves at most one sacrifice of t
-		fm = fm.andNot(byPlan)
-	}
-	return fm
+	return fm.andNot(byPlan)
 }
 
 // plainCensusPays reports whether p's tier-1 census (availPlain: the pool and

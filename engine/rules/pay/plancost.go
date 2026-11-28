@@ -286,142 +286,84 @@ func planPaymentCostResolved(e Engine, p state.PlayerID, demand [5]int, cost cos
 	}
 	// V1 accepts only fixed production.  A permissive window unit is useful to
 	// manual payment, but not proof an automatic choice will remain exact.
-	var dropped []state.ObjID
-	life := e.Game().Players[p].Life
-	pool := PlanPool(e, p, desc)
-	baseCost := cost
-	// The search prices each other-sacrifice alternative against the board as
-	// it stands, so its best may spend more such steps than the board holds
-	// distinct victims for (two altars, one creature). dropOtherSac removes a
-	// dropped source's other-sacrifice alternatives -- the steps that cannot
-	// name a fresh victim -- keeping the unit's rest, and the search re-runs
-	// over the reduced census: a second other-sacrifice source must never
-	// remove a way to pay (CR 601.2g-h).
-	dropOtherSac := func(alts []Alt) []Alt {
-		if len(dropped) == 0 || len(alts) == 0 || !slices.Contains(dropped, alts[0].Activation.Source) {
-			return alts
+	choices := resizeCleared(ps.outer, len(units))
+	ps.outer = choices
+	for i, u := range units {
+		choices[i] = withhold(PaymentPlanQueryAlternatives(e, u))
+	}
+
+	if len(e.Session().PaymentPlanRelaxed) != 0 {
+		// PotentialPaymentPlans' relaxed proof (paymentPlanRelaxProof): the
+		// census's uncovered sources as free, never-executed alternatives,
+		// withheld exactly like the census's own, and the fees of the paid
+		// ones it admits charged as generic.
+		if cut := e.Session().PaymentPlanRelaxedCut; len(cut) != 0 {
+			if relaxedCutReducible(cost) {
+				cost = relaxedCutCost(cost, cut[0].Mana)
+			} else if !slices.Contains(gone, cut[0].Activation.Source) {
+				// a pip the cut could pay in more than one way: the gap stays
+				// a free unit (permissive), its fee still charged
+				choices = append(choices, withhold(cut))
+			}
 		}
-		at := -1
-		for i, alt := range alts {
-			if alt.Consequence.SacrificeOthers {
-				if at < 0 {
-					at = len(ps.arena)
-					ps.arena = append(ps.arena, alts[:i]...)
-				}
+		// the fee is generic mana the gap's own output cannot pay, so it is
+		// charged after the cut
+		cost.Generic += e.Session().PaymentPlanRelaxedFee
+		for _, alts := range e.Session().PaymentPlanRelaxed {
+			if len(alts) == 0 || slices.Contains(gone, alts[0].Activation.Source) {
 				continue
 			}
-			if at >= 0 {
-				ps.arena = append(ps.arena, alt)
-			}
+			choices = append(choices, withhold(alts))
 		}
-		if at < 0 {
-			return alts
-		}
-		return ps.arena[at:len(ps.arena):len(ps.arena)]
-	}
-	var (
-		choices      [][]Alt
-		phaseChoices [][]Alt
-		phaseClasses []Class
-		rankCtx      RankContext
-		search       *Search
-		nodes        int
-	)
-	for {
-		if len(dropped) != 0 {
-			// The census lost sources since the query cache grouped it (or it
-			// never let the cache group it at all): this pass groups its own
-			// classes.
-			queryClasses, own = ownClasses, true
-		}
-		// The scratch's arena stays append-only for the whole call: a
-		// re-search appends its rows after the previous pass's, which the
-		// reassigned phase tables and search no longer read.
-		cost = baseCost
-		choices = resizeCleared(ps.outer, len(units))
 		ps.outer = choices
-		for i, u := range units {
-			choices[i] = dropOtherSac(withhold(PaymentPlanQueryAlternatives(e, u)))
+		queryClasses, own = ownClasses, true
+	}
+	if restrictedSeen {
+		queryClasses, own = ownClasses, true
+	}
+	// A call that groups its own classes never shares them, so its phase
+	// tables may live in the scratch too; the cached path's tables are the
+	// plain builds' own memory, because the cache's classes alias their
+	// rows across calls within the scope.
+	phasePS := (*PlanScratch)(nil)
+	if own {
+		phasePS = ps
+	}
+	// Phase 1 (spec 5): normal sources only. If it finds a complete plan,
+	// that is the offer and last-resort sources are never considered.
+	life := e.Game().Players[p].Life
+	pool := PlanPool(e, p, desc)
+	phase1 := PhaseChoicesInto(phasePS, choices, TierNormal)
+	rankCtx := NewRankContext(choices, demand)
+	phaseChoices, phaseClasses := phase1, queryClasses(p, TierNormal, phase1)
+	env := PaymentSearchEnv(e.Verify())
+	env.Fundable = planVictimGate(e, p, kept, tapped, gone)
+	search := SearchInto(e.SearchScratch(), cost, pool, life, rankCtx,
+		phaseChoices, phaseClasses, env)
+	nodes := search.Nodes
+	// Phase 2 runs only when phase 1 PROVES no plan exists (insufficient,
+	// not search_limit): normal plus last-resort alternatives, ranked by the
+	// irreversible-cost key, never a plan whose summed life + damage would
+	// reduce the caster to 0 or less. The rank context is phase 1's: keys 6
+	// and 7 read the untapped normal remainder in both phases.
+	if search.Best == nil && !search.Limited {
+		if phase2 := PlanLastResortChoicesInto(phasePS, choices, life); phase2 != nil {
+			phaseChoices, phaseClasses = phase2, queryClasses(p, TierLastResort, phase2)
+			search = SearchInto(e.SearchScratch(), cost, pool, life, rankCtx,
+				phaseChoices, phaseClasses, env)
+			nodes += search.Nodes
 		}
-		if len(e.Session().PaymentPlanRelaxed) != 0 {
-			// PotentialPaymentPlans' relaxed proof (paymentPlanRelaxProof): the
-			// census's uncovered sources as free, never-executed alternatives,
-			// withheld exactly like the census's own, and the fees of the paid
-			// ones it admits charged as generic.
-			if cut := e.Session().PaymentPlanRelaxedCut; len(cut) != 0 {
-				if relaxedCutReducible(cost) {
-					cost = relaxedCutCost(cost, cut[0].Mana)
-				} else if !slices.Contains(gone, cut[0].Activation.Source) {
-					// a pip the cut could pay in more than one way: the gap stays
-					// a free unit (permissive), its fee still charged
-					choices = append(choices, dropOtherSac(withhold(cut)))
-				}
-			}
-			// the fee is generic mana the gap's own output cannot pay, so it is
-			// charged after the cut
-			cost.Generic += e.Session().PaymentPlanRelaxedFee
-			for _, alts := range e.Session().PaymentPlanRelaxed {
-				if len(alts) == 0 || slices.Contains(gone, alts[0].Activation.Source) {
-					continue
-				}
-				choices = append(choices, dropOtherSac(withhold(alts)))
-			}
-			ps.outer = choices
-			queryClasses, own = ownClasses, true
-		}
-		if restrictedSeen {
-			queryClasses, own = ownClasses, true
-		}
-		// A call that groups its own classes never shares them, so its phase
-		// tables may live in the scratch too; the cached path's tables are the
-		// plain builds' own memory, because the cache's classes alias their
-		// rows across calls within the scope.
-		phasePS := (*PlanScratch)(nil)
-		if own {
-			phasePS = ps
-		}
-		// Phase 1 (spec 5): normal sources only. If it finds a complete plan,
-		// that is the offer and last-resort sources are never considered.
-		phase1 := PhaseChoicesInto(phasePS, choices, TierNormal)
-		rankCtx = NewRankContext(choices, demand)
-		phaseChoices, phaseClasses = phase1, queryClasses(p, TierNormal, phase1)
-		search = SearchInto(e.SearchScratch(), cost, pool, life, rankCtx,
-			phaseChoices, phaseClasses, PaymentSearchEnv(e.Verify()))
-		nodes = search.Nodes
-		// Phase 2 runs only when phase 1 PROVES no plan exists (insufficient,
-		// not search_limit): normal plus last-resort alternatives, ranked by the
-		// irreversible-cost key, never a plan whose summed life + damage would
-		// reduce the caster to 0 or less. The rank context is phase 1's: keys 6
-		// and 7 read the untapped normal remainder in both phases.
-		if search.Best == nil && !search.Limited {
-			if phase2 := PlanLastResortChoicesInto(phasePS, choices, life); phase2 != nil {
-				phaseChoices, phaseClasses = phase2, queryClasses(p, TierLastResort, phase2)
-				search = SearchInto(e.SearchScratch(), cost, pool, life, rankCtx,
-					phaseChoices, phaseClasses, PaymentSearchEnv(e.Verify()))
-				nodes += search.Nodes
-			}
-		}
-		if search.Best == nil {
-			break
-		}
-		// Name the best plan's other-sacrifice victims. When some step cannot
-		// be funded with a fresh one, its source's step came off the board in
-		// the search's favour and comes off the census for the next pass.
-		failing := planVictimFailures(e, p, search.Best, slices.Concat(kept, tapped), gone)
-		if len(failing) == 0 {
-			break
-		}
-		if len(dropped) >= planVictimDropLimit {
-			// The census still priced steps the board cannot fund; no
-			// automatic plan; manual payment still offers the altar.
-			return PlanOutcome{Reason: "insufficient", Detail: "source:last_resort", Nodes: nodes}
-		}
-		dropped = append(dropped, failing...)
+	}
+	if search.Best != nil && !AssignPlanVictims(e, p, search.Best, slices.Concat(kept, tapped), gone) {
+		// The search's own gate (planVictimGate) admits only sets this call
+		// can name victims for; a refusal here offers no plan rather than an
+		// unfunded one.
+		return PlanOutcome{Reason: "insufficient", Detail: "source:last_resort", Nodes: nodes}
 	}
 	if search.Best != nil {
 		SacrificesLast(search.Best)
 		if want := e.Session().PlanAltsWant; want > 1 && len(tapped)+len(kept)+len(gone) == 0 && len(e.Session().PaymentPlanRelaxed) == 0 {
-			alts := planAlternatives(&ps.altsSearch, *search.Best, want, cost, pool, life, rankCtx, phaseChoices, phaseClasses, e.Verify())
+			alts := planAlternatives(&ps.altsSearch, *search.Best, want, cost, pool, life, rankCtx, phaseChoices, phaseClasses, env)
 			funded := alts[:0]
 			for i := range alts {
 				if AssignPlanVictims(e, p, &alts[i], nil, nil) {
@@ -467,9 +409,9 @@ func planPaymentCostResolved(e Engine, p state.PlayerID, demand [5]int, cost cos
 // (ResidualSignature) differ from best's and from each other's, rank-best
 // first, searched over the phase that found best: a plan from normal sources
 // never gives way to a last-resort one (ValidateCastPayment's phase rule).
-func planAlternatives(sc *SearchScratch, best decision.PaymentPlan, want int, cost costvocab.Cost, pool state.Mana, life int32, ctx RankContext, choices [][]Alt, classes []Class, verify bool) []decision.PaymentPlan {
+func planAlternatives(sc *SearchScratch, best decision.PaymentPlan, want int, cost costvocab.Cost, pool state.Mana, life int32, ctx RankContext, choices [][]Alt, classes []Class, env Env) []decision.PaymentPlan {
 	bestSig := ResidualSignature(classes, choices, best.Activations)
-	s := SearchAlternativesInto(sc, cost, pool, life, ctx, choices, classes, PaymentSearchEnv(verify), want)
+	s := SearchAlternativesInto(sc, cost, pool, life, ctx, choices, classes, env, want)
 	var out []decision.PaymentPlan
 	for _, k := range s.Kept {
 		if k.Sig == bestSig || len(out) == want-1 {
