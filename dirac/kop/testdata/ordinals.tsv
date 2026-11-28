@@ -59,6 +59,7 @@ BecomeCopyCtr	untyped int	1
 BecomeCopyEOT	untyped int	8
 BecomeCopyEmbalm	untyped int	2
 BecomeCopyGrave	untyped int	4
+BecomeCopyTapped	untyped int	16
 BiteExcessTrample	untyped int	2
 BncDelayedMany	untyped int	8192
 BncFromLibrary	untyped int	4096

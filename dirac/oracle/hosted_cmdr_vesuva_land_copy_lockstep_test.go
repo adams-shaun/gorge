@@ -9,8 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Vesuva (pro-shaper's hosted deck): `K:ETBReplacement:Copy:DBCopy:Optional`
-// over `DB$ Clone | Choices$ Land.Other | IntoPlayTapped$ True`. Played as a
+// Vesuva (pro-shaper's hosted deck): an optional Copy enters replacement whose
+// Clone body picks from Land.Other with IntoPlayTapped$ True. Played as a
 // land it asks the as-enters copy election (CR 614.12, 707.2) over every other
 // land on the battlefield, plus "enter as itself"; it enters tapped either
 // way, and a copied land taps for the template's mana. The kernel must pose
