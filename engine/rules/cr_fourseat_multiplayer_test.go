@@ -5,6 +5,7 @@ package rules
 // from the run's snapshots, recorded decisions and final game state.
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -158,11 +159,8 @@ func TestCR806_2AnyOpponentMayBeAttackedAndTargeted(t *testing.T) {
 // game cannot pay a cost an object or effect asks of them. p1 casts Memnite
 // into p0's Rhystic Study; p0 Shocks p1 out with the trigger on the stack;
 // the trigger resolves and p0 draws, since no one remains to pay {1}.
-//
-// DEVIATES: the rule leaves the departed p1 out of the "unless that player
-// pays" offer; gorge still poses p1 the pay choice
-// (effects.unlessPayerTargetsFor has no departed-seat guard). Here p1 has no
-// mana and declines, so the outcome matches; the posed decision is pinned.
+// p1 is posed no decision: the departed player is no payer
+// (effects.unlessPayerTargetsFor), and nobody is charged in their place.
 func TestCR800_4fDepartedPlayerPaysNoCost(t *testing.T) {
 	run := runFourSeat(t, `{"name":"cr800-4f","format":"constructed","players":4,"turn":2,"cr":["800.4f"],"why":"a departed player pays no cost",
 "setup":{"p0":{"battlefield":["Rhystic Study"],"hand":["Shock"]},"p1":{"life":2,"hand":["Memnite"]}},
@@ -179,12 +177,17 @@ func TestCR800_4fDepartedPlayerPaysNoCost(t *testing.T) {
 	}
 	var asked []string
 	for _, od := range run.decisions {
-		if od.Seat == 1 && od.Step == 5 {
-			asked = append(asked, od.Kind+" "+od.First)
+		// Step 5 resolves the stack: neither p1 nor a stand-in payer may
+		// be asked there.
+		if od.Step == 5 && od.Kind == "mode" {
+			asked = append(asked, fmt.Sprintf("p%d %s %s", od.Seat, od.Kind, od.First))
 		}
 	}
-	if len(asked) != 1 || !strings.HasPrefix(asked[0], "mode ") {
-		t.Errorf("departed p1's decisions at the trigger's resolution = %v; pinned (deviation): the one unless-pay mode", asked)
+	if len(asked) != 0 {
+		t.Errorf("unless-pay decisions at the trigger's resolution = %v; want none (CR 800.4f)", asked)
+	}
+	if n := len(g.Stack); n != 0 {
+		t.Errorf("precondition: stack depth = %d, want 0 (the Study trigger resolved)", n)
 	}
 	setup := run.snaps[0]
 	before := len(setup.Players[0].Hand)

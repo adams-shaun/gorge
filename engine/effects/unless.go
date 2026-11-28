@@ -583,11 +583,14 @@ func UnlessPayers(h Host, c *Ctx, sa *cards.SA) []state.Target {
 }
 
 // unlessPayerTargets is the binding-aware half of UnlessPayers. known is
-// false only when a *named* payer cannot be resolved from state the engine
-// actually carries. That distinction prevents an Aura's EnchantedController
-// (or an unmodelled ImprintedController) from falling through to c.Targets
-// and asking the wrong player. A missing target for the empty/default
-// selector remains known: Forge defaults it to the resolving controller.
+// false when a *named* payer cannot be resolved from state the engine
+// actually carries, or when every payer it resolves has left the game (CR
+// 800.4f: such a player is asked nothing, so the cost goes unpaid), for any
+// selector including the empty/default one. The first case prevents an
+// Aura's EnchantedController (or an unmodelled ImprintedController) from
+// falling through to c.Targets and asking the wrong player. A missing target
+// for the empty/default selector, with no departure, remains known: Forge
+// defaults it to the resolving controller.
 func unlessPayerTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 	return unlessPayerTargetsFor(h, c, sa, nil)
 }
@@ -628,8 +631,14 @@ func unlessPayerTargetsFor(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Targ
 	}
 	var out []state.Target
 	seen := map[state.PlayerID]bool{}
+	departed := false
 	add := func(p state.PlayerID) {
 		if int(p) < 0 || int(p) >= len(g.Players) || seen[p] {
+			return
+		}
+		// CR 800.4f: a player who left the game can't be asked to pay.
+		if g.Players[p].Lost {
+			departed = true
 			return
 		}
 		seen[p] = true
@@ -765,7 +774,7 @@ func unlessPayerTargetsFor(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Targ
 		if c.TriggerSource != 0 {
 			if o := g.Obj(c.TriggerSource); o != nil {
 				add(o.Controller)
-				return out, true
+				break
 			}
 		}
 		add(c.Controller)
@@ -813,9 +822,10 @@ func unlessPayerTargetsFor(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Targ
 	for i, p := range alive {
 		rank[p] = i
 	}
-	if len(out) == 0 && !unlessPayerControllerFallback(spec) {
+	if len(out) == 0 && (departed || !unlessPayerControllerFallback(spec)) {
 		// A named binding that yielded no live player is unavailable, not the
-		// default-selector case where c.Controller is intentionally used.
+		// default-selector case where c.Controller is intentionally used; nor
+		// does the controller stand in for a departed payer.
 		return nil, false
 	}
 	sortTargets(out, rank)
