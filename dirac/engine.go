@@ -432,7 +432,7 @@ func (s *State) Apply(a Action) {
 	s.filtMemoReset()
 	s.clearPlanSacWitness() // the witness is this answer's payment alone (mana_othersac.go)
 	if !s.pickKeepsOpen(k, a) {
-		s.Decisions++ // gorge's answered decisions (decl_count.go)
+		s.Decisions++ // gorge's answered decisions (searchapi.go pickKeepsOpen)
 	}
 	switch s.ctl {
 	case ctlMullDeclare:

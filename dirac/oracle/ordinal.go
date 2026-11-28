@@ -8,8 +8,8 @@ import "fmt"
 // count into their per-decision seed (azmcts / dirac/search DecisionSeed), so
 // a searched decision mirrors only while the counters agree.
 //
-// The kernel counts one decision per gorge declaration (dirac
-// decl_count.go). What it cannot count is a gorge answer beneath the
+// The kernel counts one decision per gorge declaration (dirac searchapi.go
+// pickKeepsOpen). What it cannot count is a gorge answer beneath the
 // canonical surface (Stats.Internal: a payment window, a mana colour ask,
 // a lowering's activations, another seat's pass inside a script): the kernel
 // autopays and poses none of them. The check nets those out, so it holds the

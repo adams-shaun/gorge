@@ -55,7 +55,8 @@ type SBT struct {
 	// queued picks of a declaration answered whole: served while the
 	// kernel's next decision continues it (the same kind and player, the
 	// decision number or the next (a pick inside one declaration is not
-	// counted: dirac decl_count.go), the last served pick no longer offered)
+	// counted: dirac searchapi.go pickKeepsOpen), the last served pick no
+	// longer offered)
 	q       []dirac.Action
 	qKind   dirac.DecisionKind
 	qPlayer uint8
