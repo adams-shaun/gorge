@@ -13,8 +13,9 @@ import (
 // more than one member under an op whose run can ask. It keeps a one-member
 // set under the same op, a multi-member set under an op that never asks, and
 // the all-player Sacrifice and Discard the kernel walks on the repNext chain
-// (CR 101.4). The opponents of one player pass under any op (setOpponentOf);
-// the same complement spelled Non<ref> does not.
+// (CR 101.4). The opponents of one player pass under Draw only (setOpponentOf,
+// Bounty Board); the same complement spelled Non<ref> does not, and neither
+// does that set under any other asking op.
 func TestDefinedSetSuspendGuard(t *testing.T) {
 	const two = "Defined$ You & Opponent"             // SetController SetEachOpponent SetUnion
 	const non = "Defined$ NonTriggeredCardController" // SetTriggerPlayer SetPlayersComplement
@@ -36,7 +37,13 @@ func TestDefinedSetSuspendGuard(t *testing.T) {
 		// Draw's own arm reads the bare opponent spelling; the alias is the
 		// set (Bounty Board)
 		{"draw, the opponent of one player", trig("Draw | NumCards$ 1 | Defined$ Player.OpponentOf TriggeredCardController"), kop.OpDraw, false},
-		{"damage, the opponent of one player", trig("DealDamage | NumDmg$ 1 | " + opp), kop.OpDealDamage, false},
+		{"damage, the opponent of one player", trig("DealDamage | NumDmg$ 1 | " + opp), kop.OpDealDamage, true},
+		{"discard another player chooses, the opponent of one player",
+			trig("Discard | Mode$ RevealYouChoose | NumCards$ 1 | " + opp), kop.OpDiscard, true},
+		{"may sacrifice, the opponent of one player",
+			trig("Sacrifice | SacValid$ Creature | Optional$ True | " + opp), kop.OpSacrifice, true},
+		{"sacrifice, the opponent of one player",
+			trig("Sacrifice | SacValid$ Creature | " + opp), kop.OpSacrifice, false},
 		{"damage, two members", ab("DealDamage | Cost$ T | NumDmg$ 1 | " + two), kop.OpDealDamage, true},
 		{"damage, one member", ab("DealDamage | Cost$ T | NumDmg$ 1 | " + one), kop.OpDealDamage, false},
 		{"discard another player chooses, two members",

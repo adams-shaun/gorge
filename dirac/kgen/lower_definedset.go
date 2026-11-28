@@ -22,8 +22,12 @@ import (
 
 // lSet is one set expression of a card: a postfix program over lSetOps, and
 // setTerm's marks, which the builder's walk guard reads (build_setexpr.go).
-// No mark prints: each follows from the program and the ability's target
-// specs, both already in the LIR.
+// No mark prints. Players, One and the ops follow from the program and the
+// ability's target specs, but OneOpps follows from the spelling:
+// NonTriggeredCardController and TriggeredCardOpponent give the same ops with
+// different marks, so two identical LIR dumps can build differently, and one
+// card using both spellings holds two identical SET lines (definedSet's
+// DeepEqual dedup compares the marks).
 type lSet struct {
 	Ops     []lSetOp
 	Players bool // it holds players only
@@ -371,9 +375,10 @@ var definedSetOpponent = map[string]string{
 
 // setOpponentOf is the opponents of one player: every other player still in
 // the game, at any seat count. The walk guard lets exactly this set through
-// under any op (build_setexpr.go walksSet): Bounty Board's Draw reads it in a
-// Commander precon pods play. In a pod it holds several players, so there a
-// member's ask still ends the walk: a known gap the guard does not close.
+// under Draw only (build_setexpr.go walksSet): Bounty Board's Draw reads it in
+// a Commander precon pods play. In a pod it holds several players, so there a
+// Draw member's ask (a replacement) still ends the walk: a known gap the guard
+// does not close. Every other asking op over it is refused.
 func (lc *lowerCtx) setOpponentOf(ref string) (setTerm, error) {
 	t, err := lc.setTerm(ref, false)
 	if err != nil {

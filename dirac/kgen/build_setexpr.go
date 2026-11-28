@@ -49,13 +49,13 @@ func kopWalksSet(ki *kop.Instr, players bool) bool {
 
 // walksSet refuses set n under ki when the set can hold more than one member
 // and the kernel would not walk them all. The opponents of one player pass
-// (lower_definedset.go setOpponentOf says why, and what that leaves open). An
-// n the card does not have is internSet's refusal.
+// under Draw only (lower_definedset.go setOpponentOf says why, and what that
+// leaves open). An n the card does not have is internSet's refusal.
 func (cb *cardBuilder) walksSet(n int, ki *kop.Instr) error {
 	if n < 0 || n >= len(cb.c.Sets) {
 		return nil
 	}
-	if s := cb.c.Sets[n]; !s.One && !s.OneOpps && !kopWalksSet(ki, s.Players) {
+	if s := cb.c.Sets[n]; !s.One && !(s.OneOpps && ki.Op == kop.OpDraw) && !kopWalksSet(ki, s.Players) {
 		return fmt.Errorf("Defined$ set of more than one member on kop %s: a member's ask would end the walk", ki.Op)
 	}
 	return nil
