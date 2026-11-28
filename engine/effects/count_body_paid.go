@@ -19,6 +19,20 @@ func castProvenanceSource(g *state.Game, c *Ctx) *state.Object {
 	return o
 }
 
+// oppsLifeLost is the life p's opponents lost this turn, a player who has
+// left the game included: the life was lost before they left (Forge
+// Player.getOpponentLostLifeThisTurn sums every registered opponent; Neheb,
+// the Eternal counts the damage that killed a defender).
+func oppsLifeLost(h Host, g *state.Game, p state.PlayerID) int32 {
+	var n int32
+	for i := range g.Players {
+		if q := state.PlayerID(i); q != p {
+			n += h.LifeLostThisTurn(q)
+		}
+	}
+	return n
+}
+
 // evalCountBodyPaid evaluates the second half of the original head switch:
 // the paid-cost, chosen, remembered, life-log and commander heads
 // (OptionalGenericCostPaid through ColorsColorIdentity). The dispatcher has
@@ -318,13 +332,7 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		if c.Controller < 0 {
 			return 0, true, true
 		}
-		var n int32
-		for _, p := range g.AliveFrom(0) {
-			if p != c.Controller {
-				n += h.LifeLostThisTurn(p)
-			}
-		}
-		return n, true, true
+		return oppsLifeLost(h, g, c.Controller), true, true
 	case evalCountBodyPaidDamageOppsTakenThisTurn:
 		// The total damage the controller's OPPONENTS were dealt this turn
 		// (kw:Bloodthirst, CR 702.54, is the reader). Each opponent's take

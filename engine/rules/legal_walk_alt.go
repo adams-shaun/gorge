@@ -307,12 +307,17 @@ func (w *legalWalk) commandZoneWalk() {
 			continue
 		}
 		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
-		if raw := pay.RawBaseCost(asPayer(e), p, id); targetsAvailable && (w.offerCastableCommander(p, id, raw) || w.reducedOptionalCastable(p, id, raw)) {
+		// The hand walk's base: Convoke and Improvise function on the stack
+		// whatever zone the spell was cast from (CR 702.51a, 702.126a). The
+		// plain gate takes the raw base and credits the taxed total itself
+		// (offerCastableCommander/convokeTaxOfferCredit).
+		base := e.castOfferBase(p, id)
+		if raw := pay.RawBaseCost(asPayer(e), p, id); targetsAvailable && (w.offerCastableCommander(p, id, raw) || w.reducedOptionalCastable(p, id, base)) {
 			w.add("cast", w.castLabel(f), id)
 		}
 		if targetsAvailable {
 			for i, extra := range e.optionalCostViews(costStatics.get(), p, id) {
-				if w.offerCastable(p, id, pay.WithSpellAbilityExtras(f, pay.RawBaseCost(asPayer(e), p, id)).Plus(extra), spellScope("optionalcost"), false) {
+				if w.offerCastable(p, id, pay.WithSpellAbilityExtras(f, base).Plus(extra), spellScope("optionalcost"), false) {
 					*out = append(*out, decision.Option{Index: len(*out), Kind: "cast", Label: "Cast " + f.Name + " (optional cost)", Obj: id, Mode: "optionalcost", AltCostIndex: i + 1})
 				}
 			}
