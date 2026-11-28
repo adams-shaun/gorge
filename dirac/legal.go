@@ -3200,14 +3200,21 @@ func (s *State) potentialTapExtraFixed(k *prep, sl Slot, pc *pcard, fold func(Sl
 // beside the native production, and an X-bound-target sweep's verdict
 // (xBoundPayable) reads the board the planner does. A grant without the
 // source's tap unit (no native {T} ability) or one that costs more than the
-// tap keeps the unit of its own. A source with no usable grant leaves open
-// and anyFree alone.
+// tap keeps the unit of its own. A source with no usable ability of its own
+// reads its first grant as its view, which the walk counted already, so the
+// grants past it are admitted here. A source with no further usable grant
+// leaves open and anyFree alone.
 func (s *State) potentialGrantedExtra(k *prep, sl Slot, d *payDesc, boundedAny bool, add, fold func(Slot, uint8, uint8), cen *potCensus, open *bool, anyFree *int) {
-	if k.gen == nil || len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) || !s.ownManaUsable(k, sl) {
+	if k.gen == nil || len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) {
 		return
 	}
 	var gi [maxGrants]int16
-	for i, ng := 0, s.potentialGrants(k, sl, &gi, d); i < ng; i++ {
+	ng := s.potentialGrants(k, sl, &gi, d)
+	i := 0
+	if ng > 0 && !s.ownManaUsable(k, sl) && int(gi[0]) == s.grantIdx(k, sl) {
+		i = 1 // one entry only: a second copy of the same grant is its own ability
+	}
+	for ; i < ng; i++ {
 		gv := s.grantView(k.gen, gi[i], sl)
 		mask := s.srcMaskAt(gv, sl)
 		if cen.on && gv.manaTap && cen.tap[sl].mask != 0 && !cen.gapTap.has(sl) {
