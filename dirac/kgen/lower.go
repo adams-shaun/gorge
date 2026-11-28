@@ -3309,7 +3309,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 	if err := lc.imprintedFilterGate(expr); err != nil { // lower_imprintzone.go
 		return nil, err
 	}
-	f, err := parseFilter(expr, lc.known, lc.p.isTypeWord)
+	f, err := lc.parseFilterText(expr)
 	if err != nil {
 		return nil, refuse("filter %q: %v", expr, err)
 	}

@@ -118,7 +118,7 @@ func openPoolCorpus(cardsDir string) (*poolCorpus, error) {
 // an open corpus. A name the corpus does not resolve is an error: the
 // generated table would silently lack it.
 func cardPool(names []string, pc *poolCorpus) (*pool, error) {
-	p := &pool{nDecks: map[string]int{}, byName: map[string]*cards.Card{}, reg: pc.reg, typeWords: pc.typeWords}
+	p := &pool{nDecks: map[string]int{}, byName: map[string]*cards.Card{}, reg: pc.reg, typeWords: pc.typeWords, filterReader: defaultFilterReader}
 	for _, n := range names {
 		c, ok := pc.reg.Lookup(n)
 		if !ok {
@@ -160,6 +160,11 @@ type pool struct {
 	// commander: the pool's games are Commander pods (tables.go readPool
 	// sets it by pool name); a Meld result card refuses in one (lower_meld.go).
 	commander bool
+
+	// filterReader selects how lowerCtx.parseFilterText reads a filter text
+	// (filter_ir.go); filterStats counts the typed reader's reads.
+	filterReader filterReader
+	filterStats  filterStats
 }
 
 // loadPool reads every *.json deck in decksDir and resolves its cards through
@@ -174,7 +179,7 @@ func loadPool(decksDir, cardsDir string) (*pool, error) {
 		return nil, fmt.Errorf("no decks in %s", decksDir)
 	}
 	sort.Strings(paths)
-	p := &pool{nDecks: map[string]int{}, byName: map[string]*cards.Card{}}
+	p := &pool{nDecks: map[string]int{}, byName: map[string]*cards.Card{}, filterReader: defaultFilterReader}
 	for _, path := range paths {
 		b, err := os.ReadFile(path)
 		if err != nil {
