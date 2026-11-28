@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"slices"
+
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -38,6 +40,16 @@ type hypSparePool struct {
 	zoneEntry []zoneEntryRec
 	// ids is a stack of id lists read-only walks borrow (idsBorrow).
 	ids [][]state.ObjID
+	// live lists this pool's clones still alive and the event array each
+	// was cloned into (hypClone): a Spare whose provenance is one of those
+	// arrays stays trusted until that clone is released (hypRelease).
+	live []hypLive
+}
+
+// hypLive is one live hypothetical clone and its own event array.
+type hypLive struct {
+	eng *Engine
+	arr *events.Event
 }
 
 // hypPool is e's own pool, created on first use.
@@ -52,7 +64,7 @@ func (e *Engine) hypPool() *hypSparePool {
 // pool. The clone must be handed back with hypRelease once it, and every
 // clone made from it, is dead.
 func (e *Engine) hypClone(c *Engine) *Engine {
-	sp := e.hypTake()
+	sp := e.hypTakeFor(c)
 	// A pooled log array sized for an earlier, shorter history would be
 	// skipped by CloneInto (it needs the history plus its fork slack) and
 	// the clone would regrow a fresh one at only an eighth of slack; the
@@ -69,7 +81,14 @@ func (e *Engine) hypClone(c *Engine) *Engine {
 		sp.objs = make([]state.Object, 0, need+len(c.G.Objs)/2)
 		sp.objDirty = 0
 	}
-	return c.CloneInto(&sp)
+	cl := c.CloneInto(&sp)
+	// Only an array of the clone's own (spare capacity past its history; a
+	// shared parent prefix has cap == len) is the clone's to vouch for.
+	if n := len(cl.L.Events); n > 0 && cap(cl.L.Events) > n {
+		pl := e.hypPool()
+		pl.live = append(pl.live, hypLive{eng: cl, arr: &cl.L.Events[0]})
+	}
+	return cl
 }
 
 // hypLogSlack is the appends a hypothetical clone's log array holds past its
@@ -94,8 +113,49 @@ func (e *Engine) hypTake() Spare {
 	return sp
 }
 
-// hypRelease releases a dead hypothetical clone into e's pool.
-func (e *Engine) hypRelease(c *Engine) { e.hypPut(c.Release()) }
+// hypTakeFor is hypTake preferring a Spare whose event-array provenance is
+// c's own array (a spent sibling cloned from c), so the clone copies only
+// the events c logged since; any Spare is otherwise as good as another
+// (CloneInto's contract), and the top one is taken.
+func (e *Engine) hypTakeFor(c *Engine) Spare {
+	pl := e.hypPool()
+	if len(c.L.Events) > 0 {
+		arr := &c.L.Events[0]
+		for i := len(pl.spares) - 1; i >= 0; i-- {
+			if from, n := pl.spares[i].Provenance(); from == arr && n <= len(c.L.Events) {
+				sp := pl.spares[i]
+				pl.spares = slices.Delete(pl.spares, i, i+1)
+				return sp
+			}
+		}
+	}
+	return e.hypTake()
+}
+
+// hypRelease releases a dead hypothetical clone into e's pool. Its event
+// array is recycled from here on, so every pooled Spare whose provenance
+// names it (a spent clone of c) is detached first (hypPut).
+func (e *Engine) hypRelease(c *Engine) {
+	pl := e.hypPool()
+	var cur *events.Event
+	if c.L != nil && len(c.L.Events) > 0 {
+		cur = &c.L.Events[0]
+	}
+	for i := 0; i < len(pl.live); i++ {
+		lv := pl.live[i]
+		if lv.eng != c {
+			continue
+		}
+		pl.live = slices.Delete(pl.live, i, i+1)
+		i--
+		for k := range pl.spares {
+			if from, _ := pl.spares[k].Provenance(); from != nil && (from == lv.arr || from == cur) {
+				pl.spares[k].Detach()
+			}
+		}
+	}
+	e.hypPut(c.Release())
+}
 
 // hypPut returns a Spare to e's pool.
 //
@@ -108,14 +168,27 @@ func (e *Engine) hypRelease(c *Engine) { e.hypPut(c.Release()) }
 // the old tenant's appended events in the prefix it skipped (a witness
 // search's grandchild saw its stale mana activations where the live log had
 // the declare-attackers event, re-asked the declaration and refused a legal
-// cast, census pair 1905). So only a Spare cloned straight from the owner
-// keeps its provenance; every other one is detached.
+// cast, census pair 1905). So only a Spare cloned straight from the owner,
+// or from one of the pool's clones still alive (whose own array is
+// append-only history until hypRelease detaches its dependents), keeps its
+// provenance; every other one is detached.
 func (e *Engine) hypPut(sp Spare) {
-	if from, _ := sp.Provenance(); from != nil && (len(e.L.Events) == 0 || from != &e.L.Events[0]) {
+	if from, _ := sp.Provenance(); from != nil && (len(e.L.Events) == 0 || from != &e.L.Events[0]) && !e.hypLiveArray(from) {
 		sp.Detach()
 	}
 	pl := e.hypPool()
 	pl.spares = append(pl.spares, sp)
+}
+
+// hypLiveArray reports whether arr is the event array of one of e's pool's
+// live clones.
+func (e *Engine) hypLiveArray(arr *events.Event) bool {
+	for _, lv := range e.hypPool().live {
+		if lv.arr == arr {
+			return true
+		}
+	}
+	return false
 }
 
 // optBorrow pops a cleared option list from e's pool (nil when empty).
@@ -166,6 +239,8 @@ func (e *Engine) adoptHypPool(pl *hypSparePool) {
 	for i := range pl.spares {
 		pl.spares[i].Detach()
 	}
+	clear(pl.live)
+	pl.live = pl.live[:0]
 }
 
 // idsBorrow pops an empty id list from e's pool (nil when empty); the caller
