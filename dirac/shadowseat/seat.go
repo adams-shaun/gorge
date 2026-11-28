@@ -197,7 +197,9 @@ func (s *Seat) decide(v *view.View, d *decision.Decision) (decision.Intent, stri
 }
 
 // seatSeed is the search seed of gorge decision d.
-func (s *Seat) seatSeed(d *decision.Decision) uint64 { return search.DecisionSeed(s.cfg.Seed, d.Seq) }
+func (s *Seat) seatSeed(d *decision.Decision) uint64 {
+	return search.DecisionSeed(s.cfg.Seed, d.Ordinal)
+}
 
 // staged is a position the seat staged from a view, stepped to its decision.
 type staged struct {

@@ -655,6 +655,19 @@ func (sr *Searcher) RootCand(i int) []uint32 {
 	return pt.acts[pt.off[i]:pt.off[i+1]]
 }
 
+// LastSeed is the per-decision seed the last Search ran on (DecisionSeed of
+// the seat's seed and the root's SeqNo), for a cross-engine mirror harness.
+func (sr *Searcher) LastSeed() uint64 { return sr.seed }
+
+// RootWorld deals into dst the world simulation sim of the last Search starts
+// from (newWorld's deal, no walk): a read-only probe for a cross-engine mirror
+// harness. Valid until the next Search; not a CachedWorlds deal.
+func (sr *Searcher) RootWorld(dst *dirac.State, sim int) {
+	dst.CopyFrom(&sr.root)
+	a, b := redealSeed(sr.ik.wseed, sim)
+	sr.redeal(dst, a, b)
+}
+
 // mergeRoot adds the tree's root children into res (visits summed, Q
 // accumulated as visit-weighted value sums; divided at the end).
 func (sr *Searcher) mergeRoot(res *Result, first bool) {

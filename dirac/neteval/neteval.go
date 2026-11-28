@@ -33,6 +33,7 @@ package neteval
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -213,7 +214,7 @@ type Net struct {
 	lastS   *dirac.State
 	lastSeq uint32
 	lastN   uint16
-	lastO0  dirac.Action
+	lastOpt [dirac.MaxOptions]dirac.Action // the first lastN are set
 	lastV   float32
 	haveV   bool
 
@@ -407,14 +408,19 @@ func (n *Net) HasPrior() bool { return true }
 func sigmoid(x float32) float32 { return float32(1 / (1 + math.Exp(-float64(x)))) }
 
 func (n *Net) same(s *dirac.State, d *dirac.Decision) bool {
-	return n.haveV && n.lastS == s && n.lastSeq == s.SeqNo() && n.lastN == d.N && (d.N == 0 || n.lastO0 == d.Options[0])
+	if d.Kind == dirac.DkChoose && d.Sub == dirac.ChCastDivide {
+		// a division's points are one decision (SeqNo stays) whose picks
+		// repeat the same options: nothing here tells two picks apart
+		return false
+	}
+	// SeqNo counts a multi-pick declaration once, so two of its picks can
+	// agree on everything but a later option: compare the whole list
+	return n.haveV && n.lastS == s && n.lastSeq == s.SeqNo() && n.lastN == d.N && slices.Equal(n.lastOpt[:d.N], d.Options[:d.N])
 }
 
 func (n *Net) remember(s *dirac.State, d *dirac.Decision, v float32) {
 	n.lastS, n.lastSeq, n.lastN, n.lastV, n.haveV = s, s.SeqNo(), d.N, v, true
-	if d.N > 0 {
-		n.lastO0 = d.Options[0]
-	}
+	copy(n.lastOpt[:], d.Options[:d.N])
 }
 
 // state encodes s at d for d.Player into n.pst (views of the encoder's

@@ -174,6 +174,8 @@ type Seat struct {
 	// record, when set (SetRecorder), receives one visit-corpus record per
 	// decision this seat searched to completion. nil records nothing.
 	record func(policynet.VisitRecord)
+	// tap, when set (SetSearchTap), observes every search DecideSearch runs.
+	tap func(Root, Options, Result)
 	// spare is the recycled world storage carried from one searched
 	// decision's redeal source to the next (RedealSource.reclaim): the
 	// seat's decisions are answered one at a time, and every world of a
@@ -446,6 +448,7 @@ func (s *Seat) DecideSearch(ctx context.Context, env searchseat.Env, d decision.
 		}
 		dealFailed = redeal.DealFailed()
 	}
+	s.tapSearch(root, opts, res)
 	searched := res.Stats.Searched == 1
 	if searched && s.cfg.FullProb > 0 {
 		if cheap {
@@ -523,7 +526,7 @@ func (s *Seat) decidePrior(ctx context.Context, env searchseat.Env, d decision.D
 	obs := searchprobe.NewCollector(d.Player)
 	opts := s.cfg.Search
 	opts.Sims, opts.Noise, opts.Sample = 0, false, false
-	opts.Seed = DecisionSeed(s.seed, d.Seq)
+	opts.Seed = DecisionSeed(s.seed, d.Ordinal)
 	res, err := Search(ctx, Root{Engine: env.Engine, Decision: &d, Bot: botIn, Observer: obs}, nil, s.net, opts)
 	if err != nil {
 		return decision.Intent{}, err

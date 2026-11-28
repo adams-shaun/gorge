@@ -5,8 +5,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/bots/botpolicy"
+	"github.com/adams-shaun/gorge/bots/heuristic"
 	"github.com/adams-shaun/gorge/bots/policynet"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/seat"
+	gbench "github.com/adams-shaun/gorge/testkit/bench"
 )
 
 // The playout-cap draw is a pure, seeded coin: the same decision seed always
@@ -61,7 +65,7 @@ func legacyRootOptions(s *Seat, d *decision.Decision, turn int32) Options {
 	if n, ok := s.cfg.SimsByKind[d.Kind]; ok && n > 0 {
 		opts.Sims = n
 	}
-	opts.Seed = DecisionSeed(s.seed, d.Seq)
+	opts.Seed = DecisionSeed(s.seed, d.Ordinal)
 	opts.Noise, opts.Sample = false, false
 	if s.cfg.Explore {
 		opts.Noise = !s.cfg.NoNoise
@@ -80,7 +84,8 @@ func TestPCRRootOptions(t *testing.T) {
 		t.Helper()
 		for seq := uint64(0); seq < 400; seq++ {
 			for _, k := range kinds {
-				d := &decision.Decision{Kind: k, Seq: seq}
+				// Seq (event-log length) differs from Ordinal: the seed folds Ordinal
+				d := &decision.Decision{Kind: k, Seq: seq*3 + 1000, Ordinal: seq}
 				turn := int32(seq % 9)
 				got, c := s.rootOptions(d, turn)
 				want := legacyRootOptions(s, d, turn)
@@ -128,6 +133,15 @@ func TestPCRRootOptions(t *testing.T) {
 // returns its chain head, its records and its searched diags.
 func pcrGame(t *testing.T, sc SeatConfig) (string, []policynet.VisitRecord, []Diag, *Seat) {
 	t.Helper()
+	head, recs, diags, az, _ := pcrGameOrdinals(t, sc)
+	return head, recs, diags, az
+}
+
+// pcrGameOrdinals is pcrGame that also returns each decision's
+// Decision.Ordinal by event-log Seq: the PCR coin folds the ordinal, and a
+// record carries only the sequence.
+func pcrGameOrdinals(t *testing.T, sc SeatConfig) (string, []policynet.VisitRecord, []Diag, *Seat, map[uint64]uint64) {
+	t.Helper()
 	cfg := testConfig(t, "mono-red-prowess", "mono-blue-tempo", testSeed)
 	var diags []Diag
 	prev := Watch
@@ -143,11 +157,17 @@ func pcrGame(t *testing.T, sc SeatConfig) (string, []policynet.VisitRecord, []Di
 	}
 	var recs []policynet.VisitRecord
 	az.SetRecorder(func(r policynet.VisitRecord) { recs = append(recs, r) })
-	head, err := playAZ(t, cfg, az, 300)
+	ordinals := map[uint64]uint64{}
+	_, e, err := gbench.PlayGame(cfg, []seat.Seat{az, heuristic.NewBot(cfg.Seed ^ 2)}, 200, 300, gbench.Hooks{
+		Decision: func(_ int, d *decision.Decision, _ decision.Intent, _ *botpolicy.Board) error {
+			ordinals[d.Seq] = d.Ordinal
+			return nil
+		},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return head, recs, diags, az
+	return e.L.Head(), recs, diags, az, ordinals
 }
 
 // With FullProb 0 the seat is the seat without playout-cap randomization,
@@ -195,7 +215,7 @@ func TestPCRCheapDecisionsAreNotRecorded(t *testing.T) {
 	sc.Source = testSeatSource
 	sc.Explore = true
 	sc.FullProb, sc.CheapSims = 0.5, 2
-	head, recs, diags, az := pcrGame(t, sc)
+	head, recs, diags, az, ordinals := pcrGameOrdinals(t, sc)
 	var full, cheap, recordable int
 	for _, d := range diags {
 		want := 4
@@ -221,10 +241,21 @@ func TestPCRCheapDecisionsAreNotRecorded(t *testing.T) {
 	if len(recs) != recordable {
 		t.Fatalf("%d records for %d recordable full decisions (%d cheap)", len(recs), recordable, cheap)
 	}
+	parted := 0
 	for _, r := range recs {
-		if r.Sims != 4 || !PCRFull(DecisionSeed(testSeed^1, r.Sequence), 0.5) {
-			t.Fatalf("record at sequence %d (sims %d) is not a full decision", r.Sequence, r.Sims)
+		ordinal, ok := ordinals[r.Sequence]
+		if !ok {
+			t.Fatalf("record at sequence %d names no decision of the game", r.Sequence)
 		}
+		if ordinal != r.Sequence {
+			parted++
+		}
+		if r.Sims != 4 || !PCRFull(DecisionSeed(testSeed^1, ordinal), 0.5) {
+			t.Fatalf("record at sequence %d ordinal %d (sims %d) is not a full decision", r.Sequence, ordinal, r.Sims)
+		}
+	}
+	if parted == 0 {
+		t.Fatal("no record's ordinal differs from its sequence: the coin's input is not told apart")
 	}
 	again, recs2, _, _ := pcrGame(t, sc)
 	if again != head || len(recs2) != len(recs) {

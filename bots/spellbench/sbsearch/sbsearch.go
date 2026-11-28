@@ -593,7 +593,7 @@ func (s *Seat) evaluate(ctx context.Context, e *rules.Engine, mk func() (dealer,
 	if reason != "" {
 		return nil, 0, s.cfg.Worlds, 0, reason
 	}
-	dseed := azmcts.DecisionSeed(s.seed, d.Seq)
+	dseed := azmcts.DecisionSeed(s.seed, d.Ordinal)
 	sums := make([]float64, len(roots))
 	vals := make([]float64, len(roots))
 	dead := make([]bool, len(roots))
