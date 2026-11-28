@@ -158,20 +158,9 @@ func (s *State) srcInfect(k *prep) bool {
 	}
 	// a departed source's infect: gorge's LKI derives it at departure over
 	// the whole pile (lki.Infect, CR 113.7a; infectAt reads the merged
-	// cards, its granted arm too). The entry's own snapshot names the
-	// source when a cost sacrificed it; else the ability source's departure
-	// snapshot holds it (srcChosen's rule, zone_lkisource.go).
-	if e.kind != seSpell {
-		if e.li != 0 {
-			if l := s.lk(e.li); l.obj == e.obj && l.bits&lkiInfect != 0 {
-				return true
-			}
-		}
-		if l := s.srcDepartRec(e); l != nil && l.bits&lkiInfect != 0 {
-			return true
-		}
-	}
-	return false
+	// cards, its granted arm too), read from its last known information.
+	l := s.srcLastRec(e)
+	return l != nil && l.bits&lkiInfect != 0
 }
 
 // infectCounters puts infect damage n on creature sl as -1/-1 counters
