@@ -951,7 +951,7 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         const page = await ctx.newPage();
         const c = watch(page, b);
         await page.goto(`${b}/`, { waitUntil: 'domcontentloaded' });
-        const human = page.getByLabel('Your deck');
+        const human = page.getByLabel('Your deck', { exact: true });
         const bot = page.getByLabel('Bot deck');
         await human.locator('option[value="the-epic-storm"]').waitFor({ state: 'attached', timeout: WAIT_MS });
         await page.locator('input[value="commander"]').check();
@@ -2057,7 +2057,7 @@ test.describe('gorged [dirac] lobby and table', () => {
       const page = await ctx.newPage();
       const c = watch(page, b);
       await page.goto(`${b}/`, { waitUntil: 'domcontentloaded' });
-      const human = page.getByLabel('Your deck');
+      const human = page.getByLabel('Your deck', { exact: true });
       await human.locator(`option[value="${decks.find((d) => !d.refused)?.id}"]`).waitFor({ state: 'attached', timeout: WAIT_MS });
       // toBeDisabled reads the option's enclosing label's control, the select, which is enabled.
       await expect(human.locator(`option[value="${refused[0].id}"]`)).toHaveJSProperty('disabled', true);

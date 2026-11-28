@@ -1,9 +1,11 @@
 package httpapi
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -123,5 +125,34 @@ func TestCreateGameResponseNamesEngine(t *testing.T) {
 	raw, _ = json.Marshal(CreateGameResponse{Engine: "gorge", EngineReason: "a paired bot needs gorge"})
 	if !strings.Contains(string(raw), `"engine_reason":"a paired bot needs gorge"`) {
 		t.Fatalf("response %s carries no engine_reason", raw)
+	}
+}
+
+// TestWebPastedDeckFixtureDecodes: the body the play-vs-bot panel posts for a
+// pasted deck (the fixture web/src/lib/playvsbot.test.ts compares its request
+// with) decodes with no unknown field and passes the handler's validation.
+func TestWebPastedDeckFixtureDecodes(t *testing.T) {
+	raw, err := os.ReadFile("../../gorged/testdata/web-create-pod-text.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.DisallowUnknownFields()
+	var req CreateGameRequest
+	if err := dec.Decode(&req); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	format, err := host.ParseFormat(req.Format)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if seats, humans, msg := validatePodRequest(req, format); msg != "" || seats != 4 || humans != 1 {
+		t.Fatalf("validatePodRequest = %d seats, %d humans, %q; want 4, 1, accepted", seats, humans, msg)
+	}
+	if req.HumanDeck != "" || len(req.Decks) != 1 || req.Decks[0].Seat != 0 {
+		t.Fatalf("request = %+v, want no human_deck and one deck at seat 0", req)
+	}
+	if !strings.HasPrefix(req.Decks[0].Text, "Commander") {
+		t.Fatalf("decks[0].text = %q, want it to start with Commander", req.Decks[0].Text)
 	}
 }
