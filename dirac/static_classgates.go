@@ -129,7 +129,7 @@ func (s *State) eachStaticC(k *prep, cls uint16, f func(st statSrc) bool) {
 		sl := m.first()
 		if k.gen.sCls[s.cardAt(sl)]&cls == 0 {
 			if !s.pileStatics(k, sl, nil, cls, f) {
-				return // CR 702.140d: a pile's under cards (kw_mutate_union.go)
+				return // CR 702.140d: a pile's under cards (kw_mutateunion.go)
 			}
 			continue
 		}

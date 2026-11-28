@@ -187,7 +187,7 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 	}
 	// gained activated abilities (GainsAbilitiesOf$, static_gainsof.go)
 	s.gainedAbilities(k, d, p, sorc, &av)
-	// a pile's under cards' activated abilities (CR 702.140d, kw_mutate_union.go)
+	// a pile's under cards' activated abilities (CR 702.140d, kw_mutateunion.go)
 	s.pileActivations(k, d, p, sorc, &av)
 }
 
