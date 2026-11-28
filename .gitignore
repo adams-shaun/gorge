@@ -1,7 +1,9 @@
 bin/
 # Fetched Forge corpus and the IR compiled from it. Never committed: the
 # scripts are GPL-3.0 and mtgcore is Apache-2.0.
-.cards/
+# No trailing slash: a box slot links .cards to the shared corpus, and a
+# directory-only pattern would leave that symlink an untracked change.
+.cards
 
 # Deck pools for dirac's oracle (GORGE_POOLS' default). 17Lands derivatives that
 # ship as a release asset, never in git.
