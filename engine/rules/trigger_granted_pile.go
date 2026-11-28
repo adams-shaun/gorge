@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"slices"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/rules/chars"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -42,11 +44,18 @@ func underPrintedKeywords(v pileView, o *state.Object) []string {
 	return chars.UnderKeywordLines(o)
 }
 
+// printedKeywordLines is the printed lines of the permanent that exist, the
+// top face's then each under card's. Each owns exactly one equal derived entry,
+// the instance its own expansion queues (CR 113.2c, 702.140e). The result is
+// fresh: a walk consumes it with chars.TakeKeywordLine.
+func printedKeywordLines(v pileView, o *state.Object, f *cards.Face) []string {
+	return append(slices.Clone(topPrintedKeywords(v, o, f)), underPrintedKeywords(v, o)...)
+}
+
 // grantedPileInstances counts the instances of the keyword head a granted walk
-// must synthesize for a permanent whose top face does not print it: Derived's
-// entries with that head, less one per card beneath the top that prints it
-// (that card's own trigger queues those, CR 702.140e).
-func grantedPileInstances(v pileView, id state.ObjID, o *state.Object, head string) int {
+// must synthesize: Derived's entries with that head, less one per printed line
+// with it (printedKeywordLines).
+func grantedPileInstances(v pileView, id state.ObjID, o *state.Object, f *cards.Face, head string) int {
 	return chars.CountKeywordHead(v.Derived(id).Keywords, head) -
-		chars.CountKeywordHead(underPrintedKeywords(v, o), head)
+		chars.CountKeywordHead(printedKeywordLines(v, o, f), head)
 }
