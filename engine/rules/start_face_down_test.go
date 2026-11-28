@@ -75,7 +75,7 @@ func TestScriptedStartFaceDown(t *testing.T) {
 	}
 	// CR 702.37e: a face-down permanent with morph turns up for its morph
 	// cost. A placed card was not cast, so the offer is the non-cast keyword
-	// path (CR 702.36d), not the cast-provenance one.
+	// path (faceDownKeywordFaceUpCosts), not the cast-provenance one.
 	if costs := faceDownKeywordFaceUpCosts(morph); len(costs) != 1 || costs[0].family != "Morph" {
 		t.Errorf("face-down morph card turn-up costs = %+v, want one Morph cost", costs)
 	}
