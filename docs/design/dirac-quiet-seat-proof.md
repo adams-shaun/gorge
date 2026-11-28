@@ -79,6 +79,44 @@ and set costs, stack keyword grants, warp and other cast grants, tap-extra, a ma
 `{0}` alternative); every floor then reads 0. A static kind added to `kop` later is not
 harmless until it is classified (`TestQuietHarmlessKinds`).
 
+### Round 2: exact reads where round 1 zeroed or overcounted
+
+Each read below replaces a coarser one; each is still a necessary condition.
+
+- **ReduceCost read as an amount.** A `ReduceCost` static whose `Zone` is
+  `ZoneCommand` works only on its own card (`adjustCostGenB` applies it to the card
+  being cast; `eachStaticC` leaves it out of every other spell's price), so it opens
+  that card's cast (`qOpen`) and lowers nothing else: Ghalta, Spire Golem, Memory
+  Guardian. A battlefield one lowers a spell's generic part by its constant `A`
+  (`adjustCostGenB` subtracts `A`, or a dynamic or emblem-numbered amount, which
+  reads unbounded). The proof subtracts the sum of every live battlefield
+  `ReduceCost` amount, any controller's, from the cast floor's generic part; pips
+  are untouched, as `ReduceCost` takes generic only. A colour-reducing one
+  (`StReduceColor`) stays a cost modifier that zeroes every floor. `ReduceCost`
+  prices spells only, so it no longer zeroes activation floors (an ability's
+  reduction is `StatReduceAbility`, still a modifier).
+- **Colours.** `quietBound` also bounds the mana of each colour: a source counts
+  for every colour its printed mana abilities name (every colour for a chosen,
+  reflected, each-colour, identity, dynamic or any-colour ability, colourless with
+  any colour), the pool per kind, a granted or land-type unit for every colour. A
+  filter (no `{T}`, nets nothing) turns any mana into its colours, so those colours
+  read the whole bound; an any-colour or any-type static (`StatAnyColorAll`,
+  `StatAnyColorSpells`, `StatAnyTypeCreatures`) turns the colour read off. A cast or
+  activation with more pips of one colour than that colour's bound is ruled out.
+  Hybrid pips are not read (an over-count).
+- **canActivate's census-free gates, ability by ability.** An own battlefield
+  ability is offered only through `canActivate` (`activateOffers`, and the same call
+  in the script walk's nested walks), so each early `return false` that reads no
+  census is a necessary condition: `{T}` on a tapped or summoning-sick source, a
+  counter removal the source cannot pay, a sacrifice with too few candidates
+  (`countCostSac`), a once-per-turn ability already used, an activation condition
+  (`activateCondHolds`), the ability's gate (`gateOK`), and the final target check
+  (`abilityTargetsFeasible`, or none for an announced-X sacrifice). The proof reads
+  them only for a permanent whose least floor is within the bound.
+- **A `{T}` ability's own source.** `abilityAffords` keeps the source's own tap out
+  of the census that pays its `{T}` ability, so the proof compares that ability's
+  floor with the bound less the source's own `{T}` amount.
+
 ### State the walk writes
 
 A proved window must leave State as the walk would. The verify arm hashes State
@@ -120,6 +158,33 @@ proved walk.
 
 kpod cmdr4 (104 four-seat pods, four searched seats, sims 50): every chunk log and
 corpus file byte-identical to the base run; 282.6 CPU-s against 320.1.
+
+## Round 2 numbers (base main 56af2f5cc2 with #5986's branch merged)
+
+Every walk run beside the proof: 0 mismatches, 0 State differences beyond fbp.
+
+| run | round 1 proved / pass-only | round 2 |
+|---|--:|--:|
+| fdc pods (dpod), auto-pay, heuristic bot, 100k decisions | 54.7% | 62.9% |
+| fdc pods (dpod), auto-pay, random, 100k | 61.2% | 71.2% |
+| edh pods, `Config{Mulligans: 2}`, random, 100k | 69.4% | 76.8% |
+| edh pods, auto-pay, random, 100k | 65.8% | 73.4% |
+| FDN bench pairings, random, 200k | 75.7% | 83.8% |
+
+| bench (instr/op, core 13) | main | round 1 | round 2 |
+|---|--:|--:|--:|
+| BenchmarkTransitionEDH4 | 1,027,411 | 837,911 | 818,555 |
+| BenchmarkTransitionEDH4Autopay | 942,920 | 763,447 | 742,088 |
+| BenchmarkTransitionFDN | 67,099 | 61,214 | 61,592 |
+
+kpod cmdr4 (qs4-2 against runs/m4-1): byte-identical; 271.1 CPU-s (round 1 282.6,
+base 320.1).
+
+Unproved pass-only walks on the hbot fdc pods after round 2, by first blocker: hand
+14.0% (10.8% an instant the walk drops though its floor, colours and targets fit:
+X spells on the auto-pay surface, restricted sources, identity sources overcounted
+as every colour), battlefield 11.5% (8.5% within the bound, 3.0% free abilities),
+sorcery-speed windows 4.8%, grants 2.9%, others under 1.5% each.
 
 ## Not covered
 
