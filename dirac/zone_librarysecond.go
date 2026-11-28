@@ -2,6 +2,18 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
+// topBottomMove moves OpToLibraryChoice's object where the answered position
+// says: bottom, or the primary one (the top, or second from it).
+//
+//go:noinline
+func (s *State) topBottomMove(k *prep, in *kop.Instr, bottom bool) {
+	if in.C == kop.LibChoiceSecond {
+		s.toLibrarySecond(k, in, bottom)
+	} else if !s.topBottomStack(k, in.Obj, bottom) { // a spell target (tgt_permorspell.go)
+		s.moveRef(k, in.Obj, kop.ZoneLibrary, bottom)
+	}
+}
+
 // toLibrarySecond resumes OpToLibraryChoice with kop.LibChoiceSecond
 // (AlternativeDecider$ with LibraryPosition$ 1, gorge
 // zone_change.go's "second from top" / "bottom" ask). The bottom answer is
