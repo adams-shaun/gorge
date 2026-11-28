@@ -205,3 +205,5 @@ TestPinManifest
 TestFDCFourSeatPodsLockstep
 # Named by 11-28 red (whole-oracle run 46133625136 at 9ba6db186e: #5923 other-sacrifice plan ranking, reverted)
 TestNonTapCostManaLockstep
+# Named by 11-28 red (whole-oracle run 46151419602 at cdf81d7e67: #5954 Targeted+Other+sameName lowering, reverted)
+TestAtomDiffRelationsFocus
