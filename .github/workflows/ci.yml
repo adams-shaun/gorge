@@ -671,7 +671,13 @@ jobs:
           # test budget is 4 vCPU per test (AGENTS.md). Measured 11-20 (8 batches before #2534, 15 after): the sum of
           # per-package median times fell 4064 -> 2862 s, engine/rules 458 -> 242 s; only dirac and dirac/shadow grew.
           GOMAXPROCS: "8"
+          # Set on a merge-queue batch only: ci-test-shard.sh then leaves the tests in scripts/flaky.tsv out of its calls.
+          QUARANTINE: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'mergify/merge-queue/') && '1' || '' }}
         run: bash scripts/ci-infra-retry.sh --log test-shard.log --name "test shard ${{ matrix.shard }}" -- bash scripts/ci-test-shard.sh ${{ matrix.shard }} "$SHARDS"
+      - name: Quarantined tests (cannot fail the batch)
+        if: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'mergify/merge-queue/') }}
+        continue-on-error: true
+        run: bash scripts/ci-flaky.sh run ${{ matrix.shard }} "$SHARDS"
       - name: Golden chain heads
         # Not shard 0: it holds engine/rules (181 s) and set the batch's wall time. Pin it to the lightest shard;
         # ci_shard.sh has no weight for this step, so the pin lives here. It recompiles engine/rules in whatever
