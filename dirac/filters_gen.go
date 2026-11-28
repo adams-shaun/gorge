@@ -203,9 +203,9 @@ func (s *State) permHasSub(k *prep, sl Slot, i uint8, layer uint8) bool {
 }
 
 // sharesColorRem: gorge sharesColorWithOther over the remembered set -- o
-// (colours mine, its printed face: a milled card) shares a colour with a
-// remembered object other than itself, read from its printed face too.
-// Colourless shares nothing.
+// (colours mine, a split card showing both halves off the stack, CR 709.4b)
+// shares a colour with a remembered object other than itself, a split card
+// there also read for both halves. Colourless shares nothing.
 func (s *State) sharesColorRem(k *prep, o Obj, mine kop.ColorMask) bool {
 	if mine == 0 {
 		return false

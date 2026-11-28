@@ -36,4 +36,8 @@ func TestSplitCardInHandSharesEitherHalfColour(t *testing.T) {
 	if !sc.s.handSharesColor(sc.k, split, cast) {
 		t.Fatal("the split card in hand does not share white through its second half")
 	}
+	cost := &kop.Cost{Flags: kop.CostDiscard, N: 1, DiscardSharesCastColor: true}
+	if !sc.s.discardPayable(sc.k, 0, cost, cast) {
+		t.Fatal("the split card in hand does not pay a discard that shares the cast card's colour through its second half")
+	}
 }
