@@ -1,0 +1,9 @@
+family: ReplKind
+name: ReplFoundSearchExile
+value: next
+forge: Moved
+census: repl Moved FoundSearchingLibrary$ True Origin$ Library over Card.OppOwn, the exile-and-may-play body (Opposition Agent)
+state: code 0
+status: active
+ticket: agent-20261128T003312Z-99e1aa70
+doc: ReplFoundSearchExile is a battlefield R:Event$ Moved | ValidCard$ Card.OppOwn | FoundSearchingLibrary$ True | Origin$ Library line whose body exiles the replaced card and grants its controller a permanent while-exiled may-play with MayPlayIgnoreColor$ (Opposition Agent). Each card an opponent's library search moves from the library is exiled instead and gets that permission record (gorge replacementMatches' searchingBy scope; dirac/zone_searchcontrol.go).

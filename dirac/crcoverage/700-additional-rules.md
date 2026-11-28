@@ -400,7 +400,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 723.1 | n/a | - | - | live only on the controlled seat's next turn; comments cite old CR 720/722. dirac: no Mindslaver effects |
 | 723.1a | n/a | - | - | later grant overwrites ControlledBy and re-arms. dirac: no player-control effects |
 | 723.1b | n/a | - | - | applies and expires only on a turn the seat actually takes. dirac: no player-control effects |
-| 723.2 | n/a | - | - | Opposition Agent redirects only search picks; Word of Command's Play ControlledByPlayer$ unread. dirac: neither card |
+| 723.2 | follows | `dirac/zone_searchcontrol.go#State.searchPickChooser` `dirac/zone_searchcontrol.go#State.foundSearchExile` | `TestHostedCmdrSearchControlLockstep` | Opposition Agent redirects only search picks (gorge searchControlRedirect), and each card an opponent's search moves from the library is exiled with a permanent any-colour may-play for the Agent's controller; several Agents pose gorge's CR 616.1 order ask to the card's owner. Word of Command's Play ControlledByPlayer$ unread; dirac does not lower it |
 | 723.3 | n/a | - | - | only the answering seat changes; objects and active player unchanged. dirac: no player-control effects |
 | 723.4 | n/a | - | - | REVISED: view widens from grant, not just the controlled turn (no ControlArmedTurn gate). dirac: n/a |
 | 723.5-723.5a | n/a | - | - | every decision redirected; costs paid from the controlled seat's resources. dirac: no player-control effects |

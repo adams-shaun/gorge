@@ -58,6 +58,12 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			}
 			break
 		}
+		if _, ok := r.Params["FoundSearchingLibrary"]; ok {
+			if err := lc.foundSearchExile(rp, r.With, &rl); err != nil { // lower_searchcontrol.go
+				return err
+			}
+			break
+		}
 		if ok, err := lc.discardOppToBattlefield(rp, r.With, &rl); ok || err != nil { // lower_discardetb.go
 			if err != nil {
 				return err
