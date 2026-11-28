@@ -184,6 +184,12 @@ func (s *State) availSansObj(k *prep, p uint8, o Obj, a *avail, planned bool) {
 		return
 	}
 	if pc.manaTap && !pc.manaSac && !pc.manaSacOnly && s.canTapForManaPC(k, sl, pc) && !s.tapStrands(k, sl) {
+		if k.painMana && pc.painCol != 0 && pc.painOnly {
+			// a kept pain-only source stands as the loop counts it, its
+			// TapExtra included and under the summed life guard
+			s.availForMode(k, p, a, slotMask{}, false)
+			return
+		}
 		if k.painMana && pc.painCol != 0 && !pc.painOnly && !a.pain.on {
 			// the census unit of a kept pain-tap source is the merged mask
 			// its faces make (a Talisman of Unity's "{T}: Add {C}" beside its
