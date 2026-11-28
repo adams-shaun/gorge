@@ -29,6 +29,10 @@ Part of the [repo map](repo-map.md) index. The platform chain is in
 | `spellbench-gorge-env` | The SpellBench Protocol v2 environment role over stdio, over `server/spellbench`'s catalog, mapping, session and validation. |
 | `spellbench-gorge-agent` | The SpellBench Protocol v2 agent role over stdio: serves gorge's registered bot policies. |
 | `keywordbench` / `paymirror` | Keyword presence stats / payment A/B CLI. |
+| `cardc` | The typed card interface's tool (`engine/cardc`): `report` and the `ogram` census. |
+| `countgrowth` / `funcgrowth` / `checkratchet` | The base-relative growth rules over `internal/codeshape`'s count metrics and function sizes (`make lint`), and the lint job's refusal of a PR that lowers a shrink-only ratchet. |
+| `irmeter` | Prints `internal/irmeter`'s metrics: how much of the code still reads Forge-spelled strings. |
+| `recstream` | Converts JSON Lines record history to and from `testkit/recstream`'s condensed form. |
 
 The compliance commands (`oraclediff`, `compliance`, `xmageport`, `oraclepacket`) live in gorge-compliance's `cmd/`.
 
@@ -48,8 +52,10 @@ The compliance commands (`oraclediff`, `compliance`, `xmageport`, `oraclepacket`
 | `docs/agents/` | This guide. |
 | `.githooks/` | pre-commit (gofmt on staged Go files, then `pkgmap-check`) and pre-merge-commit (`pkgmap-check`); pre-push (runs `scripts/pr-precheck.sh origin/main` on a pushed branch head unless that head already passed it, `PRECHECK=0` skips; the per-function growth rule `cmd/funcgrowth` against `origin/main` when the push carries Go changes, `SKIP_FUNCGROWTH=1` skips; opt-in `RACE=1` race gate on a push of main). `core.hooksPath=.githooks`. |
 | `scripts/` | Contributor/CI only: `test-targets.sh` (the `make test-*` targets), `ci-fast.sh`, `ci_shard.sh`, `smoke.sh`, `enginebench-*.sh`, `hostbench-pair.sh`, `xengine-bench.sh`, `wire-matrix.sh`, `open-pr.sh` (`make pr`), `dirac-gate.sh`, `dirac-evidence.sh`, `dirac-first-refusals.py`, `docs_*.py`. |
-| `.github/workflows/` | `ci.yml` (PR `fast` and `lint`; the merge-queue batch's shards, `examples`, `wire-matrix`, `dirac-slices` and `ci-ok`; a nightly run); `docs.yml` (regenerates the package map, builds the site `--strict`); `coverage.yml` (on push to main: `make coverage`, publishes `.coverage/` as the `card-coverage` artifact; commits nothing); `demo-image.yml` (builds the container demo image on a push to main, and pushes it only when the registry secrets are set); `daily-image.yml` (daily: builds the newest oracle-green main and pushes it to GHCR as `:YYYY-MM-DD`, `:latest`, `:<sha>`). |
-| `.github/workflows/oracle.yml` | Runs the whole `dirac/oracle` on main, hourly cron that starts only if no run began in the last 5h30m (about every 6 hours). |
+| `.github/workflows/` | `ci.yml` (PR `fast` and `lint`; the merge-queue batch's shards, `examples`, `wire-matrix`, `dirac-slices`, `dirac-repros`, `oracle-sentinels` and `ci-ok`; a nightly run); `docs.yml` (regenerates the package map, builds the site `--strict`); `coverage.yml` (on push to main: `make coverage`, publishes `.coverage/` as the `card-coverage` artifact; commits nothing); `demo-image.yml` (builds the container demo image on a push to main, and pushes it only when the registry secrets are set); `daily-image.yml` (daily: builds the newest oracle-green main and pushes it to GHCR as `:YYYY-MM-DD`, `:latest`, `:<sha>`). |
+| `.github/workflows/oracle.yml` | Runs the whole `dirac/oracle` on main in 14 parts: on every push to main and from an hourly cron, starting only if no run began in the last 1h45m (about every 2 hours). A red run bisects itself into a draft revert PR (`scripts/oracle-bisect.sh`). |
+| `.github/workflows/queue-precheck.yml` | On every push to main (and a 10-minute cron), merges the queue's next PRs onto the new main, runs the cheap checks and posts the `queue-precheck` status (`scripts/queue_precheck.py`); a veto only. |
+| `.github/workflows/pr-autoresolve.yml` | Merges main into open PRs that conflict with it only in generated files and pushes the merge (`scripts/pr-autoresolve.sh`). |
 | `.github/workflows/queue-cancel.yml` | Cancels orphaned merge-queue runs. |
 | `.mergify.yml` | The merge-queue configuration (batches of up to 10; `hotfix/*` jumps the queue). |
 | `testkit/testutil/testdata/wall_exceptions.txt`, `rss_exceptions.txt` | Shrink-only inventories of tests over the per-test wall / RSS budget. |

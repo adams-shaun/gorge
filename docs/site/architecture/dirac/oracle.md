@@ -139,9 +139,9 @@ counts the supported cards free of the limit.
 
 - `make dirac-slices` is the `dirac-slices` job in `.github/workflows/ci.yml`: every Mergify queue batch, `main`, the
   nightly run and on demand, never a pull request's own checks.
-- The whole of `dirac/oracle` is the `oracle` workflow (`.github/workflows/oracle.yml`): ten parts
-  (`scripts/ci-oracle-shard.sh`), started from an hourly cron only when no run began in the last 5h30m, so about every 6
-  hours on `main`, and on demand.
+- The whole of `dirac/oracle` is the `oracle` workflow (`.github/workflows/oracle.yml`): 14 parts
+  (`scripts/ci-oracle-shard.sh`), started on a push to `main` or from an hourly cron only when no run began in the last
+  1h45m, so about every 2 hours on `main`, and on demand.
 - `scripts/dirac-gate.sh <base>` holds a change to gorge and dirac together: gorge leads, and a change that alters
   behaviour on a supported card fixes dirac in the same change or refuses the card by name.
 
