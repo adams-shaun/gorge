@@ -1,5 +1,8 @@
-# fx-mutate: the K:Mutate cards this change lowers (wave-2 ticket 3); Brokkos, Illuna, Nethroi and the Count$TimesMutated cards stay refused by other reasons
+# fx-mutate: every K:Mutate card; each is refused by name (class deferred) until 2027-01-15
+Archipelagore
+Auspicious Starrix
 Boneyard Lurker
+Brokkos, Apex of Forever
 Cavern Whisperer
 Chittering Harvester
 Cloudpiercer
@@ -9,13 +12,18 @@ Dreamtail Heron
 Everquill Phoenix
 Gemrazer
 Glowstone Recluse
+Huntmaster Liger
+Illuna, Apex of Wishes
+Insatiable Hemophage
 Lore Drakkis
 Majestic Auricorn
 Migratory Greathorn
 Mindleecher
 Necropanther
+Nethroi, Apex of Death
 Otrimi, the Ever-Playful
 Parcelbeast
+Porcuparrot
 Pouncing Shoreshark
 Regal Leosaur
 Sawtusk Demolisher
