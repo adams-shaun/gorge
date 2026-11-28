@@ -33,27 +33,27 @@ var setBaseProbes = []string{
 	"Name:Setbase Wake\nManaCost:1\nTypes:Sorcery\n" +
 		"A:SP$ Untap | Defined$ Valid Creature.YouCtrl\n",
 	"Name:Setbase Doom\nManaCost:1\nTypes:Enchantment Aura\nK:Enchant:Creature\n" +
-		"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigKill\n" +
-		"SVar:TrigKill:DB$ Destroy | Defined$ Valid Card.EnchantedBy\n",
+		"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ SetbaseKill\n" +
+		"SVar:SetbaseKill:DB$ Destroy | Defined$ Valid Card.EnchantedBy\n",
 	// the watchers' triggers queue in the order the sweeps walk
 	"Name:Setbase Enrage\nManaCost:1\nTypes:Creature Bear\nPT:1/4\n" +
-		"T:Mode$ DamageDone | ValidTarget$ Card.Self | TriggerZones$ Battlefield | Execute$ TrigGain\n" +
-		"SVar:TrigGain:DB$ GainLife | Defined$ You | LifeAmount$ 1\n",
+		"T:Mode$ DamageDone | ValidTarget$ Card.Self | TriggerZones$ Battlefield | Execute$ SetbaseGain\n" +
+		"SVar:SetbaseGain:DB$ GainLife | Defined$ You | LifeAmount$ 1\n",
 	"Name:Setbase Wary\nManaCost:1\nTypes:Creature Bear\nPT:2/2\n" +
-		"T:Mode$ Taps | ValidCard$ Card.Self | TriggerZones$ Battlefield | Execute$ TrigGain\n" +
-		"SVar:TrigGain:DB$ GainLife | Defined$ You | LifeAmount$ 1\n",
+		"T:Mode$ Taps | ValidCard$ Card.Self | TriggerZones$ Battlefield | Execute$ SetbaseGain\n" +
+		"SVar:SetbaseGain:DB$ GainLife | Defined$ You | LifeAmount$ 1\n",
 	"Name:Setbase Lash\nManaCost:1\nTypes:Enchantment Aura\nK:Enchant:Creature\n" +
-		"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigDmg\n" +
-		"SVar:TrigDmg:DB$ DealDamage | Defined$ EnchantedOwner | NumDmg$ 1\n",
+		"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ SetbaseDmg\n" +
+		"SVar:SetbaseDmg:DB$ DealDamage | Defined$ EnchantedOwner | NumDmg$ 1\n",
 	"Name:Setbase Bite\nManaCost:1\nTypes:Enchantment Aura\nK:Enchant:Creature\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDmg\n" +
-		"SVar:TrigDmg:DB$ DealDamage | Defined$ Valid Card.EnchantedBy | NumDmg$ 1\n",
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ SetbaseDmg\n" +
+		"SVar:SetbaseDmg:DB$ DealDamage | Defined$ Valid Card.EnchantedBy | NumDmg$ 1\n",
 	"Name:Setbase Tithe\nManaCost:1\nTypes:Enchantment Aura\nK:Enchant:Creature\n" +
-		"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigLose\n" +
-		"SVar:TrigLose:DB$ LoseLife | Defined$ NonEnchantedController | LifeAmount$ 1\n",
+		"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ SetbaseLose\n" +
+		"SVar:SetbaseLose:DB$ LoseLife | Defined$ NonEnchantedController | LifeAmount$ 1\n",
 	"Name:Setbase Herald\nManaCost:1\nTypes:Creature Bear\nPT:1/3\n" +
-		"T:Mode$ Attacks | ValidCard$ Card.Self | TriggerZones$ Battlefield | Execute$ TrigLose\n" +
-		"SVar:TrigLose:DB$ LoseLife | Defined$ NonTriggeredDefendingPlayer | LifeAmount$ 1\n",
+		"T:Mode$ Attacks | ValidCard$ Card.Self | TriggerZones$ Battlefield | Execute$ SetbaseLose\n" +
+		"SVar:SetbaseLose:DB$ LoseLife | Defined$ NonTriggeredDefendingPlayer | LifeAmount$ 1\n",
 }
 
 // setBaseDecks are the two forty-card decks: names of the pool and of the
