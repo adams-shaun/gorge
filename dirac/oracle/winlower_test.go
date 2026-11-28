@@ -79,7 +79,7 @@ func TestLoweringThatWinsTheGameIsACompletedPlay(t *testing.T) {
 	if d.Kind != decision.KPriority || g.E.G.Step != state.StepMain1 {
 		t.Fatal("never reached seat 0's main phase")
 	}
-	g.id.sync(g.E.G)
+	g.id.sync(g.E.G, g.E.L.Events)
 	fc, ok := faceCastCode("adventure_alt")
 	if !ok {
 		t.Fatal("no face code for adventure_alt")
