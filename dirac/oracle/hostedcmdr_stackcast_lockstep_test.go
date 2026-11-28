@@ -25,7 +25,7 @@ import (
 // Each case asserts the lowered shape is in the table, plays clean, and (where
 // the games can reach it) diverges with that shape broken. The cards
 // kgen still refuses by name (Commandeer, Disrupting Shoal, Blazing Shoal,
-// Vivi Ornitier, Venerated Loxodon, Ob Nixilis, Captive Kingpin) are pinned in
+// Vivi Ornitier, Venerated Loxodon) are pinned in
 // dirac/kgen/hostedcmdr_stackcast_refusals_test.go.
 const hostedCmdrStackPool = "hostedcmdrstackcast"
 

@@ -34,7 +34,11 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		s.grantExile(k, in) // cast_exilegrant.go
 		return true, true
 	case kop.ExtEachDamage:
+		opened := s.lossBatchOpen(k) // one LifeLostAll group (gorge effEachDamage)
 		s.eachDamage(k, in)
+		if opened {
+			s.lossBatchClose(k)
+		}
 		return true, true
 	case kop.ExtRemoveCounterAny:
 		return s.rcaStart(k, in), true // ctr_removeany.go

@@ -18,8 +18,9 @@ import (
 //     this check, then the kernel's mana gate refuses: it gates only a plain {T}
 //     amount-1 unrestricted ability, not Vivi's {0} X-amount choice);
 //   - Venerated Loxodon: Defined$ Convoked (the kernel keeps only the count);
-//   - Ob Nixilis, Captive Kingpin: LifeLostAll (a simultaneous-loss batch the
-//     kernel does not form; kop.TrigLifeLostAll is reserved).
+//   - Ob Nixilis, Captive Kingpin now lowers (its LifeLostAll group trigger,
+//     lower_lifelostall.go): pinned empty here, and by
+//     dirac/oracle TestHostedCmdrLifeLostAll.
 //
 // Wastescape Battlemage's refusal sat at the build step (selfCastClause), past
 // this pass; its lowering is dirac.TestWastescapeKickedCastTriggers's.
@@ -35,7 +36,7 @@ func TestHostedCmdrStackCastRefusals(t *testing.T) {
 		"Blazing Shoal":               "",
 		"Vivi Ornitier":               `activation PlayerTurn$ "True" beside another condition`,
 		"Venerated Loxodon":           `Defined$ "Convoked"`,
-		"Ob Nixilis, Captive Kingpin": "trigger mode LifeLostAll",
+		"Ob Nixilis, Captive Kingpin": "",
 	}
 	seen := 0
 	for _, c := range cs {
