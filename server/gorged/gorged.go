@@ -273,6 +273,9 @@ type config struct {
 	// to today (scoping spec §5.4). A non-empty manabrewAddr implies this
 	// (applyManaBrew).
 	manabrew bool
+	// siteName is the -site-name flag: the text of the served index.html's
+	// title element (sitename.go).
+	siteName string
 	// manabrewAddr is the -manabrew-addr flag: an optional separate listener
 	// for the ManaBrew routes instead of sharing the main listener's topMux.
 	manabrewAddr string
@@ -521,6 +524,7 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.IntVar(&c.maxEvents, "max-events", 4, "maximum draft events not yet COMPLETE")
 	fs.IntVar(&c.rateLimit, "rate-limit", 10, "creating requests (POST /api/games, /api/events, /api/decks/check, /api/feedback) one client may make a minute; 0 = unlimited")
 	fs.IntVar(&c.rateBurst, "rate-burst", 10, "with -rate-limit: the most creating requests one client may make at once (>= 1)")
+	fs.StringVar(&c.siteName, "site-name", defaultSiteName, "the name in the served page's title")
 	fs.StringVar(&c.trustedProxyHeader, "trusted-proxy-header", "", "request header a trusted reverse proxy sets to the client's address (e.g. CF-Connecting-IP); the rate limiter keys on it. Empty keys on the connection's remote address. Set it only when every request arrives through that proxy")
 	return fs, c
 }
@@ -748,7 +752,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err := r.StartAll(); err != nil {
 		return err
 	}
-	opts := httpapi.Options{Web: c.offerSBV2(c.offerManaBrew(webFS())), Decks: deckCatalogue, BotPolicies: buildBotPolicyList(c.botPolicy, c.botPolicies), Engine: c.capabilityEngine(), NoManualMana: c.diracOn()}
+	opts := httpapi.Options{Web: c.offerSBV2(c.offerManaBrew(withTitle(webFS(), c.siteName))), Decks: deckCatalogue, BotPolicies: buildBotPolicyList(c.botPolicy, c.botPolicies), Engine: c.capabilityEngine(), NoManualMana: c.diracOn()}
 	opts.CheckDeck = c.checkDeck
 	var gate *seatGate
 	if len(c.humans) > 0 {
