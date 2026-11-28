@@ -1255,7 +1255,12 @@ func (s *State) removePainAvail(k *prep, a *avail, sl Slot, pc *pcard) {
 			n += r // the reflected extra rode the unit's amount (addPainAvail)
 		}
 	}
-	if m != 0 && !(a.pain.on && s.removeTightPain(k, a, sl, pc, m)) {
+	held := m != 0 && a.pain.on && s.removeTightPain(k, a, sl, pc)
+	a.painIn = a.painIn.without(sl)
+	if held && pc.painOnly {
+		return // its whole tap, the extra included, stood in the group
+	}
+	if m != 0 && !held {
 		a.remove(m, n)
 	}
 	if m == 0 || k.gen == nil || !k.gen.anyTapExtra {
@@ -1265,17 +1270,23 @@ func (s *State) removePainAvail(k *prep, a *avail, sl Slot, pc *pcard) {
 	if !ok {
 		return
 	}
-	both := m&(1<<kop.C) != 0
-	colours := m&^(1<<kop.C) != 0
-	for c := range xc {
-		n := xp[c]
-		if both && !colours {
-			n = xc[c]
-		}
+	for c, n := range painUnitExtra(pc, m, &xc, &xp) {
 		if n > 0 {
 			a.remove(1<<c, n)
 		}
 	}
+}
+
+// painUnitExtra is the extra standing beside the unit of mask m that a painful
+// source adds to the census, for the add (addPainAvail) and the removal alike: a
+// painland whose {C} ability alone is reachable brings that ability's xc; any
+// other the painful tap's xp. A pain-only source's one tap is the painful one,
+// whatever it makes (srcExtraPain never fills xc for it).
+func painUnitExtra(pc *pcard, m uint8, xc, xp *[kop.NumManaKinds]uint8) *[kop.NumManaKinds]uint8 {
+	if m == 1<<kop.C && !pc.painOnly {
+		return xc
+	}
+	return xp
 }
 
 // removeTightPain takes the painful source out of a's painTight groups, where
@@ -1283,35 +1294,33 @@ func (s *State) removePainAvail(k *prep, a *avail, sl Slot, pc *pcard) {
 // only the group's normal ability (prim) and its modal extra, so the removal by
 // painAvailMask above would find nothing, and the activation whose {T} taps the
 // source would still price its own cost's mana with it (Centaur Garden's
-// "{G}, {T}, Sacrifice" at two life). It reports false when no group holds the
-// source, leaving the caller's removal to run.
-func (s *State) removeTightPain(k *prep, a *avail, sl Slot, pc *pcard, m uint8) bool {
+// "{G}, {T}, Sacrifice" at two life). A pain-only source's group holds its
+// whole tap. It reports false when no group holds the source, leaving the
+// caller's removal to run; a wide tap the census never counted stands nowhere
+// in a, and is reported handled.
+func (s *State) removeTightPain(k *prep, a *avail, sl Slot, pc *pcard) bool {
 	pa := &a.pain
-	pm := uint8(pc.painCol) & 0x1f
-	prim := uint8(pc.manaCol) & 0x3f
-	var ob uint8
-	if pc.painOnly {
-		ob = 1
-		prim = 0
-	}
-	var ec uint8
-	if a.nModal != 0 && m&^(1<<kop.C) != 0 {
-		ec = s.painExtraC(k, sl, pc)
-	}
-	for g := uint8(0); g < pa.n; g++ {
-		if pa.mask[g] != pm || pa.prim[g] != prim || pa.only>>g&1 != ob || pa.ec[g] != ec || pa.w[g] != pc.painN || pa.cnt[g] == 0 {
-			continue
-		}
-		pa.cnt[g]--
-		if ob == 0 {
-			a.remove(prim, 1)
-			if ec != 0 {
-				a.remove(1<<kop.C, ec)
-			}
-		}
+	key := s.painKeyOf(k, sl, pc, s.perms[sl].ctrl, a.nModal != 0)
+	if key.wide() && !a.painIn.has(sl) {
 		return true
 	}
-	return false
+	g := pa.find(&key)
+	if g == pa.n || pa.cnt[g] == 0 {
+		return false
+	}
+	pa.cnt[g]--
+	if key.wide() {
+		n := min(uint16(key.tapSize()), pa.held)
+		a.total -= int(n)
+		pa.held -= n
+	}
+	if !key.only {
+		a.remove(key.prim, 1)
+		if key.ec != 0 {
+			a.remove(1<<kop.C, key.ec)
+		}
+	}
+	return true
 }
 
 // addPainAvail adds a painful source's units to a: its production mask (the
@@ -1366,17 +1375,13 @@ func (s *State) addPainAvail(k *prep, sl Slot, pc *pcard, p uint8, a *avail, ms 
 			s.addOneColour(a, n) // the activation's mana is all one colour of the pick
 		}
 	}
+	if m != 0 && pc.painOnly {
+		a.painIn = a.painIn.with(sl)
+	}
 	if m == 0 || !ok {
 		return
 	}
-	for c := range xc {
-		nx := xp[c]
-		if both && !colours && !pc.painOnly {
-			// a painland's separate {C} ability brings xc; a pain-only
-			// source's only tap is the painful one, whose extra is xp
-			// (srcExtraPain never fills xc for it)
-			nx = xc[c]
-		}
+	for c, nx := range painUnitExtra(pc, m, &xc, &xp) {
 		if nx > 0 {
 			a.addUnits(1<<c, nx)
 		}
