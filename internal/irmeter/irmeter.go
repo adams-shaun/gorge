@@ -10,11 +10,14 @@
 package irmeter
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -105,6 +108,29 @@ func Measure(root string) ([]Row, error) {
 		return rows[i].Scope < rows[j].Scope
 	})
 	return rows, nil
+}
+
+// Print writes the report, one metric<TAB>scope<TAB>value line each: rows,
+// then the kgen-filter section (its counts, its drop row and its site rows,
+// the share read against rows' refuse_sites count).
+func Print(w io.Writer, rows []Row, kf KgenFilter) error {
+	b := bufio.NewWriter(w)
+	line := func(r Row) { fmt.Fprintf(b, "%s\t%s\t%d\n", r.Metric, r.Scope, r.Value) }
+	refuseSites := 0
+	for _, r := range rows {
+		if r.Metric == "refuse_sites" && r.Scope == kgenScope {
+			refuseSites = r.Value
+		}
+		line(r)
+	}
+	for _, r := range kf.Rows() {
+		line(r)
+	}
+	fmt.Fprintln(b, kf.DropRow())
+	for _, s := range siteRows(kf, refuseSites) {
+		fmt.Fprintln(b, s)
+	}
+	return b.Flush()
 }
 
 func (c *counts) rows(scope string) []Row {
