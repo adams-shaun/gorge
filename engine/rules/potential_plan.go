@@ -2098,8 +2098,12 @@ func (e *Engine) planComposedCostFor(p state.PlayerID, id state.ObjID, cast deci
 }
 
 // planCostParts is the fixed-count tap and sacrifice parts of cost a mana plan
-// may compete for, and the source itself when the cost sacrifices it.
+// may compete for, and the source itself when the cost sacrifices it or
+// marks it (pay.PlanCostMarksSource: a counter or exert part on it).
 func planCostParts(cost Cost, id state.ObjID, selfSource bool) (parts []planCostPart, kept []state.ObjID) {
+	if selfSource && pay.PlanCostMarksSource(cost) {
+		kept = append(kept, id)
+	}
 	for _, part := range cost.TapPermanent {
 		if part.Dyn == "" && part.N > 0 {
 			parts = append(parts, planCostPart{part: part, tap: true})
