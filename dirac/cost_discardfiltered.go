@@ -60,7 +60,7 @@ func (s *State) handSharesColor(k *prep, o, cast Obj) bool {
 		return false
 	}
 	cols := k.t.Cards[s.objs[cast].card].Colors & kop.ColAny
-	return cols != 0 && k.t.Cards[s.objs[o].card].Colors&cols != 0
+	return cols != 0 && s.splitCardColors(k, o)&cols != 0
 }
 
 // discardPayable reports whether p's hand pays cost c's discard parts

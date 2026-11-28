@@ -212,7 +212,7 @@ func (s *State) sharesColorRem(k *prep, o Obj, mine kop.ColorMask) bool {
 	}
 	for i := 0; i < int(s.g.nrem); i++ {
 		r := s.g.rem[i]
-		if r != o && k.t.Cards[s.objs[r].card].Colors&mine != 0 {
+		if r != o && s.splitCardColors(k, r)&mine != 0 {
 			return true
 		}
 	}
