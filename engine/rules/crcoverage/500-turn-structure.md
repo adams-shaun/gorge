@@ -61,7 +61,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 506.7 | follows | `engine/rules/combat.go#Engine.finishAttackers` `engine/events/apply_combat.go#foldHadToAttack` `engine/effects/filter.go#predicates` | `TestCR506_7FirkraagRewardsARequiredAttacker` `TestCR506_7FirkraagIgnoresAFreeAttacker` `TestCR506_7HadToAttackPredicateIsRegistered` | recorded at declaration from the requirement set (HadToAttack event); hadToAttackThisCombat reads it under the combat stamp |
 | 506.8 | follows | `engine/rules/activation_phases.go#Engine.activationPhasesOK` | `TestActivationAfterBlockersExcludesEarlierSteps` |  |
 | 506.8a-506.8e | follows | `engine/rules/activation_phases.go#Engine.activationPhasesOK` | `TestBerserkFirstCombatOnly` `TestActivationAfterBlockersTrapRunnerOfferedOnceBlockersDeclared` | ActivationFirstCombat$ reads CombatsThisTurn |
-| 506.8f | deviates | `engine/rules/activation_phases.go#Engine.activationPhasesOK` | - | D13: after-blockers window admitted in end of combat when blockers skipped |
+| 506.8f | deviates | `engine/rules/activation_phases.go#Engine.activationPhasesOK` | `TestCRDeviation506_8f` | D13: after-blockers window admitted in end of combat when blockers skipped |
 | 506.8g | follows | `engine/rules/activation_phases.go#Engine.activationPhasesOK` | `TestActivationPhasesUpkeepAbilityOfferedOnlyInUpkeep` |  |
 | 507.1 | n/a | - | - | gorge: every opponent is a defending player (no choice) |
 | 507.2 | follows | `engine/rules/turn.go#Engine.step` `engine/rules/turn.go#Engine.priorityRound` | `TestKamahlBeginCombatTriggerFiresOnlyAtBeginCombat` |  |

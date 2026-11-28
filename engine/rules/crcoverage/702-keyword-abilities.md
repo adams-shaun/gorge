@@ -8,7 +8,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.1a,d | follows | `engine/effects/filter.go#init` | - | "with [kw]" reads derived keywords |
 | 702.1b,c | unknown | - | - | variable-in-granted-keyword reevaluation unchecked |
 | 702.2a,c,d,f | follows | `engine/rules/combat.go#Engine.lethalDamageNeed` `engine/rules/combat.go#Engine.runCombatAssignments` `engine/rules/engine_damage.go#Engine.damageKeywordsOf` | - | 1 is lethal for assignment; noncombat too |
-| 702.2b | deviates | `engine/rules/sba.go#Engine.destroyLethalDamage` `engine/rules/combat.go#Engine.cleanupBody` | - | mark outlives the SBA check (other engines same) |
+| 702.2b | deviates | `engine/rules/sba.go#Engine.destroyLethalDamage` `engine/rules/combat.go#Engine.cleanupBody` | `TestCRDeviation702_2b` | mark outlives the SBA check (other engines same) |
 | 702.2e | follows | `engine/rules/engine_damage.go#damageKeywordLKI` `engine/rules/engine_damage.go#Engine.damageKeywordsOf` | - |  |
 | 702.3a-c | follows | `engine/rules/combat/attack.go#CanAttack` `engine/rules/combat/attack.go#CanAttackPair` | - |  |
 | 702.4a-e | follows | `engine/rules/combat.go#combatRound.firstStrikers` `engine/rules/combat.go#Engine.anyFirstStrike` `engine/rules/combat.go#Engine.actsThisDamageStep` | `TestCR510PriorityBetweenDoubleStrikeDamageSteps` | 702.4c/d follow from step-begin record |
@@ -35,7 +35,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.18a,b | follows | `engine/rules/protection.go#Engine.shroudBlocksTarget` `engine/rules/playerkeywords.go#Engine.playerShroudBlocksTarget` | `TestPrintedShroudWithholdsCastWhenSoleTarget` `TestLightningGreavesGrantedShroudBlocksTargeting` `TestCR702KeywordFalseGapsAreRegistered` | - |
 | 702.19a,d | follows | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.lethalDamageNeed` | - | blocked-with-no-blockers trample hits player |
 | 702.19b | partial | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.lethalDamageNeed` | - | excess split is never a choice: all to player |
-| 702.19c,e | deviates | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.combatDefenderTarget` `engine/cards/face.go#KeywordHead` | - | Thrasta treated as plain trample; silent |
+| 702.19c,e | deviates | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.combatDefenderTarget` `engine/cards/face.go#KeywordHead` | `TestCRDeviation702_19c` | Thrasta treated as plain trample; silent |
 | 702.19f,g | follows | `engine/rules/combat.go#Engine.combatDefenderTarget` | - |  |
 | 702.20a-c | follows | `engine/rules/combat.go#Engine.finishAttackers` `engine/rules/staging.go#NewStaged` | - |  |
 | 702.21a | follows | `engine/cards/kw_ward.go#kwWard` `engine/rules/trigmatch/actions.go#becomesTargetMatches` `engine/rules/trigger_granted.go#Engine.checkGrantedWardTriggers` `engine/rules/pay/costsettle.go#PayDiscardCost` | `TestWardDoesNotTriggerForFriendlyTargetingStackObject` `TestGrantedWardFiresBesideLivePrintedTriggers` `TestManaWindowsServeAnInlineAnswerer` `TestWardDiscardPaymentIsADiscard` | mana and life forms; triggers too; a discard or sacrifice paid is the action itself, for what looks for one |
@@ -132,7 +132,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.82a-c | follows | `engine/cards/kw_devour.go#kwDevour` | - |  |
 | 702.83a,b | follows | `engine/cards/kw_exalted.go#kwExalted` `engine/rules/melee.go#Engine.checkGrantedAttackPumpTriggers` `engine/rules/exalted_granted.go#grantedKeywordInstances` | `TestExaltedDragonAttackSacrificesALand` `TestGrantedExaltedTriggersPerInstance` | a granted instance triggers beside the printed ones |
 | 702.84a | follows | `engine/rules/unearth.go#Engine.unearthEnter` `engine/rules/unearth.go#Engine.unearthReplacementApplies` | `TestUnearthKeywordExpandsToGraveyardAbility` | haste granted UntilEOT (CR: no duration) |
-| 702.85a | deviates | `engine/effects/cascade.go#effCascade` | - | rest bottomed in fixed, not random, order |
+| 702.85a | follows | `engine/effects/cascade.go#effCascade` | `TestFarmCascadeBottomOrderIsSeededShuffle` | re-audit 2026-11-27: rest bottomed in a seeded random order |
 | 702.85b,c | follows | `engine/rules/cascade.go#Engine.queueCascadeTriggers` | - |  |
 | 702.86a,b | follows | `engine/cards/kw_annihilator.go#kwAnnihilator` `engine/rules/scriptfacts/granted_keyword_trigger.go#GrantedKeywordTrigger` | `TestAnnihilatorArtisanSacrificesThePrintedAmount` `TestGrantedAnnihilatorSacrifices` | a layer-6 grant synthesizes the printed expansion's trigger; a non-literal N (Annihilator:X) builds none |
 | 702.87a-c | follows | `engine/cards/kw_levelup.go#kwLevelUp` | - |  |
@@ -178,7 +178,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.122e | follows | `engine/rules/ability_resolved.go#emitAbilityResolved` `engine/rules/trigmatch/becomescrewed.go#BecomesCrewedMatches` | `TestMobilizerMechTriggersWhenCrewResolves` `TestBecomesCrewedNotOnCounteredCrew` `TestMindlinkMechFirstTimeEachTurn` `TestMightyServantCrewedByExactlyTwo` | "becomes crewed" is the crew ability's resolution; the crewer count is that activation's tap election; a countered crew ability does not trigger |
 | 702.123 | follows | `engine/cards/kw_fabricate.go#kwFabricate` | `TestFabricateAngelOfInventionChoosesServosOrCounters` `TestFabricateCountScalesWithTheKeyword` |  |
 | 702.124a-702.124e | follows | `engine/deck/partner.go#IsPartnerPair` `engine/rules/commander_config.go#partnerPairOK` | `TestPartnerSeatsTwoCommanders` `TestFoodFellowshipPartnerPairSeatsBothCommanders` | Two commanders seated |
-| 702.124f,i | deviates | `engine/deck/partner.go#partnerHead` `engine/deck/partner.go#IsPartnerPair` | - | Pairs by head word only |
+| 702.124f,i | follows | `engine/deck/partner.go#partnerHead` `engine/deck/partner.go#IsPartnerPair` `engine/deck/partner.go#samePartnerAbility` | `TestIsPartnerPairPartnerTextMustMatch` | re-audit 2026-11-27: partner with [text] pairs only with the same text |
 | 702.124g-702.124h | follows | `engine/deck/partner.go#IsPartnerPair` | `TestPartnerSeatsTwoCommanders` |  |
 | 702.124j | follows | `engine/cards/kw_partner_with.go#kwPartnerWith` `engine/deck/partner.go#partnerWithNames` | `TestPartnerWithETBOffersNamedPartnerSearch` `TestPartnerWithExpansionSearchesTheFullPartnerName` |  |
 | 702.124k | not-impl | - | - |  |
