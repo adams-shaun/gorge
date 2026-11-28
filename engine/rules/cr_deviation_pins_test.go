@@ -91,8 +91,9 @@ func TestCRDeviation310_9a(t *testing.T) {
 }
 
 // TestCRDeviation506_8f pins the after-blockers activation window.
-// CR 506.8f (the row's id): "after blockers are declared" needs a
-// declare-blockers step, so a combat that skipped it never opens the window.
+// Coverage row 506.8f (an id of the 2026-09-25 text that the pinned index
+// does not list): "after blockers are declared" needs a declare-blockers
+// step (CR 509.1), so a combat that skipped it never opens the window.
 // The engine instead offers an ActivationAfterBlockers$ ability in the end of
 // combat step of a combat with no attackers.
 func TestCRDeviation506_8f(t *testing.T) {
@@ -117,7 +118,7 @@ func TestCRDeviation506_8f(t *testing.T) {
 		t.Fatalf("precondition: the probe is not on the battlefield: %+v", o)
 	}
 	if abilityFor(t, e, 0, id) == nil {
-		t.Fatal("the probe was withheld after a skipped declare-blockers step; the deviation is gone: update CR 506.8f's row")
+		t.Fatal("the probe was withheld after a skipped declare-blockers step; the deviation is gone: update coverage row 506.8f")
 	}
 	replayCheck(t, e, cfg)
 }
