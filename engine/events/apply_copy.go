@@ -24,7 +24,13 @@ func foldMutate(g *state.Game, e *Event) {
 	// survivor's Card/FaceIdx always describe the TOP card; every
 	// under-card lands in MergedCards, top-of-pile first, its object
 	// parked in ZCeased (no membership list, so no battlefield scan sees
-	// it as a second permanent). Nothing here reads a map or the clock, so
+	// it as a second permanent). Token status travels with the components
+	// (CR 730.2d: a merged permanent is a token only if its topmost
+	// component is one): a top merge gives the pile the mutating object's
+	// status and the demoted component the pile's old one. A mutating spell
+	// COPY is a token component wherever it lands (CR 608.3f, 707.10f). The
+	// Move fold ceases a token component with the pile instead of moving it
+	// to the pile's destination. Nothing here reads a map or the clock, so
 	// a log-only replay rebuilds the identical pile.
 	survivor := g.Obj(e.Obj)
 	if len(e.IDs) == 0 || survivor == nil || survivor.Card == nil ||
@@ -43,14 +49,22 @@ func foldMutate(g *state.Game, e *Event) {
 		// one for the demoted card. Snapshot before AddObject (it may
 		// reallocate g.Objs).
 		oldCard, oldFace, owner := survivor.Card, survivor.FaceIdx, survivor.Owner
+		// Both token tests ride the snapshot too: the statuses are exchanged
+		// with the cards.
+		wasToken, srcIsToken := survivor.IsToken, src.IsToken || src.IsCopy
 		parked := g.AddObject(oldCard, owner)
 		parked.Zone = state.ZCeased
+		parked.IsToken = wasToken
 		parkedID := parked.ID
 		survivor = g.Obj(e.Obj)
 		if survivor == nil {
 			return
 		}
 		survivor.SetCard(srcCard, srcFace)
+		// CR 730.2d: the pile is a token exactly when its new top is. A pile
+		// topped by a real card must shed both marks, or engine/rules/sba.go's
+		// ceaseDeadTokens would cease the card in the graveyard.
+		survivor.IsToken, survivor.IsCopy = srcIsToken, false
 		// The cards changed objects: the survivor's ID now carries the
 		// mutating card and parkedID the demoted one. A commander's
 		// designation is an attribute of the card (CR 903.3), so a
@@ -78,6 +92,9 @@ func foldMutate(g *state.Game, e *Event) {
 		// stack it beneath the survivor's existing cards (top-of-pile
 		// first, so the newest under-card goes last).
 		Move(g, src.ID, src.Zone, state.ZCeased)
+		if c := g.Obj(e.IDs[0]); c != nil && c.IsCopy {
+			c.IsToken, c.IsCopy = true, false // CR 608.3f
+		}
 		survivor = g.Obj(e.Obj)
 		if survivor == nil {
 			return
