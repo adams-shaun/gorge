@@ -775,7 +775,7 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 			}
 		}
 	}
-	return s.witnessKeepsTargets(k, p, s.objs[o].card, o, &cost) && s.planHoldsOnStack(k, p, o, &cost) // cast_planholdsonstack.go
+	return s.witnessKeepsTargets(k, p, s.objs[o].card, o, &cost, true) && s.planHoldsOnStack(k, p, o, &cost) // cast_planholdsonstack.go
 }
 
 // planDeclinesAddCost reports a spell gorge's planner never prices: rules
