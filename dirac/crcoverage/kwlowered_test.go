@@ -141,7 +141,7 @@ var loweredKeywordRule = map[string]string{
 	"Fortify": "702.67",
 	"Graft":   "702.58", "Hideaway": "702.75", "Job select": "702.182",
 	"Level up": "702.87", "Living Weapon": "702.92", "Living metal": "702.161",
-	"Menace": "702.111", "Mentor": "702.134", "Modular": "702.44",
+	"Menace": "702.111", "Mentor": "702.134", "Modular": "702.44", "Mutate": "702.140",
 	"More Than Meets the Eye": "702.162",
 	"Outlast":                 "702.107", "Persist": "702.79", "Phasing": "702.26", "Prowess": "702.108",
 	"Rampage": "702.23", "Ravenous": "702.156", "Replicate": "702.56", "Riot": "702.136",
