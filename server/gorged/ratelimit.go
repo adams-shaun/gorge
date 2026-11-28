@@ -117,10 +117,17 @@ func (l *rateLimiter) allow(key string) (ok bool, retry time.Duration) {
 }
 
 func (l *rateLimiter) refill(b *bucket, now time.Time) {
-	if el := now.Sub(b.last); el > 0 {
-		b.tokens = math.Min(float64(l.burst), b.tokens+el.Seconds()*float64(l.perMinute)/60)
-	}
+	b.tokens = l.tokensAt(b, now)
 	b.last = now
+}
+
+// tokensAt is b's tokens refilled up to now, without touching b: last
+// stays the time of b's last request, which evict ranks on.
+func (l *rateLimiter) tokensAt(b *bucket, now time.Time) float64 {
+	if el := now.Sub(b.last); el > 0 {
+		return math.Min(float64(l.burst), b.tokens+el.Seconds()*float64(l.perMinute)/60)
+	}
+	return b.tokens
 }
 
 // evict makes room for one bucket: every bucket that is full again goes,
@@ -131,8 +138,7 @@ func (l *rateLimiter) evict(now time.Time) {
 	var lru *bucket
 	dropped := false
 	for k, b := range l.buckets {
-		l.refill(b, now)
-		if b.tokens >= float64(l.burst) {
+		if l.tokensAt(b, now) >= float64(l.burst) {
 			delete(l.buckets, k)
 			dropped = true
 			continue

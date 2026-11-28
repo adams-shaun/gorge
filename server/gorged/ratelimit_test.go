@@ -185,3 +185,70 @@ func TestRateLimitOffIsNil(t *testing.T) {
 		t.Error("nil limiter's wrap did not return next")
 	}
 }
+
+// fillToCap fills l with rateLimitMaxBuckets keys k0..k4095 at 1 ms steps;
+// each spends one token, so none is full again by the end.
+func fillToCap(t *testing.T, l *rateLimiter, clk *rlClock) {
+	t.Helper()
+	for i := 0; i < rateLimitMaxBuckets; i++ {
+		clk.t = clk.t.Add(time.Millisecond)
+		if ok, _ := l.allow(fmt.Sprintf("k%d", i)); !ok {
+			t.Fatalf("k%d refused on its first request", i)
+		}
+	}
+	if len(l.buckets) != rateLimitMaxBuckets {
+		t.Fatalf("precondition: %d buckets, want %d", len(l.buckets), rateLimitMaxBuckets)
+	}
+}
+
+func TestRateLimitBucketCapEvictsLeastRecentlyUsed(t *testing.T) {
+	l, clk, _, _ := newTestLimiter(t, "")
+	fillToCap(t, l, clk)
+	// Precondition: no bucket is full again, so eviction must fall to LRU.
+	for k, b := range l.buckets {
+		if el := clk.t.Sub(b.last); b.tokens+el.Seconds()*float64(l.perMinute)/60 >= float64(l.burst) {
+			t.Fatalf("precondition: %s is full again", k)
+		}
+	}
+	// k0 is the oldest; touch k1 so it is the most recent.
+	clk.t = clk.t.Add(time.Millisecond)
+	l.allow("k1")
+	clk.t = clk.t.Add(time.Millisecond)
+	l.allow("new")
+	if _, ok := l.buckets["k0"]; ok {
+		missing := ""
+		for i := 1; i < rateLimitMaxBuckets; i++ {
+			if _, ok := l.buckets[fmt.Sprintf("k%d", i)]; !ok {
+				missing = fmt.Sprintf("k%d", i)
+			}
+		}
+		t.Fatalf("least recently used k0 kept; evicted %q instead", missing)
+	}
+	for _, k := range []string{"k1", "k2", "k4095", "new"} {
+		if _, ok := l.buckets[k]; !ok {
+			t.Errorf("%s evicted, want kept", k)
+		}
+	}
+	if len(l.buckets) != rateLimitMaxBuckets {
+		t.Errorf("%d buckets, want %d", len(l.buckets), rateLimitMaxBuckets)
+	}
+}
+
+func TestRateLimitBucketCapEvictsFullAgainFirst(t *testing.T) {
+	l, clk, _, _ := newTestLimiter(t, "")
+	fillToCap(t, l, clk)
+	// Make k100 full again while every other bucket stays short: give it
+	// back its token directly (an idle client whose bucket refilled).
+	l.buckets["k100"].tokens = float64(l.burst)
+	clk.t = clk.t.Add(time.Millisecond)
+	l.allow("new")
+	if _, ok := l.buckets["k100"]; ok {
+		t.Error("full-again k100 kept, want evicted")
+	}
+	if _, ok := l.buckets["k0"]; !ok {
+		t.Error("k0 evicted although a full-again bucket was available")
+	}
+	if len(l.buckets) != rateLimitMaxBuckets {
+		t.Errorf("%d buckets, want %d", len(l.buckets), rateLimitMaxBuckets)
+	}
+}
