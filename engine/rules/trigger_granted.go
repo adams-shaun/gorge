@@ -16,6 +16,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/chars"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -483,10 +484,7 @@ func (e *Engine) checkGrantedDethroneTriggers(observer *Engine, id state.ObjID, 
 	if ev.Kind != events.DeclareAttackers || !slices.Contains(ev.IDs, id) {
 		return
 	}
-	if e.hasKeywordH(id, kwhDethrone) && f.HasKeywordRef(kwRefDethrone) {
-		return
-	}
-	if !e.hasKeywordH(id, kwhDethrone) || f.HasKeywordRef(kwRefDethrone) {
+	if !e.hasKeywordH(id, kwhDethrone) || chars.PrintsKeyword(o, f, kwRefDethrone) {
 		return
 	}
 	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
@@ -532,7 +530,7 @@ func (e *Engine) checkGrantedTrainingTriggers(observer *Engine, id state.ObjID, 
 	if ev.Kind != events.DeclareAttackers || !slices.Contains(ev.IDs, id) {
 		return
 	}
-	if !e.hasKeywordH(id, kwhTraining) || f.HasKeywordRef(kwRefTraining) {
+	if !e.hasKeywordH(id, kwhTraining) || chars.PrintsKeyword(o, f, kwRefTraining) {
 		return
 	}
 	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
@@ -628,7 +626,7 @@ func (e *Engine) checkGrantedAttackKeywordTriggers(observer *Engine, id state.Ob
 	// own ability). A face-down object has no printed face (CR 708.8).
 	var printedLeft []string
 	if !e.faceDownPrintedHides(o) {
-		for _, k := range f.Keywords {
+		for _, k := range chars.PrintedKeywords(o, f) {
 			if cards.KeywordHead(k) == "Firebending" {
 				printedLeft = append(printedLeft, k)
 			}
@@ -865,7 +863,7 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 		// (CR 708.8): a cloaked card whose real face prints Ward must not
 		// suppress its own cloak-ward -- the derived list is the only
 		// keyword source on this path.
-		for _, k := range f.Keywords {
+		for _, k := range chars.PrintedKeywords(o, f) {
 			printed[strings.ToLower(k)] = true
 		}
 	}
@@ -1572,7 +1570,7 @@ func (e *Engine) grantedCumulativeCosts(id state.ObjID, f *cards.Face) []string 
 		return nil
 	}
 	var printed map[string]bool
-	for _, k := range f.Keywords {
+	for _, k := range chars.PrintedKeywords(e.G.Obj(id), f) {
 		if strings.EqualFold(cards.KeywordHead(k), "Cumulative upkeep") {
 			if printed == nil {
 				printed = map[string]bool{}
