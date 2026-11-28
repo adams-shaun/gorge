@@ -1,0 +1,14 @@
+{
+  "card": "Shifting Woodland",
+  "class": "unmodelled-prevscopecopy",
+  "why": "gorge does something the kernel does not model here (stall prevscopecopy); recorded from ev-cmdr-shifting-woodland pair 62",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 15785106987598243272,
+    "pair": 62,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "shifting_woodland_hosted_cmdr_focus"
+  }
+}

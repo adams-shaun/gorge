@@ -1,0 +1,3 @@
+# ev-cmdr-price-of-progress: Price of Progress, unverified in hosted-cmdr (cli-20261127T093705Z-1fed1794)
+# replay: host pool tail-17; kfuzz -synth tail-17 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-price-of-progress.txt -play-refused -seed 1 -first-pair 173 -pairs 1 -surface autopay -mulligans 0
+Price of Progress

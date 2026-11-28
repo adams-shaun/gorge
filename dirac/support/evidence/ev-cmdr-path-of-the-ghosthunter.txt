@@ -1,0 +1,274 @@
+A-Dwarfhold Champion
+A-Gnarlid Colony
+A-Hall of Tagsin
+Abjure
+Agoraphobia
+Ajani, Strength of the Pride
+Akroma's Will
+Algae Gharial
+Alpine Guide
+Angelic Voices
+Annihilating Glare
+Aphemia, the Cacophony
+Archdemon of Paliano
+Arctic Aven
+Artful Dodge
+Ascendant Evincar
+Assassin Initiate
+Astral Steel
+Aurification
+Bag End Porter
+Baku Altar
+Barbarian Lunatic
+Barrenton Cragtreads
+Battlewise Hoplite
+Benthicore
+Berserk
+Bifur, Melodic Rider
+Black Market
+Blazing Rootwalla
+Blink of an Eye
+Blood-Toll Harpy
+Bloodbriar
+Bloodsworn Squire
+Brute Strength
+Bucky Barnes, Eager Ally
+Caller of Gales
+Carnophage
+Cephalopod Sentry
+Cerulean Drake
+Chasm Skulker
+Cinder Storm
+City of Traitors
+Clearwater Pathway
+Cloudgoat Ranger
+Colossal Plow
+Comparative Analysis
+Consecrate
+Constricting Sliver
+Control of the Court
+Craven Hulk
+Curse Artifact
+Dakmor Sorceress
+Dawnbringer Cleric
+Day of the Dragons
+Deadeye Harpooner
+Deceiver Exarch
+Defiant Falcon
+Demonic Consultation
+Desmond Miles
+Devour Flesh
+Devour in Shadow
+Diabolic Revelation
+Disfigure
+Divine Verdict
+Dragonstalker
+Dream's Grip
+Druidic Satchel
+Dwarven Hammer
+Elephant Graveyard
+Elspeth, Sun's Champion
+Elven Rite
+Emry, Lurker of the Loch
+Ensouled Scimitar
+Eternity Snare
+Faerie Noble
+Fall of the Gavel
+Feral Roar
+Feral Shadow
+Ferrous Lake
+Fiery Islet
+Firebolt
+Flametongue Kavu
+Fleshtaker
+Forbidden Friendship
+Forced Fruition
+Forest
+Funeral Charm
+Furnace Whelp
+Future Flight
+Galerider Sliver
+Geothermal Bog
+Gerrard's Wisdom
+Gift of Wrath
+Glamdring
+Glistener Seer
+Glorifier of Dusk
+Gnottvold Recluse
+Gobbling Ooze
+Goblin Razerunners
+Goblin War Cry
+God-Pharaoh's Statue
+Graveborn Muse
+Grim Flowering
+Grotag Thrasher
+Gutter Skulker
+Hellkite Whelp
+Hematite Golem
+Heron-Blessed Geist
+Hideous Visage
+Hithlain Knots
+Hovermyr
+Icequake
+Icy Prison
+Induce Paranoia
+Ironroot Warlord
+Irresistible Prey
+Island
+Jace's Sanctum
+Jamie McCrimmon
+Juvenile Mist Dragon
+Kagemaro's Clutch
+Kami of Twisted Reflection
+Kemuri-Onna
+Kindly Stranger
+Koskun Keep
+Labyrinth Champion
+Larder Zombie
+Lay Down Arms
+Lead Astray
+Leaden Myr
+Leonin Den-Guard
+Leyline Invocation
+Life Burst
+Loam Lion
+Lose Hope
+Lost in a Labyrinth
+Lotus Bloom
+Loxodon Wayfarer
+Malakir Rebirth
+Mana Cannons
+Mana Geyser
+Mer Man
+Metathran Transport
+Midsummer Revel
+Minas Tirith
+Mind Knives
+Mindless Conscription
+Mogg Hollows
+Monstrous Growth
+Mordenkainen
+Mortal Obstinacy
+Mountain
+Multani's Harmony
+Myojin of Infinite Rage
+Myr Propagator
+Naya Panorama
+Nemesis Mask
+Nemesis of Mortals
+Nissa, Worldwaker
+Numbing Jellyfish
+Nyxborn Seaguard
+Of Herbs and Stewed Rabbit
+Opaline Bracers
+Overcome
+Palazzo Archers
+Parallax Tide
+Path of Bravery
+Pathway Arrows
+Pendelhaven
+Petrified Plating
+Phyrexian Warhorse
+Piper Wright, Publick Reporter
+Pirate's Pillage
+Plains
+Pointed Discussion
+Pool Resources
+Powerstone Fracture
+Prava of the Steel Legion
+Protection Magic
+Proud Mentor
+Pygmy Kavu
+Raptor Hatchling
+Recycle
+Redirect
+Rock Slide
+Rotting Regisaur
+Sacrifice
+Sage's Row Denizen
+Sakashima's Student
+Sanctum Weaver
+Sanguine Statuette
+Scrapyard Recombiner
+Screeching Silcaw
+Seachrome Coast
+Secrets of the Key
+Seedcradle Witch
+Send to Sleep
+Sentinels of Glen Elendra
+Setessan Griffin
+Shacklegeist
+Sheltered Thicket
+Shenanigans
+Shire Terrace
+Silkenfist Order
+Silver Seraph
+Skyclave Apparition
+Skyreaping
+Skyshroud Condor
+Sledding Otter-Penguin
+Sleep of the Dead
+Slip On the Ring
+Smelted Chargebug
+Smoldering Crater
+Somberwald Beastmaster
+Sparkshaper Visionary
+Spinneret Sliver
+Splendid Agony
+Sporeweb Weaver
+Squeaking Pie Sneak
+Stampede Driver
+Stand
+Steel Sabotage
+Stirring Wildwood
+Stonewright
+Stormrider Spirit
+Strixhaven Stadium
+Sudden Death
+Supreme Phantom
+Surrakar Spellblade
+Surtr, Fiery Jötun
+Swamp
+Sweep Away
+Sweet-Gum Recluse
+Take Heart
+Temporary Insanity
+Tendrils of Agony
+Territorial Scythecat
+The Everforger
+The Revelations of Ezio
+Tidebinder Mage
+Tidepool Turtle
+Tomakul Honor Guard
+Tormentor Exarch
+Tortoise Formation
+Tower of the Magistrate
+Traverse Eternity
+Treetop Recluse
+Treetop Scout
+Trueheart Duelist
+Ugin's Conjurant
+Ugin's Construct
+Unagi's Spray
+Unconventional Tactics
+Usher of the Fallen
+Vampire Opportunist
+Vermiculos
+Vicious Offering
+Victimize
+Voice of Law
+Voidmage Prodigy
+Voracious Vampire
+Walking Sponge
+Wash Out
+Watcher of Hours
+Welding Jar
+Welkin Hawk
+Wild Instincts
+Wildwood Geist
+Wirewood Channeler
+Wirewood Hivemaster
+Yavimaya, Cradle of Growth
+Yotian Soldier
+Zulaport Cutthroat
+Éomer of the Riddermark

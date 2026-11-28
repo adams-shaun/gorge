@@ -1,0 +1,14 @@
+{
+  "card": "Chromatic Orrery",
+  "class": "projection-Cards.Pos",
+  "why": "the engines' state differs at projection Cards.Pos; recorded from ev-cmdr-chromatic-orrery pair 223",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 10775698373588596431,
+    "pair": 223,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "chromatic_orrery_hosted_cmdr_focus"
+  }
+}

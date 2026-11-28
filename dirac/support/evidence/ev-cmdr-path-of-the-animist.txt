@@ -1,0 +1,255 @@
+A-Kenku Artificer
+A-Moon-Circuit Hacker
+Adder-Staff Boggart
+Agadeem Occultist
+Aggravated Assault
+Ajani Goldmane
+Alabaster Wall
+Aladdin's Ring
+Anaba Ancestor
+Ancient Kavu
+Ascending Aven
+Assembled Alphas
+Augur of Bolas
+Aven Battle Priest
+Azorius Keyrune
+Baron Sengir
+Baru, Wurmspeaker
+Bast, Panther Goddess
+Beetleform Mage
+Bend or Break
+Bereaved Survivor
+Binding Geist
+Blitz Automaton
+Bloodline Necromancer
+Bloodthorn Taunter
+Blor the Impervious
+Bog-Strider Ash
+Bogardan Rager
+Broken Visage
+Bubble Matrix
+Bull's Strength
+Cankerbloom
+Carnage Altar
+Castle Embereth
+Catti-brie of Mithral Hall
+Chainer's Edict
+Chaplain of Alms
+Charitable Levy
+Charmed Stray
+Charnel Troll
+Cho-Manno, Revolutionary
+Choking Fumes
+Choose Your Weapon
+Chronomancer
+Cinder Crawler
+Cinderbones
+Citanul Woodreaders
+Conformer Shuriken
+Cosi's Ravager
+Court of Cunning
+Crescendo of War
+Crimson Hellkite
+D'Avenant Healer
+Deceptive Frostkite
+Deepcavern Imp
+Defender of Law
+Dehydration
+Destroy Evil
+Digsite Engineer
+Dirtwater Wraith
+Domri's Nodorog
+Dragonstorm
+Drannith Ruins
+Dreadwaters
+Drover of the Mighty
+Dungeoneer's Pack
+Dwarven Scorcher
+Dynacharge
+E. Honda, Sumo Champion
+Encampment Keeper
+Endless Scream
+Ertai's Scorn
+Experimental Armor
+Eye of Singularity
+Eye of Yawgmoth
+Fast
+Field of Dreams
+Filigree Attendant
+Flawless Forgery
+Flight Spellbomb
+Flux Channeler
+Forced Retreat
+Forest
+Forgehammer Centurion
+Foul Play
+Freed from the Real
+Fumble
+Furnace Dragon
+Furystoke Giant
+Futurist Sentinel
+Gaea's Herald
+Galadhrim Brigade
+Game-Trail Changeling
+Geist Snatch
+Geistblast
+Generous Patron
+Gift of the Viper
+Glimmerpost
+Glimpse of Nature
+Glistening Dawn
+Gluttonous Slug
+Goring Ceratops
+Great-Horn Krushok
+Greater Forgeling
+Hadran, Naya Sunseeder
+Hatred
+Haywire Mite
+Heartless Conscription
+Heartless Summoning
+Hedron Crawler
+Hell Mongrel
+Hellfire Mongrel
+Hoard Hauler
+Horde of Boggarts
+Hurloon Shaman
+Ihsan's Shade
+Induced Amnesia
+Infinity Formula
+Infused Arrows
+Into the Story
+Invasion of Lorwyn
+Island
+Jace, Ingenious Mind-Mage
+Jokulmorder
+Jyoti, Moag Ancient
+Kabira Outrider
+Kami of the Palace Fields
+Kindred Summons
+Knight of Infamy
+Kolaghan Forerunners
+Land Grant
+Leinore, Autumn Sovereign
+Leyline of Lightning
+Liberate
+Lightning Cloud
+Lightning Serpent
+Lingering Phantom
+Machinate
+Machine Man, Model X-51
+Mage Duel
+Manabond
+Mardu Banner
+Markov Baron
+Mech Hangar
+Meldweb Curator
+Meng Huo, Barbarian King
+Mental Discipline
+Merchant Ship
+Minotaur Skullcleaver
+Mist Dragon
+Mogg Alarm
+Moment of Heroism
+Moment of Silence
+Moment's Peace
+Monstrous Onslaught
+Mothrider Samurai
+Mountain
+Mournful Zombie
+Namora, the Sea Queen
+Nantuko Shade
+Nephalia Drownyard
+Nightveil Sprite
+Nimraiser Paladin
+No Rest for the Wicked
+Noxious Toad
+Nurturing Peatland
+Oasis
+Oath of the Ancient Wood
+Obelisk of Esper
+Octavia, Living Thesis
+Oracle of Tragedy
+Ordeal of Purphoros
+Overgrown Arch
+Phyrexian Fleshgorger
+Plains
+Poultrygeist
+Precognitive Perception
+Predator's Howl
+Press for Answers
+Protector of the Crown
+Psychic Trance
+Pyromatics
+Ranger's Hawk
+Ravenous Bloodseeker
+Reiver Demon
+Relentless Rohirrim
+Relic Bane
+Repercussion
+Rescue
+Restore
+Ronin Cliffrider
+Rootpath Purifier
+Sanguine Bond
+Seaside Haven
+Second Breakfast
+Seed Spark
+Sentinel's Eyes
+Shamanic Revelation
+Sheoldred's Edict
+Shepherd of the Cosmos
+Shield Mare
+Shriekhorn
+Shrill Howler
+Shrivel
+Sinking Feeling
+Skyspear Cavalry
+Slimefoot, the Stowaway
+Snapcaster Mage
+Snarling Warg
+Soltari Crusader
+Spellskite
+Spire Mangler
+Sprouting Renewal
+Stoneshaker Shaman
+Stormcrag Elemental
+Strafe
+Stunted Growth
+Swamp
+Swarmyard
+Take Possession
+Taunting Challenge
+Teferi's Ageless Insight
+Tenured Oilcaster
+Thrasher Brute
+Thriss, Nantuko Primus
+Titans' Vanguard
+Topan Ascetic
+Tormented Hero
+Tower Defense
+Tower Drake
+Tunnel
+Uktabi Efreet
+Uncaged Fury
+Uncanny Speed
+Unyaro Griffin
+Urborg Mindsucker
+Vampire Revenant
+Vampire Warlord
+Vectis Gloves
+Vengeful Regrowth
+Venom Blast
+Venser, Fervent Forger
+Vulshok Refugee
+Waker of Waves
+Wand of Denial
+Wand of the Elements
+Wandering Tombshell
+War Priest of Thune
+Warfire Javelineer
+When We Were Young
+Wicked Wolf
+Xiahou Dun, the One-Eyed
+You Come to the Gnoll Camp
+Zhao, the Seething Flame
+Zuran Orb

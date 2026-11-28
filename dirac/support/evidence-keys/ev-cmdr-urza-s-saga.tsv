@@ -1,0 +1,208 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Armory Veteran	b8519bf0a57c7b86	29	1/1		1/1	
+A-Dokuchi Silencer	570122dbf2281164	55	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+A-Orcish Bowmasters	ecb5e604fce415b1	64	1/1		1/1	
+Academy Elite	4321891ab13e4da9	66	1/1		1/1	
+Acolyte's Reward	83032aed41a4c79e	69	0/0		2/2	
+Aerial Guide	0586c2f2afa4c8ee	57	1/1		0/1	ix:resp
+Aerie Mystics	afa31da80f49fbca	24	1/1		1/1	
+Alchemist's Gift	a45c2e153ae0aa99	89	0/0		2/2	
+Amateur Auteur	c544b3032292dcbf	20	1/1		0/1	ix:resp
+Anaconda	0969ca0da0adba92	53	0/0		0/0	
+Ancient Carp	3c92e8e05adc50e3	68	0/0		0/0	
+Awe for the Guilds	49f88e15347f2f65	47	0/0		2/2	
+Baton of Courage	37af939224f8a158	45	1/1		1/1	
+Battleground Geist	02f029d75fa8cee9	50	0/0		0/0	
+Ben-Ben, Akki Hermit	61c0d18551f0c72c	37	1/1		1/1	
+Benalish Honor Guard	c286491d5696ab61	32	0/0		0/0	
+Blind with Anger	7ed8feea5be08fa5	36	0/0		2/2	
+Bloodfire Expert	238de0276a100009	50	1/1		1/1	
+Bogbrew Witch	32c9fc32864a9145	68	1/1		1/1	
+Boon of Safety	7d23d784d0ff7494	66	0/0		2/2	
+Braingeyser	1d6070c1873c266b	52	0/0		3/4	f0/s/x0
+Bull Rush	68e3a52613fa0366	64	0/0		2/2	
+Burning Earth	d81f436e123f6c82	35	1/1		1/1	
+Burning Wish	44e90b4985484e8c	43	0/0		2/2	
+Campaign of Vengeance	9f90c2fa23e435e8	18	1/1		1/1	
+Captivating Gyre	751ced8b3f0cef38	40	0/0		2/2	
+Cat Oven	210d257086168745	58	2/2		1/1	
+Cathedral Sanctifier	6e88945b3c139963	50	1/1		1/1	
+Caustic Caterpillar	58b166706c71a64f	67	1/1		1/1	
+Cerebral Eruption	599d4b7beb3a208d	16	0/0		2/2	
+Cerodon Yearling	d60efde6bbc52592	20	0/0		0/0	
+Collected Conjuring	a4302db8c0ac76b6	30	0/0		2/2	
+Conjured Currency	9fd68b85321f17b3	28	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Conquer	bf9b3ea3e72ba2a4	18	0/0		2/2	
+Coordinated Barrage	223fa21c1388d50e	12	0/0		2/2	
+Crypt Cobra	cd3fb2d6b9dc60cf	76	1/1		1/1	
+Crystal Chimes	1c68cdef4a82f241	45	1/1		0/1	ix:resp
+Cut Your Losses	4ea15243b0295558	50	0/0		1/2	ix:resp
+Daggerclaw Imp	cfda2ba1ab6dec09	70	0/0		0/0	
+Dalek Drone	41cdbe52c3e6f154	61	1/1		1/1	
+Dangerous Wager	a440a8401fe2ab7e	42	0/0		2/2	
+Deadbridge Shaman	395dc3f31781c408	83	1/1		1/1	
+Deep Analysis	372f26bba6025e6a	114	0/0		4/4	
+Defiler of Flesh	17ad819ae7bfd163	47	1/1		0/1	ix:resp
+Desperate Charge	0314d060c760dbad	61	0/0		2/2	
+Detective of the Month	50ace7d4bfcc439e	81	1/1		1/1	
+Dispel	3f6b9f97fe866b83	39	0/0		2/2	
+Doomed Necromancer	9865f32d33699aa5	63	1/1		1/1	
+Dune Chanter	824dab577edd4813	67	1/1		1/1	
+Eccentric Farmer	0b956e7d6920c29d	54	1/1		1/1	
+Elvish Visionary	285286eb146ffcae	48	1/1		1/1	
+Embereth Paladin	d30b91f1917c7291	17	0/0		0/0	
+Enduring Victory	8819a503a0d14628	11	0/0		2/2	
+Ensnare	865fa0c454464cc9	79	0/0		2/2	
+Eutropia the Twice-Favored	76283c1dc633101f	39	1/1		1/1	
+Evolution Charm	88c4e685f8c30480	79	0/0		2/2	
+Fallaji Chaindancer	cf33b39a650da41f	23	1/1		1/1	
+Ferrovore	aaf4dee6ab217519	40	1/1		1/1	
+Feywild Visitor	0a693b3ea8ce6368	44	0/0		0/0	
+Field Research	0d45e226e971b5eb	94	0/0		3/4	ix:resp
+Fire Shrine Keeper	36debb46b9a96af1	47	1/1		1/1	
+Flow of Knowledge	e54e374a40d23a13	39	0/0		2/2	
+Flowstone Shambler	42d7bdedbce5c6de	50	1/1		1/1	
+Forest	6d0466c30f825dba	1855	1/1		0/1	ix:resp
+Freewind Falcon	5325f302acf7f9fc	71	0/0		0/0	
+Frenzied Saddlebrute	b25ae395e2962792	23	0/0		0/0	
+Garbage Elemental	740235df3463a3d4	23	0/0		0/0	
+Garruk's Warsteed	4efb3e2512ce310e	30	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Giant Inheritance	0d4aeb029b4db490	60	1/1		2/2	
+Gnarled Sage	d2a849f7573e191d	28	0/0		0/0	
+Goblin Archaeologist	991499adcecf2508	51	1/1		1/1	
+Goblin Dirigible	f0903e30cbc7ff04	32	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Goretusk Firebeast	a1432fe2ac872975	28	1/1		1/1	
+Granite Gargoyle	bd80eb07da6ddbb0	49	1/1		1/1	
+Gristleback	eaa77261108aa341	66	1/1		1/1	
+Growth Cycle	4e59359cccd30e0f	73	0/0		2/2	
+Guardian Automaton	32962fdc2ba8ecf5	55	1/1		1/1	
+Guardian Lions	156437887363f7f1	26	0/0		0/0	
+Gwaihir the Windlord	1c786a7879663e26	13	0/0		0/0	
+Hallowed Healer	e444e125de1e4fb6	54	2/2		1/1	
+Hammer Dropper	831909250d92d008	20	1/1		1/1	
+Hanna, Ship's Navigator	c3335e4c60277a73	34	1/1		1/1	
+Harbinger of the Seas	d0918137fc04875a	29	0/0		0/0	
+Harsh Sustenance	e420aef55ec79aad	27	0/0		2/2	
+Hearth Kami	3dde90f6de22a369	42	1/1		1/1	
+Hidden Gibbons	a48f2cedf3b09f86	67	1/1		1/1	
+Hideous End	02b7ede3b85df9fb	62	0/0		2/2	
+Hit-Monkey	dbc816e1709c9f01	40	0/0		0/0	
+Hold for Questioning	1771706b6cd7930e	47	1/1		2/2	
+Huatli's Snubhorn	589d046f2b5dc6f0	13	0/0		0/0	
+Hydroblast	6ab1300dc404576a	85	0/0		2/2	
+Hydrolash	8336575e8fde4582	87	0/0		2/2	
+Imperial Ceratops	5c7669e79514f4e1	29	1/1		1/1	
+Invincible Hymn	787dcba5371f0758	7	0/0		1/2	ix:resp
+Island	763c67ef7a27eaf5	3007	1/1		0/1	ix:resp
+Jeska, Warrior Adept	ac90e9e64b8a1341	41	1/1		1/1	
+Join the Dance	ab1f07a30c735be5	52	0/0		3/4	ix:resp
+Junk Jet	bfd9369c70a2d13e	52	3/3		1/1	
+Kamahl's Druidic Vow	c3494f6c51edbf4c	10	0/0		3/4	f0/s/x0
+Kessig Naturalist	a13882d347a8fbb5	30	2/2		1/1	
+Kin-Tree Warden	37dfc91b4bc21323	49	1/1		2/3	cast/alt:morphed
+Kyoshi Warrior Guard	8be6691bb87008d2	52	0/0		0/0	
+Lair Delve	62ff25b8115c52d4	50	0/0		1/2	ix:resp
+Lightning Spear	5f77b304c1313075	59	2/2		1/1	
+Llanowar Vanguard	46ed0f6574842ddd	71	1/1		1/1	
+Mask of Memory	04785a8ce89bb6cc	60	2/2		1/1	
+Mechanical Glider	94e7423797d80a8b	47	2/2		1/1	
+Meldweb Strider	a4fa726a29c85cf4	41	2/2		1/1	
+Mephitic Ooze	7a4438c642c28747	66	1/1		1/1	
+Metastatic Evangel	40609102f9a6fc56	21	1/1		0/1	ix:resp
+Militia Rallier	908f293be3f39bbe	43	1/1		0/1	ix:resp
+Mind Rot	64e80926a698fe7f	63	0/0		2/2	
+Mine Worker	b2c79d3bc115d848	86	1/1		1/1	
+Mistmeadow Vanisher	12e56d753f594bed	15	1/1		0/1	ix:resp
+Molten Hydra	8490baa3c7b6262b	47	2/2		1/1	
+Morbid Opportunist	24722ae9947e36da	82	1/1		1/1	
+Morningtide	f677ef1fff0ca117	18	0/0		1/2	ix:resp
+Mountain	9e71388353e907ed	1523	1/1		0/1	ix:resp
+Myojin of Blooming Dawn	37ca8b8b64658b3b	13	1/1		0/1	ix:resp
+Nefashu	585199bf13e9ecec	37	1/1		1/1	
+Nezumi Graverobber	009f1970d78fa551	56	2/2		1/1	
+Nightmare Void	512676295db8a7ed	170	0/0		2/2	
+Nuka-Cola Vending Machine	3bd998c64eab26ce	62	2/2		1/1	
+Nylea's Colossus	8de5f5ebdf1de636	26	1/1		1/1	
+Nylea, God of the Hunt	81e4fda765f7fac7	39	1/1		1/1	
+Ogre Slumlord	83ce40f711352da0	47	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Overwhelming Remorse	02440e4fce36be77	43	0/0		2/2	
+Pathmaker Initiate	c4d3a9eeb6d47a0f	53	1/1		1/1	
+Paul Atreides, Ducal Heir	8f53bb811d49e139	35	2/2		1/1	
+Phantatog	76c5c8ba19ae287e	29	2/2		1/1	
+Piston Sledge	c82ecf9a3595fd46	61	2/2		1/1	
+Plains	82d63a695487e567	1509	1/1		0/1	ix:resp
+Planar Despair	7865902e8b8cc4c7	41	0/0		2/2	
+Predator's Strike	cbf3cdd2bde99d4f	58	0/0		2/2	
+Primal Boost	feb8116f0288acf3	38	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
+Pyrogoyf	91f9e5534b0f9bb4	44	1/1		1/1	
+Ranger's Firebrand	dfcccac5362ff935	53	0/0		2/2	
+Ravenous Slime	6eeebdebd21d8dc2	61	0/0		0/0	
+Raving Oni-Slave	b5c332280de08f81	73	2/2		1/1	
+Recruit the Worthy	f7e9a66721df085c	60	0/0		4/4	
+Release the Ants	b9d20c74029a1d32	58	0/0		2/2	
+Restock	f5446cdf56232fc5	35	0/0		1/2	ix:resp
+Retribution of the Meek	f3150ac00cdbd5a1	19	0/0		1/2	ix:resp
+Revolutionary Rebuff	c1b196d9d6c83645	61	0/0		2/2	
+Revolutionist	d4870f58c58ea065	27	1/1		1/1	
+Rise of the Witch-king	d10bb2c61d273472	21	0/0		2/2	
+Rishkar, Peema Renegade	a2f64e3304e2399d	73	1/1		0/1	ix:resp
+Roc Hatchling	018d1b1ab75bedb4	40	1/1		1/1	
+Scalding Salamander	e36590bb5b634519	43	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Scion Summoner	226cba92fd23e5b0	50	1/1		1/1	
+Scryb Sprites	c60d213844e9473e	73	0/0		0/0	
+Season of Growth	66316655539797b2	88	2/2		1/1	
+Season of Renewal	3c9363e95359c018	53	0/0		2/2	
+Serene Heart	3f6244b660d3b2c1	94	0/0		2/2	
+Serum Sovereign	01b5c07f5840ed2c	21	2/2		0/1	ix:resp
+Shape Anew	d044ad1b2cdc6d0c	49	0/0		2/2	
+Shield Mate	99a7af629a48fbc3	26	1/1		1/1	
+Shocker	267a5c994b859d5a	60	1/1		1/1	
+Shortcut to Mushrooms	9eb7bd245031333b	90	2/2		1/1	
+Sighted-Caste Sorcerer	598a36f040fd55ed	53	2/2		1/1	
+Skarrgan Skybreaker	94b6af3d2b08a56d	5	1/1		0/1	ix:resp
+Skatewing Spy	f03b9e2d66c6d48f	34	1/1		1/1	
+Skycat Sovereign	c109979bcd1bd441	17	1/1		1/1	
+Sly Instigator	ddbd0bf39ca096ab	36	1/1		1/1	
+Smell Fear	d2d07e8e3b04366a	47	0/0		2/2	
+Soaring Thought-Thief	ce8da179858e6f4b	37	1/1		1/1	
+Sonic Seizure	dc3bac815150ef73	56	0/0		2/2	
+Soul Shatter	01f7da8b42d3460e	57	0/0		2/2	
+Soulblade Corrupter	2cad0ab46a588150	52	2/2		1/1	
+Spawnwrithe	9f56d197be7f7d12	36	1/1		0/1	ix:resp
+Spiked Ripsaw	3d29b3fced3aa4e6	51	2/2		1/1	
+Spirit Flare	60b16677c75a3e82	42	0/0		4/4	
+Spirit Summoning	a03893249e9499e8	10	0/0		2/2	
+Squeaking Pie Grubfellows	1c3d1781965bc0b5	37	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Steelclad Spirit	716fa428e426e102	58	1/1		1/1	
+Striking Sliver	c74821365ac04b26	34	0/0		0/0	
+Swamp	342b413902f441c3	1987	1/1		0/1	ix:resp
+Swarm Shambler	d336ad6c09e274a1	82	2/2		1/1	
+Tattermunge Witch	a06b55e8aba53cd7	12	1/1		1/1	
+The Cauldron of Eternity	7013e700c01a0de4	34	2/2		1/1	
+The Thing	b4ff0513241ca929	19	2/2		1/1	
+Thieving Skydiver	467f0c1f0960bdd9	55	1/1		3/3	
+Threnody Singer	597e8166ed861121	83	1/1		1/1	
+Thunderous Might	d1117f8754afa33a	38	1/1		2/2	
+Torture	2975ed8810399cb2	75	1/1		2/2	
+Tragic Fall	81c28691707e6a56	88	0/0		2/2	
+Treasure Mage	1373097106ea2ba8	58	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Utvara Scalper	d7116086984c3503	57	0/0		0/0	
+Vantress Paladin	03d4db0fce57330d	31	0/0		0/0	
+Viashino Firstblade	468549dfc788e0b1	9	1/1		0/1	ix:resp
+Vodalian Soldiers	a71e76be34f94445	63	0/0		0/0	
+Voltaic Brawler	e05c42c1c622026c	13	2/2		0/1	ix:resp
+Webspinner Cuff	25b85a53f01e99e0	53	2/2		1/1	
+Weldfast Wingsmith	b9938309dc9fe321	38	1/1		1/1	
+Winged Coatl	097bc16b0c1d640e	48	0/0		0/0	
+Withdraw	f40e2709e84df597	114	0/0		2/2	
+Wizards of Thay	6f3b2695e9d131c9	56	1/1		0/1	ix:resp
+Wolfcaller's Howl	7286448449d58e90	49	1/1		1/1	
+Wormwood Dryad	e33121939f744143	66	2/2		1/1	
+Wrap in Vigor	e8f6340e17ba6a09	56	0/0		2/2	
+Wrath of Marit Lage	a44bca058ea09a5b	27	1/1		1/1	
+Wyleth, Soul of Steel	29c8d316a09be3d5	22	1/1		1/1	
+Xathrid Necromancer	7dcd1058a139ab13	64	1/1		1/1	
+Yawgmoth Demon	cfdc5631a572500c	31	1/1		1/1	
+Yawgmoth's Will	78d298f011b41033	36	0/0		1/2	ix:resp
+Yotian Tactician	55d0fb4711ce5afb	20	0/0		0/0	
+Zopandrel, Hunger Dominus	a5f279926beed4b7	12	2/2		1/1	

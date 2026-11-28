@@ -1,0 +1,14 @@
+{
+  "card": "Genesis Hydra",
+  "class": "options",
+  "why": "the engines offer different options; recorded from ev-cmdr-genesis-hydra pair 271",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 3432552248570486333,
+    "pair": 271,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "genesis_hydra_hosted_cmdr_focus"
+  }
+}

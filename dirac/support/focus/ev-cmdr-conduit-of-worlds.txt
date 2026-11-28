@@ -1,0 +1,3 @@
+# ev-cmdr-conduit-of-worlds: Conduit of Worlds, unverified in hosted-cmdr (cli-20261127T093705Z-1fed1794)
+# replay: host pool tail-33; kfuzz -synth tail-33 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-conduit-of-worlds.txt -play-refused -seed 1 -first-pair 58 -pairs 1 -surface autopay -mulligans 0
+Conduit of Worlds

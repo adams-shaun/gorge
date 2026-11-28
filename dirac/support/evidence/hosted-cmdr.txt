@@ -6,17 +6,21 @@ Aetherize
 All Is Dust
 Always Watching
 Ambition's Cost
+Ancient Stone Idol
 Angel of Finality
 Angel of Vitality
 Angel of the Ruins
 Angelic Destiny
 Angelic Field Marshal
 Angelic Sleuth
+Ankh of Mishra
 Arachnogenesis
 Arasta of the Endless Web
 Arcane Sanctum
 Arcane Signet
 Archangel of Tithes
+Archfiend of Despair
+Arid Mesa
 Army of the Damned
 Arvad the Cursed
 Aryel, Knight of Windgrace
@@ -29,11 +33,21 @@ Beast Within
 Birds of Paradise
 Bishop of Wings
 Bite Down
+Blade Splicer
+Blight Titan
+Blood Artist
+Blood Seeker
+Bloodchief Ascension
+Bloodletter of Aclazotz
+Bloodline Pretender
+Bloodstained Mire
 Bojuka Bog
 Bonders' Enclave
 Bontu's Monument
+Brimaz, Blight of Oreskos
 Broodstar
 Buried Ruin
+Burnished Hart
 Carnage Tyrant
 Carrion Feeder
 Castle Locthwain
@@ -51,48 +65,65 @@ Collective Resistance
 Colossal Majesty
 Command Tower
 Commander's Sphere
+Compleated Huntmaster
 Conjurer's Mantle
 Consumed by Greed
 Consuming Corruption
 Corpse Knight
 Counterspell
 Court of Grace
+Crypt Ghast
 Cryptbreaker
 Cultivator's Caravan
 Curious Altisaur
 Cut a Deal
+Dark Ritual
 Darksteel Citadel
 Darksteel Juggernaut
+Darksteel Splicer
+Dauthi Voidwalker
 Day of Judgment
 Dazzling Angel
+Deadly Rollick
 Death Baron
+Deflecting Swat
 Defy Death
+Demonic Tutor
 Despark
 Destroy Evil
 Diregraf Colossus
 Distant Melody
+Dragonskull Summit
 Dungrove Elder
 Duplicant
 Elder Gargaroth
 Elemental Bond
+Elenda and Azor
 Elvish Mystic
 Emeria Shepherd
 Endless Atlas
 Endless Ranks of the Dead
+Escape Tunnel
 Eternal Taskmaster
 Etherium Sculptor
 Ethersworn Adjudicator
 Evolving Wilds
+Excise the Imperfect
 Exemplar of Light
 Exorcise
 Exotic Orchard
 Exsanguinator Cavalry
 Ezuri's Predation
+Fabled Passage
 Fall from Favor
 Fateful Absence
+Fell the Mighty
 Fellwar Stone
+Fetid Heath
 Firemane Commando
+First-Sphere Gargantua
 Fleshbag Marauder
+Foreboding Ruins
 Forest
 Forsaken Monument
 Foulmire Knight
@@ -100,6 +131,7 @@ Foundry Inspector
 Foundry of the Consuls
 Fractured Powerstone
 Fyndhorn Elves
+Gamble
 Garruk's Packleader
 Garruk's Uprising
 Geier Reach Sanitarium
@@ -116,7 +148,11 @@ Grasp of Fate
 Grave Titan
 Graveborn Muse
 Gravecrawler
+Graven Cairns
+Graveshifter
 Gray Merchant of Asphodel
+Grim Tutor
+Haakon, Stromgald Scourge
 Harmonize
 Headless Rider
 Hedron Archive
@@ -130,14 +166,19 @@ Hulking Raptor
 Ichor Elixir
 Ichor Wellspring
 Ilysian Caryatid
+Imperial Seal
 Infernal Idol
 Inspiring Overseer
 Invoke the Divine
 Island
+Jeska's Will
 Josu Vess, Lich Knight
 Kalitas, Traitor of Ghet
 Kappa Cannoneer
+Karn's Bastion
+Kederekt Parasite
 Kenrith's Transformation
+Keskit, the Flesh Sculptor
 Knight Exemplar
 Knight of the Last Breath
 Knight of the White Orchid
@@ -159,6 +200,9 @@ Lyra Dawnbringer
 Managorger Hydra
 Marble Diamond
 Marchesa's Decree
+Marsh Flats
+Massacre Wurm
+Master Splicer
 Master Transmuter
 Master of Etherium
 Maul of the Skyclaves
@@ -175,8 +219,12 @@ Mind's Eye
 Mire Triton
 Misleading Signpost
 Moan of the Unhallowed
+Mogis, God of Slaughter
+Moira and Teshar
 Monstrous Onslaught
+Mortify
 Mosswort Bridge
+Mountain
 Murderous Rider
 Mutilate
 Myr Battlesphere
@@ -189,6 +237,7 @@ Nevinyrral's Disk
 Night's Whisper
 Norn's Choirmaster
 Noxious Ghoul
+Ojer Axonil, Deepest Might
 Open the Graves
 Order of Midnight
 Ornithopter of Paradise
@@ -205,15 +254,29 @@ Path of Ancestry
 Path of the Enigma
 Path to Exile
 Phyrexian Arena
+Phyrexian Delver
+Phyrexian Gargantua
+Phyrexian Ghoul
+Phyrexian Rager
+Phyrexian Rebirth
+Phyrexian Scriptures
+Phyrexian Triniform
 Plains
+Polluted Delta
 Port Town
 Prairie Stream
+Prismatic Vista
+Profane Tutor
 Propaganda
 Psychosis Crawler
 Pugnacious Hammerskull
 Pull from Tomorrow
+Purphoros, God of the Forge
 Radiant Fountain
+Rakdos Signet
+Rakdos, Lord of Riots
 Ram Through
+Razorkin Needlehead
 Razorlash Transmogrant
 Read the Bones
 Regal Imperiosaur
@@ -229,10 +292,13 @@ Rishkar's Expertise
 Rishkar, Peema Renegade
 Rogue's Passage
 Sai, Master Thopterist
+Scalding Tarn
 Scavenger Grounds
 Scavenging Ooze
+Scrap Trawler
 Scrapshooter
 Scrawling Crawler
+Screaming Nemesis
 Search the Premises
 Secluded Steppe
 Secret Rendezvous
@@ -241,7 +307,10 @@ Sephara, Sky's Blade
 Seraph Sanctuary
 Seraph of the Sword
 Serra Avenger
+Shadowblood Ridge
 Shamanic Revelation
+Shattered Angel
+Sheoldred, the Apocalypse
 Shimmer Dragon
 Shimmer Myr
 Shineshadow Snarl
@@ -249,18 +318,23 @@ Sidar Jabari of Zhalfir
 Sigiled Sword of Valeron
 Sign in Blood
 Silver Myr
+Silverquill Campus
 Silverwing Squadron
 Skysovereign, Consul Flagship
 Smitten Swordmaster
+Smoldering Marsh
 Sol Ring
+Soul of New Phyrexia
 Soul-Guide Lantern
 Soulless One
 Speaker of the Heavens
 Spire Golem
+Spire of Industry
 Starnheim Aspirant
 Steel Hellkite
 Steel Leaf Champion
 Steel Overseer
+Sulfurous Springs
 Sunblast Angel
 Sunken Hollow
 Surrak and Goreclaw
@@ -271,6 +345,10 @@ Swords to Plowshares
 Syphon Flesh
 Syr Elenora, the Discerning
 Syr Konrad, the Grim
+Tainted Field
+Tainted Peak
+Talisman of Hierarchy
+Talisman of Indulgence
 Tamiyo's Logbook
 Tamiyo's Safekeeping
 Tangleweave Armor
@@ -281,6 +359,8 @@ Temple of the False God
 Tendrils of Corruption
 Terramorphic Expanse
 Terrian, World Tyrant
+The Meathook Massacre
+The One Ring
 Thickest in the Thicket
 Thirst for Knowledge
 Thopter Fabricator
@@ -289,28 +369,41 @@ Thought Monitor
 Thought Vessel
 Thoughtcast
 Thraben Watcher
+Thran Dynamo
 Thrashing Brontodon
 Thriving Heath
 Thriving Isle
 Thriving Moor
 Time Wipe
 Tome of Legends
+Torment of Hailfire
 Tranquil Thicket
 Unbreakable Formation
 Undead Augur
 Undead Butler
 Undead Warchief
+Underworld Dreams
 Unnatural Growth
+Utter End
+Valgavoth, Harrower of Souls
 Valiant Knight
 Valorous Stance
+Vampiric Tutor
 Vanguard Seraph
 Vanquisher's Banner
+Vault of the Archangel
 Vedalken Archmage
+Vein Ripper
 Vengeful Dead
+Verdant Catacombs
 Verdant Sun's Avatar
+Vial Smasher the Fierce
+Victimize
 Vodalian Wave-Knight
 Vona, Butcher of Magan
+Vulpine Harvester
 War Room
+Wayfarer's Bauble
 Whiptongue Hydra
 Whirler Rogue
 Whisperer of the Wilds
@@ -321,8 +414,11 @@ Witch's Clinic
 Witch's Cottage
 Withering Torment
 Wojek Investigator
+Wooded Foothills
 Worthy Knight
 Xerex Strobe-Knight
+Yawgmoth's Vile Offering
 Yeva, Nature's Herald
 Youthful Valkyrie
+Zo-Zu the Punisher
 Zul Ashur, Lich Lord

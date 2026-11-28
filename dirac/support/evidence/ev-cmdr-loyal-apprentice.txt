@@ -1,0 +1,251 @@
+A-Druidic Ritual
+A-Lantern Bearer
+Aberrant
+Accursed Marauder
+Aether Flash
+Amugaba
+Angelic Curator
+Angrath's Fury
+Ant-Man, Scott Lang
+Arc Mage
+Argivian Restoration
+Aria of Flame
+Armageddon
+Artifact Ward
+Ashling, the Extinguisher
+Augmenting Automaton
+Bad Moon
+Balan, Wandering Knight
+Battle Mammoth
+Battlefly Swarm
+Benthic Behemoth
+Blistering Barrier
+Blood Tribute
+Bloodthrone Vampire
+Bog Initiate
+Boros Swiftblade
+Brand
+Briarhorn
+Call the Cavalry
+Call the Scions
+Captain America, Steve Rogers
+Carrion Wurm
+Chandra's Outburst
+Changeling Outcast
+Citanul Centaurs
+Citanul Flute
+Cobblebrute
+Cultist of the Absolute
+Cyberdrive Awakener
+Damping Matrix
+Daredevil's Billy Club
+Darksteel Myr
+Daru Encampment
+Death Cloud
+Denying Wind
+Disciple of Perdition
+Dismember
+Domri, City Smasher
+Double Trouble
+Dregs of Sorrow
+Druid's Deliverance
+Elemental Uprising
+Elvish Promenade
+Elvish Scrapper
+Enlightened Ascetic
+Escape Velocity
+Eternity Vessel
+Exhaustion
+Eye Spy
+Fallowsage
+Fencing Ace
+Feral Appetite
+Ferocious Pup
+Fiery Mantle
+Fireball
+Fissure Wizard
+Fistful of Force
+Flamecore Elemental
+Flesh-Eater Imp
+Forest
+Fountain of Youth
+Frenzied Gorespawn
+Fungal Rebirth
+Gainsay
+Generous Stray
+Ghitu Encampment
+Gibbering Barricade
+Gloomdrifter
+Gnat Alley Creeper
+Goldmeadow Lookout
+Grasping Dunes
+Great Desert Prospector
+Greater Mossdog
+Greenwarden of Murasa
+Hatching Plans
+Hellion Eruption
+Hewed Stone Retainers
+Incriminate
+Inferno Fist
+Invigorating Boon
+Island
+Jadecraft Artisan
+Jetting Glasskite
+Junktroller
+Kaho, Minamo Historian
+Kayla's Command
+Kazandu Blademaster
+Kessig Wolfrider
+Kiri-Onna
+Kiss of Death
+Klothys, God of Destiny
+Kor Cartographer
+Kor Entanglers
+Kor Outfitter
+Kor Scythemaster
+Kuldotha Rebirth
+Lantern Spirit
+Lantern of Revealing
+Lantern of the Lost
+Lapis Lazuli Talisman
+Laquatus's Creativity
+Lavamancer's Skill
+Long-Finned Skywhale
+Lu Su, Wu Advisor
+Magistrate's Veto
+Manic Scribe
+Mark of the Vampire
+Mask of Law and Grace
+Mass Hysteria
+Masticore
+Maze Skullbomb
+Merciless Eternal
+Merfolk Observer
+Metamorphic Wurm
+Misery Charm
+Misery's Shadow
+Moldgraf Scavenger
+Motivated Pony
+Mountain
+Myr Convert
+Mystery Key
+Nantuko Tracer
+Nightshade Seer
+Nim Grotesque
+Nivix Guildmage
+Nylea's Forerunner
+Oath of Nissa
+Oblivion Strike
+Orochi Hatchery
+Outland Colossus
+Overflowing Basin
+Oversold Cemetery
+Pallid Mycoderm
+Passionate Archaeologist
+Patch Up
+Peace Strider
+Pilgrim of Virtue
+Pip-Boy 3000
+Plains
+Pooling Venom
+Power Depot
+Prahv, Spires of Order
+Psychomancer
+Pyknite
+Quantum Entanglement
+Quick Sliver
+Radha, Heart of Keld
+Rain of Salt
+Raise Dead
+Rakdos Cackler
+Raptor Companion
+Ray of Dissolution
+Razorgrass Ambush
+Razortide Bridge
+Reaver Titan
+Reckless Waif
+Refocus
+Relic of Legends
+Resplendent Mentor
+Response
+Rhystic Shield
+Righteous Cause
+Ring of Unity
+Riptide Pilferer
+Rishkar's Expertise
+Roc Charger
+Rock Basilisk
+Rocksteady, Mutant Marauder
+Rogue's Gloves
+Rootbreaker Wurm
+Rubble Slinger
+Runner's Bane
+Rustvine Cultivator
+Sage of Epityr
+Salt Road Quartermasters
+Samite Blessing
+Sanctum of Stone Fangs
+Sandstorm Eidolon
+Sauroform Hybrid
+Savai Crystal
+Scald
+Scale Blessing
+Scapeshift
+Sedge Scorpion
+Seething Pathblazer
+Sentry Oak
+Serpent-Blade Assailant
+Shalai, Voice of Plenty
+Shape the Sands
+Shower of Coals
+Shriekmaw
+Sigiled Paladin
+Skinshifter
+Slaughterhorn
+Sleeper Agent
+Smelt
+Snow-Covered Mountain
+Soratami Savant
+Spawn-Gang Commander
+Spine of Ish Sah
+Squirrel Sanctuary
+Stinging Hivemaster
+Stone Catapult
+Stone Rain
+Storm Shaman
+Stormchaser Mage
+Stormfront Pegasus
+Supreme Will
+Surgical Skullbomb
+Swamp
+Swat
+Symbiotic Elf
+Tamiyo's Logbook
+Taunting Arbormage
+Terrain Elemental
+Terror Ballista
+Thorncaster Sliver
+Tidings
+Torment
+Tranquil Expanse
+Trusted Advisor
+Trusted Forcemage
+Turn
+Twisted Embrace
+Ultimate Magic: Holy
+Undertaker
+Untamed Might
+Vanquish the Weak
+Vengeful Rebirth
+Viridian Harvest
+Wall of Corpses
+Warteye Witch
+Whiptongue Frog
+Whirlwind Technique
+Windborn Muse
+Wirewood Lodge
+Woodland Wanderer
+Xathrid Slyblade
+Yeva, Nature's Herald
+Zephyr Charge
+Zoologist

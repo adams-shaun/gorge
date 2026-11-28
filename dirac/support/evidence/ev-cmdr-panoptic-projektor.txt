@@ -1,0 +1,186 @@
+A-Hobbling Zombie
+A.I.M. Bot
+Abbey Gargoyles
+Abolish
+Accelerate
+Admiral's Order
+Alesha's Vanguard
+Backfire
+Basri's Solidarity
+Biomathematician
+Bloodfire Infusion
+Bonds of Quicksilver
+Born to Drive
+Bramblesnap
+Bright Reprisal
+Brimstone Trebuchet
+Cadaverous Knight
+Canal Dredger
+Candelabra of Tawnos
+Capashen Unicorn
+Captain's Claws
+Casting of Bones
+Cat Warriors
+Chardalyn Dragon
+Charging Bandits
+Contagious Vorrac
+Coveted Peacock
+Cruel Fate
+Dapper Shieldmate
+Daru Warchief
+Daxiver, Izzet Electromancer
+Deadly Grub
+Death Ward
+Deluge
+Devoted Caretaker
+Disciple of Law
+Disempower
+Dormant Sliver
+Dovin's Acuity
+Dreadwing
+Drownyard Explorers
+Druid of the Anima
+Dusk Feaster
+Dwarfhold Champion
+Dwarven Strike Force
+Elder Owyn Lyons
+Elgaud Inquisitor
+Elite Arrester
+Elite Headhunter
+Enraged Killbot
+Essence Flare
+Farsight Mask
+Fateful Handoff
+Fatigue
+Festival Crasher
+Fire at Will
+Flame Rift
+Flood of Tears
+Forest
+Garenbrig Carver
+Gate Hound
+General's Enforcer
+Glint-Nest Crane
+Graf Reaver
+Grave Strength
+Gravecrawler
+Gravedig
+Grief Tyrant
+Grotag Night-Runner
+Guardian of Pilgrims
+Guma
+Hajar, Loyal Bodyguard
+Harbor Bandit
+Heavy Arbalest
+Hellkite Punisher
+Hook Swords
+Hound of the Farbogs
+House Guildmage
+Iceberg Cancrix
+Icingdeath, Frost Tyrant
+Inspired Insurgent
+Iron Myr
+Iron Will
+Ironfist Crusher
+Island
+Ivory Tower
+Journey to Oblivion
+Kavu Primarch
+Kinjalli's Caller
+Kitesail Apprentice
+Lambholt Harrier
+Lawless Broker
+Lazotep Plating
+Leopard-Spotted Jiao
+Lightning Dragon
+Liliana, the Necromancer
+Mandible Justiciar
+Marionette Master
+Maul of the Skyclaves
+Meletis Astronomer
+Mesmeric Fiend
+Minds Aglow
+Minion's Return
+Mishra's Research Desk
+Molderhulk
+Mountain
+Mutagenic Growth
+Nemesis Trap
+Nest of Scarabs
+Nether Void
+Nezumi Prowler
+No Mercy
+Oketra's Attendant
+Opportunistic Dragon
+Oreskos Sun Guide
+Peema Aether-Seer
+Pegasus Courser
+Plague Witch
+Plains
+Power Plant Worker
+Prognostic Sphinx
+Prophet of the Peak
+Quasiduplicate
+Rampaging Classmate
+Rat King, Pale Piper
+Rebuke
+Reckless One
+Relic Runner
+Resolute Blademaster
+Riddlesmith
+Rise of the Ants
+Rishadan Airship
+Riveteers Initiate
+Rosecot Knight
+Ruinous Intrusion
+Rush of Battle
+Sand Scout
+Sanguinary Priest
+Saprazzan Bailiff
+Scornful Aether-Lich
+Seize the Day
+Sengir Bats
+Serpent of the Endless Sea
+Shade's Form
+Shadowborn Demon
+Shrieking Grotesque
+Sinew Sliver
+Skittering Horror
+Spider-Man 2099, Miguel O'Hara
+Spidery Grasp
+Spoils of Adventure
+Sprouting Phytohydra
+Staff of Titania
+Stand Together
+Status
+Summit Prowler
+Suspended Sentence
+Swamp
+Telepathy
+Temple Thief
+Thopter Architect
+Thoughts of Ruin
+Thundersong Trumpeter
+Ticked Off
+Touch of Death
+Toymaker
+Treacherous Blessing
+Umbral Mantle
+Unbender Tine
+Urza's Armor
+Vedalken Blademaster
+Vengeful Warchief
+Vessel of Paramnesia
+Visions of Brutality
+Voidslime
+Voltaic Construct
+Vryn Wingmare
+Wailing Ghoul
+Warchief Giant
+Weatherseed Faeries
+Welkin Guide
+Whipcorder
+Wild Wanderer
+Wildfire Awakener
+Woebringer Demon
+Yisan, the Wanderer Bard

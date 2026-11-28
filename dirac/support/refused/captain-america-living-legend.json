@@ -1,0 +1,14 @@
+{
+  "card": "Captain America, Living Legend",
+  "class": "options",
+  "why": "the engines offer different options; recorded from ev-cmdr-captain-america-living-legend pair 584",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 11088639986288135710,
+    "pair": 584,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "captain_america_living_legend_hosted_cmdr_focus"
+  }
+}

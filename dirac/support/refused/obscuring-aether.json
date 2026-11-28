@@ -1,0 +1,14 @@
+{
+  "card": "Obscuring Aether",
+  "class": "options",
+  "why": "the engines offer different options; recorded from ev-cmdr-obscuring-aether pair 1",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 15932193312723074476,
+    "pair": 1,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "obscuring_aether_hosted_cmdr_focus"
+  }
+}

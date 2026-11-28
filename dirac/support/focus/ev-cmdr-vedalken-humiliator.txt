@@ -1,0 +1,3 @@
+# ev-cmdr-vedalken-humiliator: Vedalken Humiliator, unverified in hosted-cmdr (cli-20261127T093705Z-1fed1794)
+# replay: host pool tail-12; kfuzz -synth tail-12 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-vedalken-humiliator.txt -play-refused -seed 1 -first-pair 47 -pairs 1 -surface autopay -mulligans 0
+Vedalken Humiliator

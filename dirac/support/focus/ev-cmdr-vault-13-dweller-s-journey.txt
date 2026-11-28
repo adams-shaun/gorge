@@ -1,0 +1,3 @@
+# ev-cmdr-vault-13-dweller-s-journey: Vault 13: Dweller's Journey, unverified in hosted-cmdr (cli-20261127T093705Z-1fed1794)
+# replay: host pool tail-66; kfuzz -synth tail-66 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-vault-13-dweller-s-journey.txt -play-refused -seed 1 -first-pair 10 -pairs 1 -surface autopay -mulligans 0
+Vault 13: Dweller's Journey

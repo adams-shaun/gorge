@@ -1,0 +1,3 @@
+# ev-cmdr-noxious-gearhulk: Noxious Gearhulk, unverified in hosted-cmdr (cli-20261127T093705Z-1fed1794)
+# replay: host pool tail-70; kfuzz -synth tail-70 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-noxious-gearhulk.txt -play-refused -seed 1 -first-pair 175 -pairs 1 -surface autopay -mulligans 0
+Noxious Gearhulk

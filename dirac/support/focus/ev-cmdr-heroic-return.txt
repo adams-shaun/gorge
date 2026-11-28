@@ -1,0 +1,3 @@
+# ev-cmdr-heroic-return: Heroic Return, unverified in hosted-cmdr (cli-20261127T093705Z-1fed1794)
+# replay: host pool tail-63; kfuzz -synth tail-63 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-heroic-return.txt -play-refused -seed 1 -first-pair 44 -pairs 1 -surface full -mulligans 0
+Heroic Return
