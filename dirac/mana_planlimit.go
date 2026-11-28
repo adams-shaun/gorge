@@ -167,11 +167,7 @@ func (s *State) limitPlan(k *prep, pk *planner) {
 			return
 		}
 	}
-	granted := false
-	for u := 0; u < pk.nu; u++ {
-		sl := pk.units[u]
-		granted = granted || s.blgMask(k, sl)&^k.cards[s.cardAt(sl)].manaCol != 0
-	}
+	granted := s.planUnitsGranted(k, pk)
 	if !granted && pk.nu < planLimitUnits {
 		return
 	}
@@ -192,6 +188,17 @@ func (s *State) limitPlan(k *prep, pk *planner) {
 		pk.bestSeq[i], pk.bestTy[i], pk.bestCol[i] = u, pk.utyp[u], ls.bestA[i].col
 	}
 	pk.keepCols = true
+}
+
+// planUnitsGranted reports whether some unit of pk's census has a granted
+// basic land type whose colour its own abilities lack.
+func (s *State) planUnitsGranted(k *prep, pk *planner) bool {
+	granted := false
+	for u := 0; u < pk.nu; u++ {
+		sl := pk.units[u]
+		granted = granted || s.blgMask(k, sl)&^k.cards[s.cardAt(sl)].manaCol != 0
+	}
+	return granted
 }
 
 // census groups the units into classes in order of each class's first unit.

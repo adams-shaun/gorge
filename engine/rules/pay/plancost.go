@@ -337,7 +337,7 @@ func planPaymentCostResolved(e Engine, p state.PlayerID, demand [5]int, cost cos
 	rankCtx := NewRankContext(choices, demand)
 	phaseChoices, phaseClasses := phase1, queryClasses(p, TierNormal, phase1)
 	env := PaymentSearchEnv(e.Verify())
-	env.Fundable = planVictimGate(e, p, kept, tapped, gone)
+	env.Fundable = planVictimGate(e, p, phaseChoices, phaseClasses, kept, tapped, gone)
 	search := SearchInto(e.SearchScratch(), cost, pool, life, rankCtx,
 		phaseChoices, phaseClasses, env)
 	nodes := search.Nodes
@@ -349,12 +349,13 @@ func planPaymentCostResolved(e Engine, p state.PlayerID, demand [5]int, cost cos
 	if search.Best == nil && !search.Limited {
 		if phase2 := PlanLastResortChoicesInto(phasePS, choices, life); phase2 != nil {
 			phaseChoices, phaseClasses = phase2, queryClasses(p, TierLastResort, phase2)
+			env.Fundable = planVictimGate(e, p, phaseChoices, phaseClasses, kept, tapped, gone)
 			search = SearchInto(e.SearchScratch(), cost, pool, life, rankCtx,
 				phaseChoices, phaseClasses, env)
 			nodes += search.Nodes
 		}
 	}
-	if search.Best != nil && !AssignPlanVictims(e, p, search.Best, slices.Concat(kept, tapped), gone) {
+	if search.Best != nil && !fundPlanVictims(e, p, search.Best, phaseChoices, phaseClasses, slices.Concat(kept, tapped), gone) {
 		// The search's own gate (planVictimGate) admits only sets this call
 		// can name victims for; a refusal here offers no plan rather than an
 		// unfunded one.
@@ -366,7 +367,7 @@ func planPaymentCostResolved(e Engine, p state.PlayerID, demand [5]int, cost cos
 			alts := planAlternatives(&ps.altsSearch, *search.Best, want, cost, pool, life, rankCtx, phaseChoices, phaseClasses, env)
 			funded := alts[:0]
 			for i := range alts {
-				if AssignPlanVictims(e, p, &alts[i], nil, nil) {
+				if fundPlanVictims(e, p, &alts[i], phaseChoices, phaseClasses, nil, nil) {
 					SacrificesLast(&alts[i])
 					funded = append(funded, alts[i])
 				}
