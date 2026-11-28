@@ -34,6 +34,7 @@ The table is generated from the flag set of the `cmd/gorged` binary; `TestFlagsD
 | `-deck-demand-log` | `false` | append the names of the cards a checked deck needs that this engine cannot play to <dir>/demand/unsupported.jsonl (names and the UTC day only; no deck, address or identity) |
 | `-decks directory` | `testkit/testutil/decks` | directory of deck JSON files; with -engine dirac the default is the first -dirac-sets set's bench decks |
 | `-dir` | `gorged-data` | persistence directory |
+| `-dirac-check-sets` | none | comma-separated dirac card sets every deck report is also judged on (built by make dirac-tables); empty = no dirac column unless -engine dirac |
 | `-dirac-sets` | `fdn` | with -engine dirac: comma-separated card sets, tried in order for each game (built by make dirac-tables) |
 | `-engine` | `gorge` | the engine this server's tables and vs-bot games run on; one this binary does not link fails at startup, naming those it does |
 | `-events` | `false` | host 4-seat draft events under /api/events (eventhost; persistence under <dir>/events) |

@@ -48,25 +48,40 @@ type demandLine struct {
 	Unsupported []string `json:"unsupported"`
 }
 
-// record appends rep's unsupported names. A nil log records nothing; a write
-// error is logged once and never reaches the request.
-func (l *demandLog) record(engine string, rep protocol.DeckReport) {
+// record appends one line per verdict in rep: gorge's unsupported names
+// under rep.Engine, then, when rep carries a dirac verdict, dirac's under its
+// engine, so each line names the engine whose support produced it. A nil log
+// records nothing; a write error is logged once and never reaches the request.
+func (l *demandLog) record(rep protocol.DeckReport) {
 	if l == nil {
 		return
 	}
+	day := l.now().UTC().Format("2006-01-02")
 	names := make([]string, 0, len(rep.Unsupported))
 	for _, u := range rep.Unsupported {
 		names = append(names, u.Name)
 	}
-	sort.Strings(names)
-	line, err := json.Marshal(demandLine{Day: l.now().UTC().Format("2006-01-02"), Engine: engine, Unsupported: names})
-	if err != nil {
-		l.fail(err)
-		return
+	lines := []demandLine{{Day: day, Engine: rep.Engine, Unsupported: names}}
+	if rep.Dirac != nil {
+		names := make([]string, 0, len(rep.Dirac.Unsupported))
+		for _, u := range rep.Dirac.Unsupported {
+			names = append(names, u.Name)
+		}
+		lines = append(lines, demandLine{Day: day, Engine: rep.Dirac.Engine, Unsupported: names})
+	}
+	var buf []byte
+	for _, dl := range lines {
+		sort.Strings(dl.Unsupported)
+		line, err := json.Marshal(dl)
+		if err != nil {
+			l.fail(err)
+			return
+		}
+		buf = append(append(buf, line...), '\n')
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if err := l.append(append(line, '\n')); err != nil {
+	if err := l.append(buf); err != nil {
 		l.fail(err)
 	}
 }

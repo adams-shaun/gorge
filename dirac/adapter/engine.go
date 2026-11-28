@@ -7,6 +7,7 @@ package adapter
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -59,14 +60,71 @@ func (e *Engine) Accepts(c game.Config) error {
 
 // CheckDeck says why a deck alone cannot play on any set, or nil.
 func (e *Engine) CheckDeck(deck []*cards.Card) error {
-	var best error
-	fewest := -1
+	_, err := e.choose(deck)
+	return err
+}
+
+// CardVerdict is one deck card a set does not play.
+type CardVerdict struct {
+	Name   string // the pool spelling (poolName), or the front name when the set lacks it
+	Count  int
+	Status string // "not in set", or cardset.Status.String()
+	Reason string // cardset.Set.Reason, "" for "not in set"
+}
+
+// DeckVerdict is a deck's support on the set CheckDeck would play it on.
+type DeckVerdict struct {
+	Set   string        // the chosen set's Name()
+	Cards []CardVerdict // sorted by Name; empty, never nil
+	Err   error         // CheckDeck's answer
+}
+
+// DeckSupport names, card by card, what the chosen set does not play in a
+// deck. It reads the set's tables only.
+func (e *Engine) DeckSupport(deck []*cards.Card) DeckVerdict {
+	s, err := e.choose(deck)
+	v := DeckVerdict{Set: s.Name(), Cards: []CardVerdict{}, Err: err}
+	plays := s.Supported()
+	at := map[string]int{}
+	for _, c := range deck {
+		n := poolName(s, c)
+		i, ok := s.Lookup(n)
+		if ok && plays[i] {
+			continue
+		}
+		if j, seen := at[n]; seen {
+			v.Cards[j].Count++
+			continue
+		}
+		cv := CardVerdict{Name: n, Count: 1, Status: "not in set"}
+		if ok {
+			cv.Status, cv.Reason = s.Status(i).String(), s.Reason(i)
+		}
+		at[n] = len(v.Cards)
+		v.Cards = append(v.Cards, cv)
+	}
+	sort.Slice(v.Cards, func(i, j int) bool { return v.Cards[i].Name < v.Cards[j].Name })
+	return v
+}
+
+// choose walks the sets in order once, for CheckDeck's answer and the set
+// DeckSupport reports on: the first set that refuses no card and builds the
+// deck's table, else the set refusing fewest cards, the earlier on a tie.
+func (e *Engine) choose(deck []*cards.Card) (cardset.Set, error) {
+	var (
+		best error
+		set  cardset.Set
+	)
+	fewest, least := -1, -1
 	for _, s := range e.sets {
 		es := entries(s, deck)
 		n := refused(s, deck)
+		if least < 0 || n < least {
+			set, least = s, n
+		}
 		if n == 0 {
 			if _, _, _, err := s.Matchup(es, nil); err == nil {
-				return nil
+				return s, nil
 			} else if best == nil {
 				best, fewest = err, 0
 			}
@@ -77,7 +135,7 @@ func (e *Engine) CheckDeck(deck []*cards.Card) error {
 			fewest = n
 		}
 	}
-	return best
+	return set, best
 }
 
 // podSeats is the seat count of a Commander pod: dirac plays two seats, or four
