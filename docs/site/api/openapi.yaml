@@ -621,6 +621,11 @@ components:
       properties:
         bot_policy:
           type: "string"
+        decks:
+          description: "Decks is one report per submitted seat, in seat order: what the server found and, when the seat consented, every substitution it made."
+          items:
+            $ref: "#/components/schemas/DeckReport"
+          type: "array"
         join:
           description: "Join is the base-relative path the human opens to sit in the seat, carrying the seat and its token: /t/\u003ctable\u003e?seat=N\u0026token=…."
           type: "string"
@@ -872,7 +877,7 @@ components:
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/server/protocol.DeckCheck"
     DeckCheckRequest:
-      description: "DeckCheckRequest is POST /api/decks/check's body: one deck, as ManaBrew deck JSON in Deck or a plain-text decklist in Text (exactly one), checked for Format (\"commander\" when omitted, or \"constructed\"). Substitute is accepted and ignored for now."
+      description: "DeckCheckRequest is POST /api/decks/check's body: one deck, as ManaBrew deck JSON in Deck or a plain-text decklist in Text (exactly one), checked for Format (\"commander\" when omitted, or \"constructed\"). Substitute asks the server to replace up to three unsupported cards with basic lands of the deck's colour identity and list each swap."
       properties:
         deck: {}
         format:
@@ -2867,6 +2872,9 @@ components:
         seat:
           format: "int64"
           type: "integer"
+        substitute:
+          description: "Substitute consents to replacing each unsupported card (at most three) with a basic land of the deck's colour identity before it is judged."
+          type: "boolean"
         text:
           type: "string"
       required:
@@ -3591,7 +3599,7 @@ paths:
         - "lobby"
   "/api/decks/check":
     post:
-      description: "Reports on one submitted deck without creating a table: its size, commanders and colour identity, every construction problem, the names the card pool does not hold, and every card this server's engine cannot play, by name. The body names exactly one of `deck` (ManaBrew deck JSON) and `text` (a plain-text decklist, at most 65536 bytes); `format` is `commander` (the default) or `constructed`; the whole body is at most 524288 bytes. Every field of the report is computed on the server. Under -engine dirac the report is never playable. With -deck-demand-log each check appends the unsupported card names (and the UTC day) to the server's demand log."
+      description: "Reports on one submitted deck without creating a table: its size, commanders and colour identity, every construction problem, the names the card pool does not hold, and every card this server's engine cannot play, by name. The body names exactly one of `deck` (ManaBrew deck JSON) and `text` (a plain-text decklist, at most 65536 bytes); `format` is `commander` (the default) or `constructed`; the whole body is at most 524288 bytes. Every field of the report is computed on the server. Under -engine dirac the report is never playable. With -deck-demand-log each check appends the unsupported card names (and the UTC day) to the server's demand log. With `substitute` set, the server replaces up to three unsupported cards with basic lands of the deck's colour identity and lists every swap in `substituted`; four or more are refused."
       operationId: "checkDeck"
       requestBody:
         content:
@@ -4364,7 +4372,7 @@ paths:
       x-gorge-requires: "-feedback DIR"
   "/api/games":
     post:
-      description: "Builds and starts a fresh single-match table (`g1`, `g2`, ...) seating the caller against a hosted bot, and returns the human seat's bearer token. The token is returned only here. A seat in `decks` names either `deck` (ManaBrew deck JSON) or `text` (a plain-text decklist of `1 Sol Ring` lines with an optional `Commander` section, at most 65536 bytes), never both. Armed by gorged -vsbot; otherwise this answers 404."
+      description: "Builds and starts a fresh single-match table (`g1`, `g2`, ...) seating the caller against a hosted bot, and returns the human seat's bearer token. The token is returned only here. A seat in `decks` names either `deck` (ManaBrew deck JSON) or `text` (a plain-text decklist of `1 Sol Ring` lines with an optional `Commander` section, at most 65536 bytes), never both. Armed by gorged -vsbot; otherwise this answers 404. A seat may set `substitute` to accept the same at-most-three replacements; the 200 response's `decks` lists one report per submitted seat, in seat order."
       operationId: "createGame"
       requestBody:
         content:
