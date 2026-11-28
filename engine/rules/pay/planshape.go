@@ -132,13 +132,14 @@ func PaymentPlanShapeTierOf(ma *cards.SA, cost costvocab.Cost) (tier Tier, c Con
 		}
 		if len(cost.Sac) == 1 && !PlanSelfCost(cost.Sac[0], 0) {
 			// The closed "sacrifice another permanent" mana shape (Ashnod's
-			// Altar's Sac<1/Creature>, Phyrexian Tower's {T} plus
-			// Sac<1/Creature>): exactly one fixed-count non-self Sac part, and
-			// nothing else beyond the optional {T} the arm above already
-			// bounds -- no life, no self-return: the witness discloses the
-			// victims in PaymentActivation.Sacrifices and the search prices
-			// the source only as a last resort.
-			if !PlanOtherSacShape(cost.Sac[0]) || cost.Life != 0 || len(cost.Return) != 0 {
+			// Altar's Sac<1/Creature>): exactly one fixed-count non-self Sac
+			// part, and nothing else beyond the optional {T} the arm above
+			// already bounds -- no life, no self-return -- over a production
+			// the kernel mirrors (planOtherSacProductionOK): the witness
+			// discloses the victims in PaymentActivation.Sacrifices and the
+			// search prices the source only as a last resort.
+			if !PlanOtherSacShape(cost.Sac[0]) || cost.Life != 0 || len(cost.Return) != 0 ||
+				!planOtherSacProductionOK(ma, cost.Tap) {
 				return deferred("source:last_resort")
 			}
 			return TierLastResort, Consequence{SacrificeOthers: true}, "source:last_resort", false
@@ -162,6 +163,70 @@ func PaymentPlanShapeTierOf(ma *cards.SA, cost costvocab.Cost) (tier Tier, c Con
 		return deferred("source:last_resort")
 	}
 	return TierNormal, Consequence{}, "", false
+}
+
+// planOtherSacProductionOK reports whether ma's production is one dirac's
+// kernel mirrors for the other-sacrifice plan tier (kop.OtherSacPlanAb): a
+// fixed amount of exactly ONE colour with no {T} on the cost (Ashnod's
+// Altar's "Sacrifice a creature: Add {C}{C}", Thermopod's), or exactly one
+// mana of any colour, with or without the {T} (Phyrexian Altar's). Everything
+// else the kernel defers stays deferred here too, or the planner offers a
+// step the kernel cannot replay: a spend-restricted production (Master of
+// Dark Rites' RestrictValid$, kop.SacXRestrManaAb), a mana-of-each or any
+// multi-colour production (Bolg's Company's {B}{R}, kop.SacXEachManaAb), a
+// dynamic, X, Combo or allocation (amount > 1) of any-colour mana (every
+// kernel plan shape carries the AFlags == 0 test), and a fixed colour behind
+// the {T} (kop.SacTapFixedManaAb, honoured by the kernel only as a later
+// ability beside a plain {T} first one, kop.SecondSacTapManaAb). Each$
+// multiplies the whole production and no kernel plan shape carries it either.
+//
+// The any-colour arm is a single-ability source's shape. Kernel census units
+// read only the card's FIRST mana ability (prep's pc.manaAb), so a real card
+// whose other-sacrifice ability is a later one (Lazotep Quarry's second
+// ability, after a plain {T}: Add {C}) is a known latent limit: gorge would
+// plan the later ability while the kernel never units it. No evidenced card
+// is affected today (Lazotep Quarry is refused by kgen on other grounds).
+func planOtherSacProductionOK(ma *cards.SA, tap bool) bool {
+	mp := effects.ManaOf(ma)
+	if mp == nil || mp.RestrictValid != "" || mp.Each.Present {
+		return false
+	}
+	n := 1
+	if mp.Amount.Present {
+		if !mp.AmountIsLit {
+			return false // a dynamic, X or otherwise open amount
+		}
+		n = mp.AmountLit
+	}
+	if strings.EqualFold(mp.Produced, "Any") {
+		if !mp.CountsAny {
+			return false // Produced$ Any with parsed pips: not the plain unit
+		}
+		// cards.ProducedCounts renders the plain any-colour choice as one
+		// claimed unit of each colour with no {C} (an unrecognised token
+		// claims nothing, so it fails this walk too and stays deferred).
+		for i, c := range mp.Counts {
+			want := int32(1)
+			if i == 5 {
+				want = 0 // the any-colour choice spans WUBRG, not {C}
+			}
+			if c != want {
+				return false
+			}
+		}
+		return n == 1 // one mana of any colour, asked by the step
+	}
+	if tap || mp.CountsAny {
+		return false // a fixed colour behind the {T} is Tower's deferred shape
+	}
+	colours, total := 0, 0
+	for _, c := range mp.Counts {
+		if c != 0 {
+			colours++
+			total += int(c)
+		}
+	}
+	return colours == 1 && total*n >= 1
 }
 
 // paymentPlanShapeKeyFails reports whether key alone defers the ability in

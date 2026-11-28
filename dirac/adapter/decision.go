@@ -202,16 +202,36 @@ func castOrigin(z kop.Zone, mode string) string {
 }
 
 // tapsOf is what the kernel taps as it applies a cast, as a plan's activations. A
-// cast with targets or modes still to choose has tapped nothing yet.
+// cast with targets or modes still to choose has tapped nothing yet. The
+// planned other-sacrifice steps (mana_othersac.go) join the list from the
+// (source, victim) pairing the plan execution recorded: their activation names
+// its victim in Sacrifices and discloses the consequence, so the victims
+// trailer of the canonical plan identity (decision.appendPaymentPlanCanonical)
+// matches gorge's.
 func (g *Game) tapsOf(a dirac.Action) []decision.PaymentActivation {
 	g.scratch()
-	g.ws.Apply(a)
+	g.ws.Apply(a) // Apply resets the planned-sacrifice witness first
 	g.ws.Project(&g.wkp)
+	srcs, vics := g.ws.PlanSacWitness()
 	out := []decision.PaymentActivation{}
 	for o := 0; o < int(g.kp.NObj) && len(out) < decision.MaxPaymentActivations; o++ {
-		if g.wkp.Objs[o].Flags&^g.kp.Objs[o].Flags&dirac.ProjTapped != 0 {
-			out = append(out, decision.PaymentActivation{Source: g.ids.obj(canon.Ref(o))})
+		tapped := g.wkp.Objs[o].Flags&^g.kp.Objs[o].Flags&dirac.ProjTapped != 0
+		pair := -1
+		for i := range srcs {
+			if int(srcs[i]) == o {
+				pair = i
+				break
+			}
 		}
+		if !tapped && pair < 0 {
+			continue // nothing this object paid with
+		}
+		pa := decision.PaymentActivation{Source: g.ids.obj(canon.Ref(o))}
+		if pair >= 0 {
+			pa.Sacrifices = []state.ObjID{g.ids.obj(canon.Ref(int(vics[pair])))}
+			pa.Consequence = &decision.PaymentConsequence{SacrificeOthers: true}
+		}
+		out = append(out, pa)
 	}
 	return out
 }

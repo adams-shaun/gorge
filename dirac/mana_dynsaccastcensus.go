@@ -30,5 +30,6 @@ func (s *State) ungrCastCensus(k *prep, p uint8) (avail, modalSet) {
 	var av avail
 	var ms modalSet
 	s.ungrAvail(k, p, NoSlot, &av, &ms, skip)
+	s.addOtherSacCensusAvail(k, p, &av) // a cast's plan prices the other-sacrifice source (mana_othersac.go)
 	return av, ms
 }
