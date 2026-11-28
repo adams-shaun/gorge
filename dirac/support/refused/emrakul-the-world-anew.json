@@ -1,0 +1,13 @@
+{
+  "card": "Emrakul, the World Anew",
+  "class": "options",
+  "why": "the engines offer different options; 13 games in the corpus",
+  "repro": {
+    "pool": "ev-cmdr-emrakul-the-world-anew",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 268,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

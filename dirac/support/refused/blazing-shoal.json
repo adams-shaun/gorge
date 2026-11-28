@@ -1,0 +1,13 @@
+{
+  "card": "Blazing Shoal",
+  "class": "options",
+  "why": "the engines offer different options; 74 games in the corpus",
+  "repro": {
+    "pool": "ev-cmdr-blazing-shoal",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 24,
+    "policy": "random",
+    "mulligans": 0
+  }
+}
