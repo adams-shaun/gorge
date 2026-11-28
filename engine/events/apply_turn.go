@@ -45,6 +45,7 @@ func foldSkipTurn(g *state.Game, e *Event) {
 			g.SkipTurns = map[state.PlayerID]int{}
 		}
 		g.SkipTurns[e.Player] = max(0, g.SkipTurns[e.Player]+int(e.Amount))
+		foldRotationSkip(g, e)
 	}
 }
 
@@ -242,10 +243,8 @@ func foldTurnChange(g *state.Game, e *Event) {
 			// its last turn's (attackedYouTheirLastTurn)
 			g.Players[g.Active].AttackedSeatsLastTurn = g.Players[g.Active].AttackedSeatsThisTurn
 		}
-		// CR 800.4m: a departed seat never takes a turn, so the advance
-		// walking over it is where its goads' "until their next turn"
-		// expires; read while g.Active is still the outgoing seat.
-		expireDepartedGoads(g, g.Active, e.Player)
+		// Read while g.Active is still the outgoing seat.
+		foldRotationTurn(g, e.Player)
 		g.Turn = e.Amount
 		g.Active = e.Player
 		g.Players[e.Player].LandsPlayed = 0
@@ -431,6 +430,7 @@ func foldExtraTurn(g *state.Game, e *Event) {
 				g.ExtraTurnQueue = append(g.ExtraTurnQueue, state.ExtraTurn{Player: e.Player, SkipUntap: skipUntap})
 			}
 		} else {
+			foldRotationExtraTurn(g, e)
 			for i := len(g.ExtraTurnQueue) - 1; i >= 0; i-- {
 				if g.ExtraTurnQueue[i].Player == e.Player {
 					g.ExtraTurnQueue = append(g.ExtraTurnQueue[:i], g.ExtraTurnQueue[i+1:]...)
