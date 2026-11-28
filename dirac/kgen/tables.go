@@ -115,6 +115,7 @@ func tableOf(p *pool, poolName string, prev []idEntry) (*cardset.PoolData, cover
 	d.Subtypes = append([]string{}, pt.subtypes...)
 	d.SVarNames = pt.svarNames
 	d.CostProgs = pt.costProgs
+	d.Sets = pt.sets
 	for i, c := range pb.cls {
 		if c.Any != 0 {
 			d.LayerCls = append(d.LayerCls, cardset.LayerEntry{I: i, C: c})

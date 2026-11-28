@@ -555,6 +555,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 			fmt.Fprintf(w, "    %2d %s\n", i, in)
 		}
 	}
+	dumpSets(w, c) // build_setexpr.go
 	dumpStatics(w, c)
 	for _, r := range c.Repls {
 		dumpRepl(w, r) // lower_staticprevent.go

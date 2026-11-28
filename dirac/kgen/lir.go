@@ -69,6 +69,7 @@ const (
 	rTriggeredSpellTarget          // inside a SpellCast trigger with IsSingleTarget$ True: the cast spell's one object target, captured as the trigger was queued (kop.RefTriggerSpellTarget; Defined$ TriggeredSpellAbilityTargets, lower_spelltarget.go)
 	rEquippedByEnchanted           // Defined$ Valid Card.EquippedByEnchanted: the permanent the source Aura's enchanted Equipment is attached to (kop.RefEquippedByEnchanted; Artificer's Hex, lower_effect_defined.go)
 	rTriggeredSpellTargets         // Defined$ TriggeredSpellAbilityTargets without IsSingleTarget$ True: every distinct object target of the cast spell, the op run once per object (kop.RefTriggerSpellTargets; Dack Fayden, Storm, Windrider, lower_spelltarget.go)
+	rSet                           // entry N of the card's Sets: a Defined$ composition the kernel evaluates (kop.RefSet; lower_definedset.go)
 	rCount
 )
 
@@ -123,6 +124,7 @@ var refNames = [...]string{
 	rTriggeredSpellTarget:  "TriggeredSpellTarget",
 	rEquippedByEnchanted:   "EquippedByEnchanted",
 	rTriggeredSpellTargets: "TriggeredSpellTargets",
+	rSet:                   "Set",
 }
 
 type lRef struct {
@@ -132,7 +134,7 @@ type lRef struct {
 
 func (r lRef) String() string {
 	switch r.Kind {
-	case rTarget, rTargetController, rTargetOwner:
+	case rTarget, rTargetController, rTargetOwner, rSet:
 		return fmt.Sprintf("%s%d", refNames[r.Kind], r.N)
 	case rTargetUnion:
 		out := refNames[r.Kind]
@@ -1678,6 +1680,7 @@ type lCard struct {
 	Daybound            bool // K:Daybound (CR 702.145a-d)
 	Nightbound          bool // K:Nightbound (CR 702.145e-g)
 	Abilities           []*lAbility
+	Sets                []lSet // the set expressions rSet refs name (lower_definedset.go)
 	Statics             []lStatic
 	// GrantedStatics: the statics a Continuous static's AddStaticAbility$
 	// grants its recipients (lStatic.GrantSt indexes it; lower_grantedstatic.go)

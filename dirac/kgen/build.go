@@ -42,6 +42,9 @@ type poolTables struct {
 	// costProgs are the pool's cost programs (kop.Table.CostProgs, lower_costprog.go): nil until one is interned, [0] unused
 	costProgs   [][]kop.CostAtom
 	costProgKey map[string]uint16
+	// sets are the pool's set expressions (kop.Table.Sets, build_setexpr.go), first-use order
+	sets   []kop.SetExpr
+	setKey map[string]uint16
 }
 
 // ovSub carries an override's subtype sets as pool subtype indexes (the
@@ -162,6 +165,9 @@ type cardBuilder struct {
 	keepOwner   bool     // a filter over this turn's departures: "you own" stays Owner, apart from "you control"
 	selfCast    bool     // building a SpellCast self trigger's stack filter: sneaked is readable
 	entrant     bool     // building an other-object ETB replacement's entrant filter: the cast-provenance words read the spell still resolving into it
+
+	setSubj bool          // building an instruction's subject: rSet maps to kop.RefSet (build_setexpr.go)
+	setRefs *[]kop.SetRef // the SetRefs of the ability whose own program is being built (abilityProg)
 }
 
 func buildCard(pt *poolTables, c *lCard) built {
@@ -2517,6 +2523,9 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 	}
 	if k, ok := slice4Refs[r.Kind]; ok {
 		return k, nil
+	}
+	if r.Kind == rSet {
+		return cb.setSubjRef() // build_setexpr.go
 	}
 	return 0, fmt.Errorf("ref %s", r)
 }
