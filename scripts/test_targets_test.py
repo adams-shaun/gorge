@@ -205,7 +205,12 @@ def planned(changes, files=None, repro_names=None):
 def test_engine_rules_change_selects_gorgegame_and_not_the_slow_packages():
     got, skipped = planned({"engine/rules/engine.go": None})
     assert got["./engine/game/gorgegame"][0] == "whole"  # the 2026-11-11 gate miss
-    assert got["./engine/rules"][0] == "census"  # too big to run whole in the inner loop
+    # too big to run whole in the inner loop: its census tests, plus the CR-deviation pins as a bounded
+    # named row (the fast stage runs named rows, not census ones).
+    res, _ = tt.plan({"engine/rules/engine.go": None}, DIRMAP, DEPS, lambda p: [])
+    rules = [(k, rx) for k, p, rx in res if p == "./engine/rules"]
+    assert ("census", tt.CENSUS) in rules
+    assert ("named", tt.DEVIATION_PINS) in rules
     assert "./server/host" not in got and skipped == ["./server/host"]
     assert "./internal/archtest" in got and "./internal/codeshape" in got
     assert "./leaf" not in got
@@ -236,9 +241,10 @@ def test_a_source_reading_census_runs_when_the_source_it_parses_changes():
     # dirac/crcoverage's kwlowered_test.go parses dirac/kgen's registries with go/parser and imports
     # nothing from kgen, so the reverse-dependency closure never selected it: #5642's kgen change passed
     # `fast` and reddened merge batch 46056406666 on TestLoweredKeywordRowsAreNotNA.
-    dm = dict(DIRMAP, **{"dirac/kgen": "m/dirac/kgen", "dirac/crcoverage": "m/dirac/crcoverage",
+    dm = dict(DIRMAP, **{"dirac": "m/dirac", "dirac/kgen": "m/dirac/kgen", "dirac/crcoverage": "m/dirac/crcoverage",
                          "engine/view": "m/engine/view"})
-    dp = dict(DEPS, **{"m/dirac/kgen": {"m/dirac/kgen"}, "m/dirac/crcoverage": {"m/dirac/crcoverage"},
+    dp = dict(DEPS, **{"m/dirac": {"m/dirac"}, "m/dirac/kgen": {"m/dirac/kgen"},
+                       "m/dirac/crcoverage": {"m/dirac/crcoverage"},
                        "m/engine/view": {"m/engine/view"}})
 
     def got(changes):
@@ -246,6 +252,9 @@ def test_a_source_reading_census_runs_when_the_source_it_parses_changes():
         return {p: (k, rx) for k, p, rx in res}
 
     assert got({"dirac/kgen/lower.go": None})["./dirac/crcoverage"] == ("whole", "")
+    # the coverage tables cite all of dirac/*.go: #5984's dirac/chars_gen.go change (batches 46153413812,
+    # 46152946419) must select the reader too
+    assert got({"dirac/chars_gen.go": None})["./dirac/crcoverage"] == ("whole", "")
     # the parsed files are the non-test .go sources, so a kgen test change does not select the reader
     assert "./dirac/crcoverage" not in got({"dirac/kgen/lower_test.go": None})
     # a change to a package nothing in the table parses gains no reader
@@ -262,6 +271,34 @@ def test_touched_excluded_package_is_excluded_not_census():
 def test_heavy_package_with_named_tests_adds_the_census_tests():
     kind, rx = planned({"engine/rules/x_test.go": [(7, 7)]}, {"engine/rules/x_test.go": LEAF_TEST})[0]["./engine/rules"]
     assert kind == "named" and rx.startswith("^(TestOne)$|") and "Census" in rx
+
+
+def test_source_change_reaching_engine_rules_selects_the_cr_deviation_pins():
+    # cr_deviation_pins_test.go pins the engine's CR departures; the pins match neither a changed test's
+    # name nor CENSUS, and a heavy census row is not run by the fast stage. #5807's engine/events change
+    # passed `fast` and merge batches 46111358109 and 46110843281 went red on TestCRDeviation730_2d.
+    dm = dict(DIRMAP, **{"engine/events": "m/engine/events"})
+    dp = dict(DEPS, **{"m/engine/events": {"m/engine/events"},
+                       "m/engine/rules": {"m/engine/rules", "m/engine/events"}})
+    res, _ = tt.plan({"engine/events/apply_copy.go": None}, dm, dp, lambda p: [])
+    rules = [(k, rx) for k, p, rx in res if p == "./engine/rules"]
+    assert ("census", tt.CENSUS) in rules
+    assert ("named", tt.DEVIATION_PINS) in rules
+    # a change that does not reach engine/rules selects no pins row
+    res, _ = tt.plan({"dirac/state.go": None}, NDIRMAP, NDEPS, lambda p: [])
+    assert not [rx for k, p, rx in res if p == "./engine/rules" and rx == tt.DEVIATION_PINS]
+
+
+def test_a_markdown_a_test_parses_selects_its_reader():
+    # engine/rules' TestEffectStaticCensus parses docs/agents/known-approximations/effect-modes.md; every
+    # .md path is otherwise skipped. #5861's first head dropped three stand-ins from that row, `fast`
+    # selected nothing, and merge batch 46119791110 went red on TestEffectStaticCensus.
+    got, _ = planned({"docs/agents/known-approximations/effect-modes.md": None})
+    assert got["./engine/rules"][0] == "census"
+    assert "Census" in got["./engine/rules"][1]  # TestEffectStaticCensus
+    # a doc no test parses still selects nothing beyond the structural gates
+    got, _ = planned({"docs/agents/invariants.md": None})
+    assert "./engine/rules" not in got
 
 
 def test_docs_only_diff_selects_just_the_structural_packages():
@@ -333,9 +370,9 @@ def test_narrow_runs_engine_rules_whole_when_a_source_change_reaches_it():
     kind, rx = got["./engine/rules"]
     assert kind == "wholeskip"
     assert "TestLargeEliminationSweepDoesNotTripLivelockWatcher" in rx and "TestHeads" in rx
-    # The plain selection runs only its census.
+    # The plain selection runs its census tests and the CR-deviation pins (their own bounded named row).
     res, _ = tt.plan({"engine/rules/engine.go": None}, NDIRMAP, NDEPS, lambda p: [])
-    assert dict((p, k) for k, p, _ in res)["./engine/rules"] == "census"
+    assert sorted(k for k, p, _ in res if p == "./engine/rules") == ["census", "named"]
 
 
 def test_narrow_plays_one_kernel_half_by_the_sha_parity():
