@@ -22,7 +22,7 @@ import (
 // "Station Titan Probe" is an inline {G} 8/8 that stations a Broodship to 8
 // in one tap; "Bone Altar Probe" (a {1} artifact, "Sacrifice an artifact:
 // gain 1 life") puts a second, un-stationed Broodship into the graveyard
-// (Ashnod's Altar, the brief's outlet, is itself refused: its sacrifice
+// (Ashnod's Altar, the obvious outlet, is itself refused: its sacrifice
 // mana source is a payment-planner gap). The case FAILS unless some seed casts a permanent spell from
 // seat 0's graveyard and sacrifices a land for it.
 const stationTitanProbeScript = "Name:Station Titan Probe\nManaCost:G\nTypes:Creature Giant\nPT:8/8\n" +
