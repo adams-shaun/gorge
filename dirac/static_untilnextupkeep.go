@@ -57,11 +57,13 @@ func tableHasUpkeepOv(t *kop.Table) bool {
 }
 
 // upkeepStep is beginStep's StepUpkeep entry: it drops the
-// until-your-next-upkeep records before the step's triggers are queued.
+// until-your-next-upkeep records before the step's triggers are queued, and
+// fires Alchemist's Gambit's pending upkeep rider.
 func (s *State) upkeepStep(k *prep) {
 	if k.gen != nil && k.gen.uses.has(useUpkeepOv) {
 		s.dropUpkeepOv(k)
 	}
+	s.exNoPrevUpkeep() // an extra turn's upkeep rider (act_extraturnnoprev.go)
 }
 
 // dropUpkeepOv ends the until-your-next-upkeep override records whose

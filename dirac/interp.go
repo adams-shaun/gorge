@@ -598,7 +598,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			// (kop.StepEnd; the only lowered ExtraTurnDelayedTrigger shape,
 			// kgen apiAddTurn's addTurnRider); the rider's trigger names the
 			// resolving spell its source, gorge's registration c.Source.
-			s.exPush(p, in.C != 0, e.obj)
+			s.exPushOp(p, in, e.obj) // B=1: damage can't be prevented that turn (act_extraturnnoprev.go)
 			break
 		}
 		panic("kernel: op not implemented: " + in.Op.String())
