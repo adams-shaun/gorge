@@ -1576,6 +1576,11 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 		// priority (replacement_turndraw.go).
 		turnDraw := len(e.replChoices) > 0 && e.replChoices[0].turnDraw
 		e.handleReplacement(d, in, false)
+		// An answered ask that held a land play's entry ends the play unless
+		// the entry is parked again, wherever the replacement sent the land.
+		if e.etbLandPlay {
+			e.settleLandPlayIfDone(e.etbLandObj)
+		}
 		if turnDrawPriorityDue(turnDraw, e.G.Over, e.pending) {
 			e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 		} else if turnDraw && !e.G.Over {
