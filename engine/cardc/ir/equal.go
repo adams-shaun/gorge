@@ -132,7 +132,8 @@ func eqRef(a, b *Ref) bool {
 		eqPtr(a.N, b.N, eqValue) &&
 		a.UpTo == b.UpTo &&
 		a.Receipt == b.Receipt &&
-		eqPtrSlice(a.Union, b.Union, eqRef)
+		eqPtrSlice(a.Union, b.Union, eqRef) &&
+		a.Memory == b.Memory
 }
 
 func eqTarget(a, b *Target) bool {

@@ -205,12 +205,16 @@ func prRef(p *printer, n *Ref) {
 	if n.Kind == RefTarget || n.Slot != 0 {
 		p.atom(strconv.Itoa(int(n.Slot)))
 	}
+	if n.Kind == RefMemory {
+		p.atom(n.Memory.String())
+	}
 	posOpt(p, n.Of, prRef)
 	knode(p, "filter", n.Filter, prFilter)
 	knode(p, "n", n.N, prValue)
 	p.kflag("up-to", n.UpTo)
 	p.kenum("receipt", n.Receipt != 0, n.Receipt.String())
 	knodes(p, "union", n.Union, prRef)
+	p.kenum("memory", n.Kind != RefMemory && n.Memory != 0, n.Memory.String())
 	p.end()
 }
 
