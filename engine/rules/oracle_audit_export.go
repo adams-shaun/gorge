@@ -88,7 +88,7 @@ func CheckOracleScenarioJSON(raw []byte) []string {
 		if !oracleAuditOps[st.Op] {
 			out = append(out, fmt.Sprintf("%s: unknown op %q", where, st.Op))
 		}
-		for _, ref := range append(append([]string{st.Card, st.Defender}, st.Targets...), st.Attackers...) {
+		for _, ref := range append(append(append([]string{st.Card, st.Defender}, st.Targets...), st.Attackers...), st.Defenders...) {
 			checkRef(where, ref)
 		}
 		exps = append(exps, st.Expect...)
