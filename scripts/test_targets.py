@@ -232,8 +232,9 @@ RULES_SKIP = ("TestHeads", "TestLargeEliminationSweepDoesNotTripLivelockWatcher"
               "TestCloneFidelityShort[0-9A-Za-z]*", "TestCostStaticPlannedCastsNeverCostChange[0-9]*",
               "TestChainTargetOfferCensusAgreesWithCastFlow[0-9]*",
               "TestPaymentPlanOnePassMatchesReferenceOverAutoPayGameKernel[0-9A-Za-z]*")
-# Two halves of one game's decision probes, 36 s each, each contained in the other's coverage and never red
-# (audit item 8): a run plays one, chosen by the commit sha's parity, so consecutive commits cover both.
+# Two halves of one game's decision probes, ~16 s each with the long game's costliest cache verifiers off
+# (kernel_world_longgame_test.go; they were 36 s each before that), each contained in the other's coverage and
+# never red (audit item 8): a run plays one, chosen by the commit sha's parity, so consecutive commits cover both.
 KERNEL_PAIR = ("TestKernelWorldsInFuzzGame5Shard0", "TestKernelWorldsInFuzzGame5Shard1")
 PINS_TESTS = "^TestPinManifest$|^TestPinManifestCoversOldPins$"
 ARCH32 = "TestEngineCompilesFor32Bit"

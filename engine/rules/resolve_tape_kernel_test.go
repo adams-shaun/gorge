@@ -320,9 +320,10 @@ func TestKernelHeadsCheckpointAll(t *testing.T) {
 // once and probes every decision; game 5 (the longest) is split in two and
 // game 2 in four, each shard replaying its main line and probing its share of
 // the decisions. Both long games' shards run sequentially with the four
-// costliest cache verifiers off (kernelWorldsInLongGame). With them on, game
-// 5's main line alone was ~55 s, which no number of shards could cut, and a
-// quarter of game 2 was 22-24 s run alone.
+// costliest cache verifiers off (kernelWorldsInLongGame). With them off, game
+// 5's main line is ~13 s and a shard ~16 s; with them on, the main line alone
+// was ~55 s, which no number of shards could cut, and a quarter of game 2 was
+// 22-24 s run alone.
 // GORGE_TAPE_WORLD_GAMES (above 6) sets how many games the Sweep plays: games
 // 6..N-1.
 const kernelWorldDefaultGames = 6
