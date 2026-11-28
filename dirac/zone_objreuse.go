@@ -19,14 +19,12 @@ func (s *State) objTableFull() bool {
 }
 
 // freeTokenObj is the lowest reusable object id, NoObj when there is none.
-// Tokens and copies are the object table's suffix (ceaseTokensGen); reuse
-// keeps it one, as only suffix ids are handed out again.
+// Reuse hands out only ids that carry ofToken or ofCopy (objFree), so the
+// scan starts where those bits can be (tokenScanStart): the object table's
+// suffix on an ordinary table, the whole table on one that can merge, where
+// the bits can move between objects (mergeFold's top arm, kw_mutate.go).
 func (s *State) freeTokenObj() Obj {
-	i0 := int(s.nobj)
-	for i0 > 0 && s.objs[i0-1].of&(ofToken|ofCopy) != 0 {
-		i0--
-	}
-	for i := i0; i < int(s.nobj); i++ {
+	for i := s.tokenScanStart(); i < int(s.nobj); i++ {
 		if s.objFree(Obj(i)) {
 			return Obj(i)
 		}
@@ -132,6 +130,26 @@ func (s *State) heldReferenced(o Obj) bool {
 	for i := range g.prevCol { // a filtered scoped prevention finds its filters from its object's card
 		if g.prevCol[i].obj == o && g.prevCol[i].sc&kop.PrevScopeFiltered != 0 {
 			return true
+		}
+	}
+	// A merge pile's parked components (kw_mutate.go): a token or spell-copy
+	// component parks as an ofToken object, and an object a live pile names
+	// is not dead yet however still it sits. Only a table
+	// that can merge (Mutate or ExtMergePermanent) can have such a pile, so
+	// every other table skips the scan.
+	if k := s.k(); k == nil || k.gen == nil || !(k.gen.anyMerge || k.gen.anyMutate) {
+		return false
+	}
+	recs := coldMerge.of(s)
+	for i := range recs {
+		r := &recs[i]
+		if r.top == 0 {
+			continue
+		}
+		for j := uint8(0); j < r.n; j++ {
+			if r.und[j] == objWord(o)+1 {
+				return true
+			}
 		}
 	}
 	return false
