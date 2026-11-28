@@ -1,0 +1,6 @@
+family: TrigFlags6
+name: Tf6DrawerNotActive
+value: next
+status: active
+ticket: dk-burn-05-drawn-owner-scope
+doc: Tf6DrawerNotActive (Trigger.Flags6): a Drawn line whose ValidCard$ is Card.OwnedBy Opponent.NonActive (Forge writes Opponent.!Active; the cards parse folds the spelling, engine/cards/parse.go canonicalNonActive): the drawn card's OWNER -- the drawing player, CR 108.4a -- is not the active player (Tataru Taru's "whenever an opponent draws a card, if it isn't that player's turn"). gorge evaluates the qualifier through playerSpecQualifierNonActive (engine/effects/player_filter.go) on the owner seat, beside the WhoseOpp gate that reads the opponent half; the kernel reads the bit against State.active in its TrigDrawn arms (dirac/triggers_gen.go playerTrigGenObj, dirac/zones.go firePlayer).

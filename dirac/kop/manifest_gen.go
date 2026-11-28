@@ -3039,6 +3039,11 @@ const TrigPlayerCounterAdded TrigEvent = 129
 // Tf5DmgNoContract: a combat DamageDone line's damaged player has no contract counter (ValidTarget$ Player.counters_EQ0_Contract, Miss Highwater; gorge state.Player.Counter("Contract"); kernel ctr_contract.go).
 const Tf5DmgNoContract TrigFlags5 = 1 << 7
 
+// TrigFlags6 (dirac/manifest/TrigFlags6/Tf6DrawerNotActive)
+//
+// Tf6DrawerNotActive (Trigger.Flags6): a Drawn line whose ValidCard$ is Card.OwnedBy Opponent.NonActive (Forge writes Opponent.!Active; the cards parse folds the spelling, engine/cards/parse.go canonicalNonActive): the drawn card's OWNER -- the drawing player, CR 108.4a -- is not the active player (Tataru Taru's "whenever an opponent draws a card, if it isn't that player's turn"). gorge evaluates the qualifier through playerSpecQualifierNonActive (engine/effects/player_filter.go) on the owner seat, beside the WhoseOpp gate that reads the opponent half; the kernel reads the bit against State.active in its TrigDrawn arms (dirac/triggers_gen.go playerTrigGenObj, dirac/zones.go firePlayer).
+const Tf6DrawerNotActive TrigFlags6 = 1 << 0
+
 // TypeMask (dirac/manifest/TypeMask/TVanguard)
 //
 // TVanguard: the Vanguard card type (CR 205.2). A Vanguard is not a permanent: kgen still builds the bit on a lowered command-zone static carrier (Sisay's TapsForMana static, lower_tapextra.go), but the kernel reads no Vanguard type mask -- it classifies a command-zone static by its zone alone (static_classgates.go prepStaticClasses, a Vanguard's or a face-up plane's).
