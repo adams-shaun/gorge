@@ -85,6 +85,7 @@ func hostedCmdrCases() []hostedCmdrCase {
 	dogBearsDeck := append(deckOf(8, "Grizzly Bears"), deckOf(32, "Forest")...)
 	hybridProbeDeck := append(append(deckOf(12, "Hybrid Probe"), deckOf(14, "Plains")...), deckOf(14, "Wastes")...)
 	copyProbeDeck := append(deckOf(12, "Copy Probe"), deckOf(28, "Wastes")...)
+	sweepProbeDeck := append(append(deckOf(8, "Sweep Probe"), deckOf(12, "Sweep Zap")...), deckOf(20, "Wastes")...)
 	cullerDeck := append(deckOf(12, "Timeline Culler"), deckOf(28, "Swamp")...)
 	// Ancient Ziggurat's mana may only be spent on a creature spell: the
 	// graveyard warp's {B} has no other source (restricted-source pricing)
@@ -147,6 +148,14 @@ func hostedCmdrCases() []hostedCmdrCase {
 			decks:    [2][]string{copyProbeDeck, creatureDeck},
 			fixtures: map[string]string{"Copy Probe": copyProbeScript},
 			reached:  copyspellResolutionCostReached,
+		},
+		{
+			name:     "ulalek_validstack_copy_body",
+			carrier:  "Sweep Probe",
+			seats:    [2]string{"hck-sweep-a", "hck-sweep-b"},
+			decks:    [2][]string{sweepProbeDeck, creatureDeck},
+			fixtures: map[string]string{"Sweep Probe": sweepProbeScript, "Sweep Zap": sweepZapScript},
+			reached:  validStackCopiesResolved,
 		},
 		{
 			name:       "timeline_culler_warp_paylife",
@@ -264,6 +273,73 @@ func copyspellResolutionCostReached(g *GorgeSide) bool {
 		}
 	}
 	return false
+}
+
+// sweepProbeScript carries Ulalek, Fused Atrocity's two copy SVars (their
+// parameters reordered: no Forge line is committed verbatim)
+// (gorge effCopySpellAbility's Defined$ ValidStack arm) on a {C}{C} Eldrazi
+// body, plus a cast trigger of its own: casting a second probe while one is on
+// the battlefield puts the cast probe spell and its own life trigger on the
+// stack beside the battlefield probe's copy trigger, so the copy trigger has
+// a spell and another triggered ability you control to sweep.
+const sweepProbeScript = "Name:Sweep Probe\nManaCost:C C\nTypes:Creature Eldrazi\nPT:2/2\n" +
+	"T:Mode$ SpellCast | ValidCard$ Card.Eldrazi | ValidActivatingPlayer$ You | Execute$ TrigCopySpell | TriggerZones$ Battlefield | TriggerDescription$ Whenever you cast an Eldrazi spell, you may pay {C}{C}. If you do, copy all spells you control, then copy all other activated and triggered abilities you control.\n" +
+	"T:Mode$ SpellCast | ValidCard$ Card.Self | Execute$ TrigGain | TriggerDescription$ When you cast this spell, you gain 1 life.\n" +
+	"SVar:TrigCopySpell:AB$ CopySpellAbility | Defined$ ValidStack Spell.YouCtrl | Cost$ C C | SubAbility$ TrigCopyAbilities | MayChooseTarget$ True\n" +
+	"SVar:TrigCopyAbilities:DB$ CopySpellAbility | MayChooseTarget$ True | Defined$ ValidStack Ability.YouCtrl+otherAbility\n" +
+	"SVar:TrigGain:DB$ GainLife | LifeAmount$ 1 | Defined$ You\n" +
+	"Oracle:Whenever you cast an Eldrazi spell, you may pay {C}{C}. If you do, copy all spells you control, then copy all other activated and triggered abilities you control.\nWhen you cast this spell, you gain 1 life.\n"
+
+// sweepZapScript is a {C} Eldrazi instant with a target and a targeted cast
+// trigger of its own: casting it fires the battlefield probe's copy trigger
+// beside the zap's ping trigger, so the spell sweep copies a targeted spell
+// and the ability sweep a targeted trigger, each copy posing its new-target
+// election (CR 707.10c). Two zaps cast in response give a sweep two matches.
+const sweepZapScript = "Name:Sweep Zap\nManaCost:C\nTypes:Kindred Instant Eldrazi\n" +
+	"A:SP$ DealDamage | NumDmg$ 1 | ValidTgts$ Any | SpellDescription$ Sweep Zap deals 1 damage to any target.\n" +
+	"T:Mode$ SpellCast | ValidCard$ Card.Self | Execute$ TrigPing | TriggerDescription$ When you cast this spell, it deals 1 damage to any target.\n" +
+	"SVar:TrigPing:DB$ DealDamage | NumDmg$ 1 | ValidTgts$ Any\n" +
+	"Oracle:Sweep Zap deals 1 damage to any target.\nWhen you cast this spell, it deals 1 damage to any target.\n"
+
+// validStackCopiesResolved: the sweeps made and elected both kinds of copy,
+// one resolution's sweep copied two or more objects of one kind, and a copy
+// resolved. A TargetsChosen on a copy is its new-target election closing
+// (rules AskCopyTargets -> finishCopyTargets, CR 707.10c); a spell copy
+// (Ability nil) is the spell sweep's, a copied ability the ability sweep's.
+// Two StackCopy events of one kind with no Resolve between them are one
+// sweep's matches, so the sweep resumed across an election. Any part missing
+// leaves the elections or the resume across them unreached.
+func validStackCopiesResolved(g *GorgeSide) bool {
+	var spellElect, abElect, multi, resolved bool
+	var runSpell, runAb int
+	for i := range g.E.L.Events {
+		e := &g.E.L.Events[i]
+		if e.Kind == events.Resolve {
+			runSpell, runAb = 0, 0
+		}
+		o := g.E.G.Obj(e.Obj)
+		if o == nil {
+			continue
+		}
+		switch e.Kind {
+		case events.StackCopy:
+			if o.Ability != nil {
+				runAb++
+			} else {
+				runSpell++
+			}
+			multi = multi || runSpell >= 2 || runAb >= 2
+		case events.TargetsChosen:
+			if o.IsCopy && o.Ability != nil {
+				abElect = true
+			} else if o.IsCopy {
+				spellElect = true
+			}
+		case events.Resolve:
+			resolved = resolved || o.IsCopy
+		}
+	}
+	return spellElect && abElect && multi && resolved
 }
 
 // tideProbeScript is a {U}{U} body for a seat whose only lands are Cascading

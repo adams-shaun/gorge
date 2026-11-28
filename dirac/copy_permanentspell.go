@@ -30,6 +30,9 @@ func prepPermCopy(t *kop.Table, g *genPrep) {
 				if (in.Op == kop.OpCopySpell || in.Ext() == kop.ExtCopyAbility) && in.C&1 != 0 || in.Op == kop.OpDemonstrate { // seat-ok: an instruction flag bit
 					g.anyCopyElect = true
 				}
+				if in.Ext() == kop.ExtCopyStackValid {
+					prepCopyStackValid(g, &in) // copy_validstack.go
+				}
 			}
 		}
 	}
