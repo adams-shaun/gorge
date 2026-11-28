@@ -21,7 +21,7 @@ import (
 //
 //   - a bots.EnvSeat that wants the decision gets a bots.Env whose search
 //     engine is the honest root searchseat.HonestRoot deals from the seat's
-//     own observation feed, at bots.RootSeed(seed^(seat+1), d.Seq), never
+//     own observation feed, at bots.RootSeed(seed^(seat+1), d.Ordinal), never
 //     the live engine. Without this branch az-redeal answered Decide, which
 //     plays its wrapped heuristic bot, and never searched;
 //   - a heuristic.BoardSeat answers DecideBoard from one reused Board, with
@@ -96,7 +96,7 @@ func (r *seatRoute) decideEnv(ctx context.Context, e *rules.Engine, es bots.EnvS
 	if i := int(d.Player); r.feeds != nil && !r.stopped[i] {
 		fd = r.feeds[i]
 	}
-	root, reason := searchseat.HonestRoot(setup, fd, e, bots.RootSeed(r.seed^(uint64(d.Player)+1), d.Seq))
+	root, reason := searchseat.HonestRoot(setup, fd, e, bots.RootSeed(r.seed^(uint64(d.Player)+1), d.Ordinal))
 	v := view.Project(e.G, e, d.Player, d)
 	v.Round = view.RoundOf(e.G, e.L.Events)
 	b := botpolicy.BoardFromGameInto(e.G, e, d.Player, &r.board).Detached()
