@@ -177,7 +177,7 @@ func manaOf(generic int, pips int16) kop.ManaCost {
 
 // execPay starts OpUnlessPaid / OpIfPaid / OpUnlessSwitched; false = suspended.
 func (s *State) execPay(k *prep, in *kop.Instr) bool {
-	p := s.payerOf(k, in.Obj)
+	p := s.execPayer(k, in.Obj) // a departed payer is none (cost_departedpayer.go)
 	kind := int(in.C & 0xF)
 	if kind == kop.PayManaX && in.B.N == kop.PayBSubEvidence {
 		kind = payKindEvidence // a trigger's own CollectEvidence cost rides PayManaX (cost_collectevidence.go)
