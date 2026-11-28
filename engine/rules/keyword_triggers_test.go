@@ -832,7 +832,7 @@ func TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells(t *testing.
 }
 
 // TestPersistUsesRealCorpusCard drives Safehold Elite's real compiled script
-// (K:Persist is its only non-printed line) through CR 702.77: it dies with no
+// (K:Persist is its only non-printed line) through CR 702.79: it dies with no
 // -1/-1 counter and returns under its owner's control with one; the returned
 // 1/1 dies again and stays dead; and a copy that already carried a -1/-1
 // counter from another source never returns at all. Persist is the mirror of

@@ -1,4 +1,4 @@
-// emerge_test.go proves CR 702.118a: a spell with Emerge is cast by
+// emerge_test.go proves CR 702.119a: a spell with Emerge is cast by
 // sacrificing a creature and paying the printed emerge cost reduced by that
 // creature's mana value. Elder Deep-Fiend is the real corpus carrier (printed
 // {8}, Emerge {5}{U}{U}); its companions are freely authored fixtures (never

@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Fight primitive (CR 701.12) pinned on real corpus carriers and on
+// The Fight primitive (CR 701.14) pinned on real corpus carriers and on
 // synthetic fixtures for the rider/edge shapes. The corpus carriers are read
 // as script text so they seed through newFixtureDeck as real deck cards and
 // replayCheck can replay them.

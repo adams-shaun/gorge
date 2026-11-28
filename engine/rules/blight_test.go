@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Blight (CR 701.60) primitive pinned end to end on the REAL corpus
+// The Blight (CR 701.68) primitive pinned end to end on the REAL corpus
 // cards. The helpers come from search_library_test.go (searchTestRegistry,
 // searchCorpusCard, searchMoveByName), cast_test.go (submitChoices, toMain1,
 // addMana), draw_step_test.go (driveToStep), replacement_updated_test.go

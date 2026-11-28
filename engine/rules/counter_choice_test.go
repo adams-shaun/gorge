@@ -309,7 +309,7 @@ func amyPondGame(t *testing.T, seed uint64, nSuspended int, time int32) (*Engine
 	if o := e.G.Obj(plain); o.Zone != state.ZExile || o.CastFlags&state.FlagSuspend != 0 {
 		t.Fatalf("plain control copy not exiled un-flagged: %+v", o)
 	}
-	// main's kw:Partner-with expansion (CR 702.128) mints Amy Pond's ETB
+	// main's kw:Partner-with expansion (CR 702.124) mints Amy Pond's ETB
 	// may-search trigger ("target player may put Rory into their hand"), so
 	// Amy's battlefield entry now queues a trigger with a ValidTgts$ Player
 	// target ask. Answer it — target seat 0, Amy's controller — and decline
