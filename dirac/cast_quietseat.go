@@ -189,6 +189,7 @@ func prepQuiet(t *kop.Table, k *prep) {
 		k.quietOff = true
 	}
 	tf := quietTableFlags{equipFlash: g != nil && g.uses.has(useEquipFlash), loyFlash: tableHasStatic(t, kop.StatLoyaltyFlash)}
+	k.quietTF = tf // bfLive's sorcOnly read (an equip- or loyalty-flash table's abilities are read)
 	for i := range t.Cards {
 		qf := quietFact{bfAny: quietNone, bfTap: quietNone, hand: quietNone, grAny: quietNone, grTap: quietNone}
 		qf.bits = quietCardBits(t, k, i)

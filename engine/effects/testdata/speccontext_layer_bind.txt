@@ -27,7 +27,6 @@ effects/conditions.go conditionMetBattlefield
 effects/conditions.go conditionMetZone
 effects/conditions.go conditionNotPresentMet
 effects/context.go attachedToDefinedSelector
-effects/context.go battlefieldValidTargets
 effects/context.go definedZoneValidTargets
 effects/context.go knownDefinedTargets
 effects/context.go validStackTargets
