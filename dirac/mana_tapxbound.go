@@ -15,7 +15,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // letting an untap trigger resolve (Captain America, Living Legend untapping
 // the legendary creature Relic tapped).
 //
-// The kernel mirrors it with the gaps walk under tapXRep: availTapX adds each
+// The kernel mirrors it with the gaps walk under turnTapXBound: availTapX adds each
 // repeatable source's unit tapXBoundRepeats times. It runs only on boards
 // whose census gaps are tap-another sources alone, where every gap has a
 // bounded relaxation (census.bounded); beside a sacrifice-any source, a
@@ -29,11 +29,16 @@ func (s *State) tapXBoundWalk(k *prep, p uint8, rt *scriptRoute, sac bool, out *
 	if !rt.twoLive || sac || rt.repeatLive || !k.tapMana || !s.tapXTwoLive(k, p) || !s.tapXOnlyGaps(k, p, rt) {
 		return nil
 	}
-	s.g.tapXRep = true
+	s.g.turnF |= turnTapXBound
 	s.plainOptions(k, out, availGaps)
-	s.g.tapXRep = false
+	s.g.turnF &^= turnTapXBound
 	return out
 }
+
+// turnTapXBound is genState.turnF's bit 13: the gaps walk is tapXBoundWalk's
+// (tapXBoundRepeats). Like turnUnlessWin it lives in turnF's free bits, set
+// and cleared around the walk, so State's fixed layout does not move.
+const turnTapXBound turnFT = 1 << 13
 
 // tapXOnlyGaps: p's census gaps are tap-another sources alone, none of them a
 // sacrifice or graveyard-exile one (rt holds scriptOffers' gap masks).
@@ -51,11 +56,11 @@ func (s *State) tapXOnlyGaps(k *prep, p uint8, rt *scriptRoute) bool {
 }
 
 // tapXBoundRepeats is how many units availTapX adds for tap-another source sl:
-// one, or under the bounded walk (genState.tapXRep) for a repeatable shape
+// one, or under the bounded walk (turnTapXBound) for a repeatable shape
 // (no {T}, not once-only: tapXTwoLiveIn's) its untapped candidates over the
 // cost's count (gorge tapRepeatBound).
 func (s *State) tapXBoundRepeats(k *prep, p uint8, sl Slot, ab *kop.Ability) int {
-	if !s.g.tapXRep || ab.Cost.Flags&(kop.CostTap|kop.CostSac|kop.CostExileGrave) != 0 || kop.BoundedOnceManaAb(ab) || ab.Cost.N <= 0 {
+	if s.g.turnF&turnTapXBound == 0 || ab.Cost.Flags&(kop.CostTap|kop.CostSac|kop.CostExileGrave) != 0 || kop.BoundedOnceManaAb(ab) || ab.Cost.N <= 0 {
 		return 1
 	}
 	var cs [MaxPerm]Slot
