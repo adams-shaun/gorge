@@ -1,6 +1,7 @@
 package dirac
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -108,29 +109,39 @@ func TestEvalSetReturnedReferents(t *testing.T) {
 	tgt0, union := setOp1(kop.SetTarget, 0), setOp1(kop.SetUnion, 0)
 	ctrlOf, ownerOf := setOp1(kop.SetControllerOf, 0), setOp1(kop.SetOwnerOf, 0)
 
+	// subject lists prog's set as execSet walks it
+	subject := func(prog ...kop.SetOp) []TCode {
+		v := s.evalSetExpr(sc.k, prog, setCtx{ev: s.ctxEntry(&s.res.e)})
+		v.dropGone()
+		var list [MaxObj + MaxSeats]TCode
+		var vers [MaxObj + MaxSeats]uint8
+		n := s.setMembers(&v, s.res.e.ctrl, &list, &vers)
+		return slices.Clone(list[:n])
+	}
+
 	setBlink(sc.scen, sc.self)
 	if s.objs[sc.self].zone != kop.ZoneBattlefield || s.objs[sc.self].ver == s.res.e.srcVer {
 		t.Fatal("precondition: the source is back on the battlefield as a new object")
 	}
-	setWant(t, "returned Self", sc.eval(self))
-	setWant(t, "Target 0 ∪ returned Self", sc.eval(tgt0, self, union), L)
-	setWant(t, "returned Self ∪ Target 0", sc.eval(self, tgt0, union), L)
-	setWant(t, "returned Self ∪ returned Self", sc.eval(self, self, union))
-	setWant(t, "ControllerOf returned Self", sc.eval(self, ctrlOf), me)
-	setWant(t, "OwnerOf returned Self", sc.eval(self, ownerOf), me)
-	setWant(t, "ControllerOf (Target 0 ∪ returned Self)", sc.eval(tgt0, self, union, ctrlOf), me, op)
+	setWant(t, "returned Self", subject(self))
+	setWant(t, "Target 0 ∪ returned Self", subject(tgt0, self, union), L)
+	setWant(t, "returned Self ∪ Target 0", subject(self, tgt0, union), L)
+	setWant(t, "returned Self ∪ returned Self", subject(self, self, union))
+	setWant(t, "ControllerOf returned Self", subject(self, ctrlOf), me)
+	setWant(t, "OwnerOf returned Self", subject(self, ownerOf), me)
+	setWant(t, "ControllerOf (Target 0 ∪ returned Self)", subject(tgt0, self, union, ctrlOf), me, op)
 	// a target chosen as the new object names it
 	s.res.e.tgt[2], s.res.e.tver[2] = TCode(sc.self), s.objs[sc.self].ver
-	setWant(t, "Target 2 ∪ returned Self", sc.eval(setOp1(kop.SetTarget, 2), self, union), S)
-	setWant(t, "returned Self ∪ Target 2", sc.eval(self, setOp1(kop.SetTarget, 2), union), S)
+	setWant(t, "Target 2 ∪ returned Self", subject(setOp1(kop.SetTarget, 2), self, union), S)
+	setWant(t, "returned Self ∪ Target 2", subject(self, setOp1(kop.SetTarget, 2), union), S)
 
 	P := TCode(sc.plains)
-	setWant(t, "TriggeredCard that stayed", sc.eval(trig), P)
+	setWant(t, "TriggeredCard that stayed", subject(trig), P)
 	s.res.flags |= rfTrigGone
 	if s.objRef(sc.k, kop.RefTriggerObj) != NoSlot {
 		t.Fatal("precondition: a plain TriggeredCard names nothing once it left and came back")
 	}
-	setWant(t, "returned TriggeredCard", sc.eval(trig))
-	setWant(t, "returned TriggeredCard ∪ Target 0", sc.eval(trig, tgt0, union), L)
-	setWant(t, "ControllerOf returned TriggeredCard", sc.eval(trig, ctrlOf), op)
+	setWant(t, "returned TriggeredCard", subject(trig))
+	setWant(t, "returned TriggeredCard ∪ Target 0", subject(trig, tgt0, union), L)
+	setWant(t, "ControllerOf returned TriggeredCard", subject(trig, ctrlOf), op)
 }

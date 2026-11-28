@@ -34,8 +34,9 @@ type setOrd struct {
 type setVal struct {
 	objs objBits
 	// gone marks the members of objs that only a referent now naming a new
-	// object put there (CR 400.7): setMembers leaves them out, SetControllerOf
-	// and SetOwnerOf still read them (gorge's CardController).
+	// object put there (CR 400.7): an object subject leaves them out
+	// (dropGone), SetControllerOf and SetOwnerOf still read them (gorge's
+	// CardController).
 	gone objBits
 	pl   uint8
 	ord  setOrd
@@ -65,6 +66,14 @@ func (v *setVal) addReferent(o Obj, gone bool) {
 	v.addObj(o, 0, false)
 	if gone && o < MaxObj {
 		v.gone.set(o)
+	}
+}
+
+// dropGone takes the gone members out of v before an op walks it as its
+// subject.
+func (v *setVal) dropGone() {
+	for i := range v.objs {
+		v.objs[i] &^= v.gone[i]
 	}
 }
 
@@ -320,8 +329,7 @@ func (s *State) setMatch(k *prep, f kop.FilterID, o Obj, ctx setCtx) bool {
 }
 
 // setMembers lists v's members in the order an op walks them: a target base's
-// slot order, else object index order (without the gone ones), then seats in
-// turn order from ctrl.
+// slot order, else object index order, then seats in turn order from ctrl.
 // out's versions are the target's recorded one for an ordered member and the
 // object's current one otherwise.
 func (s *State) setMembers(v *setVal, ctrl uint8, out *[MaxObj + MaxSeats]TCode, ver *[MaxObj + MaxSeats]uint8) int {
@@ -334,7 +342,7 @@ func (s *State) setMembers(v *setVal, ctrl uint8, out *[MaxObj + MaxSeats]TCode,
 		return n
 	}
 	for w := range v.objs {
-		for b := v.objs[w] &^ v.gone[w]; b != 0; b &= b - 1 {
+		for b := v.objs[w]; b != 0; b &= b - 1 {
 			o := Obj(w*64 + bits.TrailingZeros64(b))
 			out[n], ver[n] = TCode(o), s.objs[o].ver
 			n++
@@ -413,6 +421,7 @@ func (s *State) execSet(k *prep, in *kop.Instr) bool {
 		panic("kernel: a RefSet instruction in an ability that targets every slot")
 	}
 	v := s.evalSet(k, ab, pc, setCtx{ev: s.ctxEntry(e)})
+	v.dropGone()
 	var list [MaxObj + MaxSeats]TCode
 	var vers [MaxObj + MaxSeats]uint8
 	n := s.setMembers(&v, e.ctrl, &list, &vers)
