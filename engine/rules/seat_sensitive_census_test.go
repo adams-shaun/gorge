@@ -21,7 +21,6 @@ import (
 var seatSensitiveGaps = []string{
 	"defending-player",
 	"dethrone",
-	"each-opponent",
 	"extra-turns",
 	"melee",
 }
