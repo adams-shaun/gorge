@@ -80,10 +80,10 @@ func TestDefinedSetGrammar(t *testing.T) {
 	}{
 		{"object union", definedSetSrc("T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature.Other | TriggerZones$ Battlefield | Execute$ ProbeTrigExile",
 			"SVar:ProbeTrigExile:DB$ ChangeZone | Origin$ Graveyard | Destination$ Exile | Defined$ Self & TriggeredCard"),
-			`Defined$ "Self & TriggeredCard": union order or duplicates differ from gorge`},
+			`Defined$ "Self & TriggeredCard": the parts may name the same object`},
 		{"a player, then you", definedSetSrc("A:AB$ Draw | Cost$ T | ValidTgts$ Player | NumCards$ 1 | SubAbility$ ProbeDBLose",
 			"SVar:ProbeDBLose:DB$ LoseLife | LifeAmount$ 1 | Defined$ TargetedAndYou"),
-			`Defined$ "TargetedAndYou": union order or duplicates differ from gorge`},
+			`Defined$ "TargetedAndYou": the parts may name the same player`},
 		{"qualifier over a multi-object slot", definedSetSrc("A:AB$ Pump | Cost$ T | ValidTgts$ Creature | TargetMin$ 0 | TargetMax$ 2 | SubAbility$ ProbeDBTap",
 			"SVar:ProbeDBTap:DB$ Tap | Defined$ ParentTarget.Bear"),
 			`Defined$ "ParentTarget.Bear": a qualifier over a multi-object slot`},

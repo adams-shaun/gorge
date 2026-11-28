@@ -1,0 +1,16 @@
+# The Defined$ A & B composition pool (dirac/oracle/definedpairs_lockstep_test.go):
+# Black Widow, Intel Expert (a player pair, You & TriggeredTarget, two Draw
+# nodes in script order), Alaborn Zealot and Loyal Sentry (a Blocks
+# trigger's TriggeredAttackerLKICopy & Self, two Destroy nodes), plus the
+# vanilla creatures and basics the decks need. The pairs and unions whose
+# cards stay refused (Tenuous Truce, Cait, Eumidian Wastewaker, Zurzoth,
+# Leaf-Leap Guide; Dragon Turtle, whose union lowers but whose kop
+# SkipNextUntap takes no set) are TestDefinedPairShapes' rows.
+Black Widow, Intel Expert
+Alaborn Zealot
+Loyal Sentry
+Grizzly Bears
+Savannah Lions
+Glory Seeker
+Plains
+Forest

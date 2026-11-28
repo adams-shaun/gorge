@@ -17,25 +17,45 @@ var definedPlayerUnionAPIs = map[string]string{
 	"Draw":     "NumCards",
 	"LoseLife": "LifeAmount",
 	"GainLife": "LifeAmount",
+	"Scry":     "ScryNum", // effLookAndArrange asks and arranges each library in turn
 }
 
-// definedPlayerUnion lowers Draw/LoseLife/GainLife whose Defined$ is
+// definedPlayerUnionBatched are the player-set APIs gorge resolves for every
+// acting player as ONE action (effDiscard holds every player's choice and
+// flushes the discards in one discard and zone batch; effMill brackets every
+// library in one action and zone batch), so a Mode$ DiscardedAll /
+// MilledAll / ChangesZoneAll trigger fires once where two nodes fire it
+// twice, and a discard replacement asks after both choices, not between
+// them. A pair the repeat would otherwise lower refuses by that name.
+var definedPlayerUnionBatched = map[string]string{
+	"Discard": "discards",
+	"Mill":    "mills",
+}
+
+// definedPlayerUnion lowers Draw/LoseLife/GainLife/Scry whose Defined$ is
 // `<A> & <B>` over two single players (Karazikar's "the attacking player and
 // you", Cait's "the defending player and you"), repeating the node once per
 // part: gorge knownDefinedTargets joins the members in script order, acting
 // players then loops the players, so two single-player nodes are the same
-// sequence. The pair must be You and a player the kernel binds at queue
-// time that cannot be You: the defending player of an attack trigger, or the
-// attacking player of an AttackersDeclared one (gorge does not name a dedupe
-// for a join, so a pair that could coincide is left to the ordinary arms).
+// sequence. The pair, in either script order, must be You and a player the
+// kernel binds at queue time that cannot be You (neverYou): gorge
+// de-duplicates players at first appearance (playerIDsFromTargets), where a
+// repeated node would act twice, so a pair that could coincide is left to
+// the ordinary arms (definedSet refuses it by name).
 // Any other shape declines (handled=false, no refusal): the API dispatch --
 // including the specialised Draw arm for `You & TriggeredTarget` (Xyris,
 // Black Widow, Intel Expert), reached only when nothing earlier claims the
 // node -- and defined's catch-all then decide, so this arm never shadows a
-// lowerer and never replaces an ordinary refusal with its own. Every decline
+// lowerer and never replaces an ordinary refusal with its own, but for a
+// batched API's pair (definedPlayerUnionBatched), refused by name. Every decline
 // is a bare false, so the param scan's map range cannot reach an outcome.
 func (lc *lowerCtx) definedPlayerUnion(sa *cards.SA, ps *params) (handled bool, err error) {
 	amtKey, ok := definedPlayerUnionAPIs[sa.API]
+	verb, batched := definedPlayerUnionBatched[sa.API]
+	ok = ok || batched
+	if batched {
+		amtKey = "NumCards"
+	}
 	d, has := ps.m["Defined"]
 	if !ok || !has || !strings.Contains(d, " & ") {
 		return false, nil
@@ -57,6 +77,7 @@ func (lc *lowerCtx) definedPlayerUnion(sa *cards.SA, ps *params) (handled bool, 
 			}
 		}
 	}
+	// parts stay in script order: the repeat acts on them in that order.
 	sawYou, sawOther := false, false
 	for i, p := range parts {
 		p = strings.TrimSpace(p)
@@ -68,7 +89,7 @@ func (lc *lowerCtx) definedPlayerUnion(sa *cards.SA, ps *params) (handled bool, 
 		switch {
 		case r.Kind == rYou && !sawYou:
 			sawYou = true
-		case r.Kind == rDefending && !sawOther, r.Kind == rTriggeredPlayer && !sawOther && lc.attackersDeclaredTrigger():
+		case !sawOther && lc.neverYou(r):
 			sawOther = true
 		default:
 			return false, nil
@@ -77,6 +98,9 @@ func (lc *lowerCtx) definedPlayerUnion(sa *cards.SA, ps *params) (handled bool, 
 	if !sawYou || !sawOther {
 		return false, nil
 	}
+	if batched {
+		return true, refuse("Defined$ %q: gorge %s for both players in one batch", d, verb)
+	}
 	for _, p := range parts {
 		ps.m["Defined"] = p
 		if err := lc.node(sa, ps); err != nil {
@@ -84,6 +108,30 @@ func (lc *lowerCtx) definedPlayerUnion(sa *cards.SA, ps *params) (handled bool, 
 		}
 	}
 	return true, nil
+}
+
+// neverYou reports whether r is one player the kernel binds at queue time
+// who can never be the resolving controller: the defending player of the
+// controller's own attack (ownAttackTrigger: an Attacks trigger of the
+// controller's attacker, or an AttackersDeclared trigger of its attack, whose
+// per-defender attacked player is that defending seat), or the trigger
+// player of a trigger whose player filter is opponents only (an
+// AttackersDeclared trigger over an opponent's attack; a Phase trigger of an
+// opponent's or the enchanted opponent's step, whose trigger player is that
+// step's active player).
+func (lc *lowerCtx) neverYou(r lRef) bool {
+	if lc.ab == nil || r.N != 0 {
+		return false
+	}
+	switch r.Kind {
+	case rDefending:
+		return lc.ownAttackTrigger()
+	case rTriggeredPlayer:
+		tr := lc.ab.Trigger
+		return lc.attackersDeclaredTrigger() ||
+			tr != nil && tr.Event == "Phase" && (tr.Whose == whoOpp || tr.Whose == whoEnchantedOpp)
+	}
+	return false
 }
 
 // attackersDeclaredTrigger reports an AttackersDeclared trigger over an
