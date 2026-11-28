@@ -1,0 +1,12 @@
+# Equipment with a restricted equip beside a plain one ("Equip legendary
+# creature {3}" and "Equip {7}", CR 702.6a; kgen build_equipshapes.go), with
+# legendary and non-legendary creatures to carry them, for the oracle's
+# constructed lockstep (dirac/oracle/equip_shapes_lockstep_test.go)
+Blackblade Reforged
+Brotherhood Regalia
+Isamaru, Hound of Konda
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Mountain
+Plains
