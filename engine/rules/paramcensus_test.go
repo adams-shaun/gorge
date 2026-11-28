@@ -1622,6 +1622,7 @@ var stringMapParams = map[string]string{
 	// attributes it. (The AddHiddenKeyword$ readers in the same file are in
 	// effectStaticLineReaders instead -- rules has no printed read for them.)
 	"effects:adjustLandPlaysGrantFromLine:params": "parseStaticLine-built static line (an SVar body), not a card Params map",
+	"effects:adjustLandPlaysGrantFromLine:svars":  "SVars table lookup by an AdjustLandPlays$ value naming a Count$ChosenNumber SVar, not a card Params map",
 	// engine/effects/effect_gaincontrol.go gainControlStaticKeysReadable and
 	// effectGainControlGrant: params is the same parseStaticLine-built static
 	// line (an SVar body) the other Effect-delivered grant readers take, its

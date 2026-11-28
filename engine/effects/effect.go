@@ -1106,7 +1106,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ChosenNumber:      chosenNumber,
 				})
 				registered = true
-			} else if n, affected, ok := adjustLandPlaysGrantFromLine(params); ok {
+			} else if n, affected, ok := adjustLandPlaysGrantFromLine(params, c.SVars, chosenNumber); ok {
 				// AdjustLandPlays$ (Explore, Scale the Heights, Urban
 				// Evolution, Summer Bloom): an additional-land-drops grant
 				// rules' adjustLandPlays sums from the active registry. It is

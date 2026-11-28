@@ -54,9 +54,10 @@ var coldCtrP = newCold[plusCreRec]("ctrP", func(g *genPrep) int {
 })
 
 // coldEtbC is the extra-enters-with-counter record (0 or 1 of them), for a
-// table with a Zameck Guildmage replacement.
+// table with a Zameck Guildmage replacement or a lands-enter-tapped one
+// (repl_landtapped.go reads its land half).
 var coldEtbC = newCold[etbCreRec]("etbCre", func(g *genPrep) int {
-	if g.anyEtbCre {
+	if g.anyEtbCre || g.uses.has(useEtbLand) {
 		return 1
 	}
 	return 0
@@ -178,6 +179,8 @@ func (s *State) turnRepl(k *prep, in *kop.Instr) {
 		if p := s.res.e.ctrl; c != nil && c.n[p] < 255 {
 			c.n[p]++
 		}
+	case kop.TurnReplEtbLandTapped:
+		s.etbLandSet() // repl_landtapped.go
 	}
 }
 
@@ -222,9 +225,12 @@ func (s *State) plusCreCold() *plusCreRec {
 
 // etbCreRec is the extra-enters-with-counter record: per player the count of
 // resolved riders. Each puts one +1/+1 counter on every creature that player's
-// side enters with, so the entry hook applies one put per count.
+// side enters with, so the entry hook applies one put per count. land is the
+// lands-enter-tapped record's per-player count of resolved effects
+// (TurnReplEtbLandTapped; repl_landtapped.go): both end at cleanup.
 type etbCreRec struct {
-	n [MaxSeats]uint8
+	n    [MaxSeats]uint8
+	land [MaxSeats]uint8
 }
 
 // etbCreCold is the extra-ETB-counter record, nil when the table has none.
