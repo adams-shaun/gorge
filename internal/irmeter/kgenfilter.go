@@ -29,6 +29,9 @@ var kgenFilterStringRoots = []string{"parseFilter", "parseClause", "historicClau
 // KgenFilter is the kgen-filter section's measurement.
 type KgenFilter struct {
 	TypedOnly, StringOnly, Shared int
+	// AllSites is every refusal site of dirac/kgen, whether or not a filter
+	// reader reaches it; the fallback sentinels are no site here either.
+	AllSites int
 }
 
 // Rows are the section's three counts, metric kgen_filter_refuse_<part>.
@@ -58,15 +61,14 @@ func (k KgenFilter) DropRow() string {
 // Sites is every filter refusal site, whichever reader reaches it.
 func (k KgenFilter) Sites() int { return k.Shared + k.StringOnly + k.TypedOnly }
 
-// SiteSharePct is 100 * Sites / refuseSites, the filter sites against kgen's
-// refuse_sites count; 0 with no refuse site. refuse_sites counts only refuse
-// calls and Sites also counts fmt.Errorf and errors.New, so this compares two
-// sizes: it is not the share of a set the filter sites belong to.
-func (k KgenFilter) SiteSharePct(refuseSites int) float64 {
-	if refuseSites == 0 {
+// SiteSharePct is 100 * Sites / AllSites, the filter sites' share of kgen's
+// refusal sites; 0 with no refusal site. The refuse_sites row is not the
+// denominator: it counts only refuse calls.
+func (k KgenFilter) SiteSharePct() float64 {
+	if k.AllSites == 0 {
 		return 0
 	}
-	return 100 * float64(k.Sites()) / float64(refuseSites)
+	return 100 * float64(k.Sites()) / float64(k.AllSites)
 }
 
 // RemovedByTyped is the refusal sites kgen would lose with the string reader
@@ -75,10 +77,11 @@ func (k KgenFilter) RemovedByTyped() int { return max(k.StringOnly-k.TypedOnly, 
 
 // siteRows are the printed rows that follow the drop row, the share one
 // decimal.
-func siteRows(k KgenFilter, refuseSites int) []string {
+func siteRows(k KgenFilter) []string {
 	return []string{
 		fmt.Sprintf("kgen_filter_refuse_sites\t%s\t%d", kgenScope, k.Sites()),
-		fmt.Sprintf("kgen_filter_refuse_site_share_pct\t%s\t%.1f", kgenScope, k.SiteSharePct(refuseSites)),
+		fmt.Sprintf("kgen_refusal_sites_total\t%s\t%d", kgenScope, k.AllSites),
+		fmt.Sprintf("kgen_filter_refuse_site_share_pct\t%s\t%.1f", kgenScope, k.SiteSharePct()),
 		fmt.Sprintf("kgen_refuse_sites_removed_by_typed\t%s\t%d", kgenScope, k.RemovedByTyped()),
 	}
 }
@@ -115,8 +118,11 @@ func MeasureKgenFilter(root string) (KgenFilter, error) {
 	str := reach(nodes, kgenFilterStringRoots, nil)
 	var k KgenFilter
 	for key, n := range nodes {
+		if n.sentinel {
+			continue
+		}
+		k.AllSites += n.sites
 		switch {
-		case n.typed && n.sentinel:
 		case n.typed:
 			k.TypedOnly += n.sites
 		case str[key] && typed[key]:
