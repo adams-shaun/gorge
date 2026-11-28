@@ -161,6 +161,7 @@ func (s *State) slotTriggers(k *prep, sl Slot, ev func(a *kop.Ability) bool, f f
 				f(trigListener{obj: p.obj, sl: sl, ctrl: p.ctrl, card: cid, ab: uint8(i)}, a)
 			}
 		}
+		s.pileTriggers(k, sl, ev, f) // CR 702.140d: a pile's under cards, in pile order (kw_mutate_union.go)
 	}
 	if k.gen.gainsTrigEv != 0 {
 		// the GainsTrig lenders' triggers, after the printed face walk and

@@ -655,6 +655,20 @@ func (s *State) joined(p *perm) {
 }
 
 func (s *State) subscribe(sl Slot, pc *pcard, on bool) {
+	s.subscribeAbilities(sl, pc, on)
+	if pc.types&kop.TLegendary != 0 {
+		if on {
+			s.legM.set(sl)
+		} else {
+			s.legM.clr(sl)
+		}
+	}
+}
+
+// subscribeAbilities is subscribe's ability half: the trigger events, the
+// static and the grant masks, without the legendary bit a card's types set
+// (a merged permanent's under card adds abilities only, kw_mutate_union.go).
+func (s *State) subscribeAbilities(sl Slot, pc *pcard, on bool) {
 	m := pc.trigMask
 	for m != 0 {
 		ev := bits.TrailingZeros32(m)
@@ -677,13 +691,6 @@ func (s *State) subscribe(sl Slot, pc *pcard, on bool) {
 			s.grantM.set(sl)
 		} else {
 			s.grantM.clr(sl)
-		}
-	}
-	if pc.types&kop.TLegendary != 0 {
-		if on {
-			s.legM.set(sl)
-		} else {
-			s.legM.clr(sl)
 		}
 	}
 }
@@ -861,6 +868,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.clearFaceDown(k, sl) // CR 708.9: leaving reveals the card (face_facedown.go)
 	}
 	s.subscribe(sl, &k.cards[p.card], false)
+	s.pileUnsubscribe(k, sl) // kw_mutate_union.go: the under cards' abilities leave with the pile
 	if p.ovr.flags&ovCopy != 0 {
 		s.subscribe(sl, &k.cards[p.ovr.copyOf], false) // the copied card's statics and triggers too (tables): whatever made the copy (a clone op, an as-enters clone, an Aegis)
 	}

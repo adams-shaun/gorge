@@ -128,6 +128,9 @@ func (s *State) eachStaticC(k *prep, cls uint16, f func(st statSrc) bool) {
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()
 		if k.gen.sCls[s.cardAt(sl)]&cls == 0 {
+			if !s.pileStatics(k, sl, nil, cls, f) {
+				return // CR 702.140d: a pile's under cards (kw_mutate_union.go)
+			}
 			continue
 		}
 		lost := s.genLost(k, sl)
@@ -143,6 +146,9 @@ func (s *State) eachStaticC(k *prep, cls uint16, f func(st statSrc) bool) {
 					return
 				}
 			}
+		}
+		if !s.pileStatics(k, sl, nil, cls, f) {
+			return
 		}
 	}
 	for pp := uint8(0); pp < s.nSeats(); pp++ {
@@ -221,7 +227,7 @@ func (s *State) sbaPTQuiet(k *prep) bool {
 		return false
 	}
 	for m := s.statM; m.any(); m = m.rest() {
-		if k.gen.sCls[s.cardAt(m.first())]&sclsPTRel != 0 {
+		if s.statClsAt(k, m.first())&sclsPTRel != 0 {
 			return false
 		}
 	}

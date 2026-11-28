@@ -331,3 +331,166 @@ func TestMutateTrigFires(t *testing.T) {
 		t.Fatalf("b2 pile time counters %d, want 1", n)
 	}
 }
+
+// unionTable is mutateTable plus "Test Viper", a second mutating card that
+// prints deathtouch, a +1/+1 static over the creatures its controller
+// controls, a free activated "gain 1 life" and a "whenever you gain life,
+// put a +1/+1 counter on this" trigger: the abilities a pile reads from an
+// under card (CR 702.140d). It returns the table, the plain mutator, the
+// bird and the viper.
+func unionTable() (*kop.Table, CardID, CardID, CardID) {
+	tbl, mutator, bird, _, _ := mutateTable()
+	creatureF := kop.FilterID(len(tbl.Filters))
+	tbl.Filters = append(tbl.Filters, kop.Filter{Types: kop.TCreature, Ctrl: kop.CtrlYou})
+	viper := CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, kop.CardDef{
+		Name: "Test Viper", Types: kop.TCreature, Power: 1, Toughness: 1, Keywords: kop.KwDeathtouch,
+		Cost:      kop.ManaCost{Generic: 3, Pips: [kop.NumManaKinds]uint8{kop.G: 1}},
+		HasMutate: true, MutateCost: kop.ManaCost{Pips: [kop.NumManaKinds]uint8{kop.G: 1}},
+		MutateTgt: tbl.Cards[mutator].MutateTgt,
+		Abilities: []kop.Ability{
+			{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatContinuous, Filter: creatureF, A: 1, B: 1}},
+			{Kind: kop.AbActivated, Prog: []kop.Instr{{Op: kop.OpGainLife, Obj: kop.RefController, A: kop.Const(1)}}},
+			{Kind: kop.AbTriggered, Trig: kop.Trigger{Event: kop.TrigLifeGained},
+				Prog: []kop.Instr{{Op: kop.OpPutCounter, Obj: kop.RefSelf, A: kop.Const(1), C: int16(kop.CtrP1P1)}}},
+		},
+	})
+	// the top card's own ability for the second-mutate case
+	tbl.Cards[mutator].Keywords = kop.KwVigilance
+	return tbl, mutator, bird, viper
+}
+
+// pileActOffers counts d's activations sourced at the pile o.
+func pileActOffers(d Decision, o Obj) int {
+	n := 0
+	for i := 0; i < int(d.N); i++ {
+		if a := d.Options[i]; a.Kind() == AkActivate && Obj(a.Source()) == o {
+			n++
+		}
+	}
+	return n
+}
+
+// TestMutateAbilityUnion: a merged permanent has every ability of the cards
+// in its pile (CR 702.140d; gorge engine/state/pile.go). The viper mutates
+// UNDER a bird, so the top card stays the vanilla bird and every ability
+// below is the under card's.
+func TestMutateAbilityUnion(t *testing.T) {
+	tbl, mutator, bird, viper := unionTable()
+	pile := func(t *testing.T) (*scen, Obj, Obj) {
+		sc := newScenTable(t, tbl, Config{NoElide: true})
+		sc.lands(0, v.Forest, 2)
+		b := sc.perm(bird, 0)
+		other := sc.perm(bird, 0)
+		vo := sc.hand(viper, 0)
+		mutateCast(t, sc, vo, b, false)
+		resolveStack(t, sc)
+		// precondition: the viper is under the bird, which stays on top
+		if c := sc.s.cardAt(sc.slot(b)); c != bird {
+			t.Fatalf("top card %d, want the bird %d", c, bird)
+		}
+		if rec := sc.s.mergeRecOf(b); rec == nil || rec.n != 1 || sc.s.objs[Obj(rec.und[0]-1)].card != viper {
+			t.Fatalf("the viper is not the pile's under card")
+		}
+		return sc, b, other
+	}
+
+	t.Run("keyword", func(t *testing.T) {
+		sc, b, other := pile(t)
+		if sc.s.kw(sc.k, sc.slot(other))&kop.KwDeathtouch != 0 {
+			t.Fatalf("precondition: a plain bird has deathtouch")
+		}
+		if sc.s.kw(sc.k, sc.slot(b))&kop.KwDeathtouch == 0 {
+			t.Fatalf("the pile lacks its under card's deathtouch")
+		}
+	})
+
+	t.Run("static", func(t *testing.T) {
+		sc, b, other := pile(t)
+		// the bird is 1/3: the under viper's anthem makes both 2/4
+		if p, tg := sc.s.pt(sc.k, sc.slot(other)); p != 2 || tg != 4 {
+			t.Fatalf("other bird %d/%d, want 2/4 under the pile's static", p, tg)
+		}
+		if p, tg := sc.s.pt(sc.k, sc.slot(b)); p != 2 || tg != 4 {
+			t.Fatalf("pile %d/%d, want 2/4 under its own static", p, tg)
+		}
+	})
+
+	t.Run("activated and trigger", func(t *testing.T) {
+		sc, b, _ := pile(t)
+		d := sc.s.Step()
+		if d.Kind != DkPriority {
+			t.Fatalf("decision kind %d, want priority", d.Kind)
+		}
+		if n := pileActOffers(d, b); n != 1 {
+			t.Fatalf("pile activations %d, want the under card's one", n)
+		}
+		life := sc.s.pl[0].life
+		for i := 0; i < int(d.N); i++ {
+			if a := d.Options[i]; a.Kind() == AkActivate && Obj(a.Source()) == b {
+				sc.s.Apply(a)
+				break
+			}
+		}
+		// the build pushes the ability (no cost to pay, no target)
+		for i := 0; i < 8 && sc.s.sp == 0; i++ {
+			d := sc.s.Step()
+			if d.Kind == DkPriority || d.N == 0 {
+				break
+			}
+			sc.s.Apply(d.Options[0])
+		}
+		if sc.s.sp == 0 {
+			t.Fatalf("the under card's activation never reached the stack")
+		}
+		resolveStack(t, sc)
+		if got := sc.s.pl[0].life; got != life+1 {
+			t.Fatalf("life %d, want %d: the under card's ability did not resolve", got, life+1)
+		}
+		// the under card's life-gain trigger heard the gain
+		if n := sc.s.perms[sc.slot(b)].ctrLow(int(kop.CtrP1P1)); n != 1 {
+			t.Fatalf("pile +1/+1 counters %d, want 1 from the under card's trigger", n)
+		}
+	})
+
+	t.Run("second mutate keeps the top's own", func(t *testing.T) {
+		sc, b, _ := pile(t)
+		sc.lands(0, v.Forest, 1)
+		mo := sc.hand(mutator, 0)
+		mutateCast(t, sc, mo, b, true)
+		resolveStack(t, sc)
+		sl := sc.slot(b)
+		if c := sc.s.cardAt(sl); c != mutator {
+			t.Fatalf("top card %d, want the mutator %d", c, mutator)
+		}
+		if rec := sc.s.mergeRecOf(b); rec == nil || rec.n != 2 {
+			t.Fatalf("pile size, want two under cards")
+		}
+		kw := sc.s.kw(sc.k, sl)
+		if kw&kop.KwVigilance == 0 {
+			t.Fatalf("the top mutator lost its own vigilance")
+		}
+		if kw&kop.KwDeathtouch == 0 {
+			t.Fatalf("the pile lost the viper's deathtouch after the second mutate")
+		}
+		// the mutator is 2/2: the viper's anthem still applies
+		if p, tg := sc.s.pt(sc.k, sl); p != 3 || tg != 3 {
+			t.Fatalf("pile %d/%d, want 3/3", p, tg)
+		}
+		if n := pileActOffers(sc.s.Step(), b); n != 1 {
+			t.Fatalf("pile activations %d after the second mutate, want 1", n)
+		}
+	})
+
+	t.Run("split clears the pile's abilities", func(t *testing.T) {
+		sc, b, other := pile(t)
+		sl := sc.slot(b)
+		sc.s.leave(sc.k, sl, kop.ZoneGraveyard, false)
+		if sc.s.statM.has(sl) {
+			t.Fatalf("the departed pile's slot still holds a static subscription")
+		}
+		if p, tg := sc.s.pt(sc.k, sc.slot(other)); p != 1 || tg != 3 {
+			t.Fatalf("other bird %d/%d after the split, want 1/3", p, tg)
+		}
+	})
+}

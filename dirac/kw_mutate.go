@@ -207,6 +207,7 @@ func (s *State) mergeFold(k *prep, surv, src Obj, top bool, amount uint8) bool {
 	}
 	r.n++
 	r.tm += amount
+	s.pileSubscribe(k, s.objs[surv].slot, r, true) // the top's resubscribe above cleared what an under card shares (kw_mutate_union.go)
 	return true
 }
 

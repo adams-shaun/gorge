@@ -58,7 +58,7 @@ func (s *State) sbaBoardObjectOnly(k *prep) bool {
 		return false // an override record can hold a live value (livePT), read from the state at each P/T
 	}
 	for m := s.statM; m.any(); m = m.rest() {
-		if k.gen.sCls[s.cardAt(m.first())]&sclsNonObj != 0 {
+		if s.statClsAt(k, m.first())&sclsNonObj != 0 {
 			return false
 		}
 	}
