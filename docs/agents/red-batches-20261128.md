@@ -109,9 +109,20 @@ condition problem — the invariant is test-side.
   timeout flake (`TestCreatePodDiracSeatsFour`, the fresh-clone accessor tests) has
   no guard; route those two tests through the same bounded
   `scripts/ci-infra-retry.sh` retry so one timeout does not re-run a whole batch.
-- **D — unreadable.** Capture logs unconditionally so a red is never silent:
-  upload the job log as an artifact with `if: always()` and a retention window in
-  `.github/workflows/ci.yml`, so `gh run view --log-failed` is never empty.
+- **D — unreadable.** Capture what a job writes unconditionally, so a red is
+  never silent: #6059 adds an `if: always()` artifact upload to the `fast`,
+  `lint`, `test`, `web-unit`, `dirac-slices` and `dirac-repros` jobs of
+  `.github/workflows/ci.yml`, with a 7-day retention. What it **covers** is the
+  jobs that already tee their full output to a workspace log — the `test` shards
+  (`test-shard.log`, the retried attempt as `.1`), `dirac-slices` (`slices.log`)
+  and `dirac-repros` (`repro-*.log`) — plus `fast`'s selected-test list. What it
+  **does not** is the way class D actually bit here: a job's own console log
+  cannot be read from inside that job, and a job that never starts a step —
+  46112371163 and 46112155917 — runs no upload step at all; 46122521600's eslint
+  output was withheld by GitHub's log service, which no step can re-read. The one
+  known follow-up that would close the eslint instance is tee-wrapping the `lint`
+  and `web-unit` commands under `set -o pipefail`; **not done**, because it edits
+  the commands that decide pass/fail.
 - **E — semantic conflict (0 instances here).** No instance in this census. The
   cheap preventive guard if one appears: a combined `go build ./...` (and `go vet`)
   of the batch head tree as the first heavy step, so a duplicate declaration or
