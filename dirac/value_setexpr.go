@@ -374,11 +374,12 @@ func setSeatPlayers(list []TCode) (q seatSeq, players bool) {
 // own subject read (objRef, playerRef, refCode) answers it. The set is
 // evaluated once before the first run, as gorge resolves Defined$ once per op.
 // A member whose run suspends (an ask) ends the walk with the binding in
-// place for the answer; the members after it are not run. The all-player
-// Sacrifice and Discard walk is the exception gorge itself draws: over
-// Defined$ Player those two effects ask every player before anything moves
-// (CR 101.4), so the members still to come ride the each-player repNext
-// chain and the ask's answer runs the walk on (setSeatPlayers).
+// place for the answer; the members after it are not run. Three all-player
+// walks are the exceptions (setSeatPlayers). Over Defined$ Player gorge's
+// Sacrifice and Discard ask every player before anything moves (CR 101.4),
+// so the members still to come ride the each-player repNext chain and the
+// ask's answer runs the walk on. A Draw that can ask runs OpDraw's own
+// resumable loop, which carries the members still to come across the answer.
 //
 //go:noinline
 func (s *State) execSet(k *prep, in *kop.Instr) bool {
@@ -421,6 +422,8 @@ func (s *State) execSet(k *prep, in *kop.Instr) bool {
 			return s.startSac(k, in, q.at(0))
 		case in.Op == kop.OpDiscard && in.F == 0 && in.C == kop.ChooseSelf:
 			return s.discardSeq(k, in, q)
+		case in.Op == kop.OpDraw && (dredgeOn(k) || drawOrderOn(k)):
+			return s.dredgeDrawSeq(k, in, q) // kw_dredge.go
 		}
 	}
 	saveT, saveV, saveBad, saveLoop := e.tgt[setBindSlot], e.tver[setBindSlot], s.res.bad, s.g.inLoop
