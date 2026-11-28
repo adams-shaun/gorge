@@ -33,8 +33,6 @@ func TestSetRefBaseEval(t *testing.T) {
 	setWant(t, "RefAttached unattached", ref(kop.RefAttached))
 	setWant(t, "RefAttachedCtrl unattached", ref(kop.RefAttachedCtrl))
 	setWant(t, "RefEnchantedCtrl unattached", ref(kop.RefEnchantedCtrl))
-	s.res.chosen = objWord(NoObj)
-	setWant(t, "RefChosen with no choice", ref(kop.RefChosen))
 	setWant(t, "RefResChosenPlayer with no choice", ref(kop.RefResChosenPlayer))
 	// a hand table keeps no trigger-source record: the subject read names nobody
 	if c := s.refCode(sc.k, kop.RefTriggerSource); c != NoTarget {
@@ -62,13 +60,11 @@ func TestSetRefBaseEval(t *testing.T) {
 	setWant(t, "OwnerOf RefAttached", sc.eval(setRefOp(kop.RefAttached), setOp1(kop.SetOwnerOf, 0)), op)
 	setWant(t, "Non RefEnchantedCtrl", sc.eval(setRefOp(kop.RefEnchantedCtrl), setOp1(kop.SetPlayersComplement, 0)), op)
 
-	s.res.chosen = objWord(sc.lions)
-	setWant(t, "RefChosen", ref(kop.RefChosen), L)
 	s.res.chPl = sc.opp + 1
 	setWant(t, "RefResChosenPlayer", ref(kop.RefResChosenPlayer), op)
 
 	for _, r := range []kop.Ref{kop.RefNone, kop.RefTarget0, kop.RefRemembered, kop.RefEach, kop.RefEachPlayer,
-		kop.RefTriggerAttackers, kop.RefTargets01, kop.RefSacrificed, kop.RefDiscarded, kop.RefHost} {
+		kop.RefTriggerAttackers, kop.RefTargets01, kop.RefSacrificed, kop.RefDiscarded, kop.RefHost, kop.RefChosen} {
 		if kop.SetRefBaseOK(r) {
 			t.Errorf("SetRefBaseOK(%d) = true, want false", r)
 		}

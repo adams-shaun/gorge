@@ -124,11 +124,9 @@ func SetRefAtoms() []SetRefAtom {
 		ref(kop.RefSelf, "Self", nil),
 		ref(kop.RefController, "You", nil),
 		ref(kop.RefTriggerObj, "TriggeredCard", remembered),
-		ref(kop.RefTriggerObj, "TriggeredNewCard", remembered), // the other base kgen wraps over this ref
 		ref(kop.RefTriggerPlayer, "TriggeredPlayer", bound(func(c *effects.Ctx, b RefBoard) { c.TriggerPlayer = player(b) })),
 		ref(kop.RefAttached, "Enchanted", standing),
 		ref(kop.RefDefendingPlayer, "TriggeredDefendingPlayer", bound(func(c *effects.Ctx, b RefBoard) { c.DefendingPlayer = player(b) })),
-		ref(kop.RefChosen, "ChosenCard", chosen(obj)),
 		ref(kop.RefTriggerSource, "TriggeredSource", bound(func(c *effects.Ctx, b RefBoard) { c.TriggerSource = b.Obj })),
 		ref(kop.RefTriggerTgtCtrl, "TriggeredTargetController", bound(func(c *effects.Ctx, b RefBoard) { c.TriggerTarget = obj(b) })),
 		// the blocker a Blocks trigger over the attached creature captures is

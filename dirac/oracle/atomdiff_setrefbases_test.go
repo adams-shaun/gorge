@@ -64,7 +64,7 @@ func setRefAtomCheck(atoms []SetRefAtom, nonEmpty map[string]int) func(ref *Gorg
 			src := objs[(decision*refAtomSources+i)%len(objs)]
 			b := RefBoard{Src: src, Obj: objs[(decision+3*i+1)%len(objs)],
 				Ctrl: g.Obj(src).Controller, Player: state.PlayerID((decision + i) % int(r.n))}
-			kb := dirac.ProbeRefBinding{Src: kobj[b.Src], TrigObj: kobj[b.Obj], Chosen: kobj[b.Obj], Ctrl: uint8(b.Ctrl),
+			kb := dirac.ProbeRefBinding{Src: kobj[b.Src], TrigObj: kobj[b.Obj], Ctrl: uint8(b.Ctrl),
 				TrigPl: uint8(b.Player), DefSeat: uint8(b.Player), ChosenPl: uint8(b.Player) + 1}
 			for j, a := range atoms {
 				c := effects.NewCtxPtr(b.Src, b.Ctrl, effects.CtxInit{})

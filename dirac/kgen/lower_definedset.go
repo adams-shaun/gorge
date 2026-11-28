@@ -494,7 +494,9 @@ func (lc *lowerCtx) setBase(v string) (setTerm, error) {
 		return setTerm{ops: []lSetOp{{Kind: kop.SetSelf}}, one: true}, nil
 	case rYou:
 		return setTerm{ops: []lSetOp{{Kind: kop.SetController}}, players: true, one: true, you: true}, nil
-	case rTriggered:
+	case rTriggered, rTriggeredNew:
+		// SetTriggerObj reads the trigger object of a triggered entry only
+		// (dirac setTrigEntry), where a spell's carries cast bookkeeping
 		return setTerm{ops: []lSetOp{{Kind: kop.SetTriggerObj}}, one: true}, nil
 	case rTriggeredSource:
 		return setTerm{ops: []lSetOp{{Kind: kop.SetTriggerSource}}, one: true}, nil
@@ -514,8 +516,11 @@ func (lc *lowerCtx) setBase(v string) (setTerm, error) {
 // wraps, those the builder makes a kop.SetRefBaseOK ref of, and whether each
 // names a player (the others name an object); every one names at most one.
 // The builder holds each to the kernel's list (build_setexpr.go setArg).
+// rChosen is not one: gorge's ChosenCard names every card the choice picked
+// (ChosenCardController is controllersOf over them all), kop.RefChosen only
+// the first.
 var setRefPlayers = map[refKind]bool{
-	rEquipped: false, rChosen: false, rTriggeredNew: false,
+	rEquipped:     false,
 	rAttachedCtrl: true, rEnchantedCtrl: true, rResChosenPlayer: true,
 	rDefending: true, rTriggeredOwner: true, rTriggeredTgtCtrl: true,
 }
@@ -546,11 +551,14 @@ func (lc *lowerCtx) setStillAttached(t setTerm) (setTerm, error) {
 
 // setSweepAPIs are the apis a battlefield sweep over several permanents
 // lowers on. The kernel walks it in object index order, gorge seat by seat in
-// entry order (battlefieldValidTargets): damage and tapping reach the same
-// decisions either way (TestSetBasesLockstep), where Destroy (graveyard
-// order), GainControl (battlefield order) and a life loss (gorge acts once
-// per player) show the difference, and the other apis are unproven.
-var setSweepAPIs = map[string]bool{"DealDamage": true, "Tap": true, "Untap": true}
+// entry order (battlefieldValidTargets): tapping reaches the same decisions
+// either way (TestSetBasesLockstep), where Destroy (graveyard order),
+// GainControl (battlefield order) and a life loss (gorge acts once per
+// player) show the difference. DealDamage is not one: a member's damage can
+// ask (a prevention or redirection choice), which ends the kernel's walk, so
+// the builder refuses it over several members (build_setexpr.go walksSet).
+// The other apis are unproven.
+var setSweepAPIs = map[string]bool{"Tap": true, "Untap": true}
 
 // sweepsBearer reports whether every clause of f admits only the permanent
 // the source is attached to, so a sweep over f names at most one object.
@@ -566,7 +574,8 @@ func sweepsBearer(f *lFilter) bool {
 // setValid is Valid <filter>: every permanent the filter admits, You the
 // resolving controller (gorge battlefieldValidTargets). It names several
 // objects, so it lowers on a setSweepAPIs api unless the filter admits only
-// the source's bearer. The zone-suffixed sweeps have no set kind.
+// the source's bearer, which is one object at most (and so passes the
+// builder's walk guard on any op). The zone-suffixed sweeps have no set kind.
 func (lc *lowerCtx) setValid(zone, spec string) (setTerm, error) {
 	if zone != "Valid" {
 		return setTerm{}, fmt.Errorf("zone base %s", zone)
@@ -582,7 +591,8 @@ func (lc *lowerCtx) setValid(zone, spec string) (setTerm, error) {
 	if f.Players != 0 || len(f.Clauses) == 0 {
 		return setTerm{}, fmt.Errorf("filter %q is not an object filter", spec)
 	}
-	if !setSweepAPIs[lc.setAPIName] && !sweepsBearer(f) {
+	field.one = sweepsBearer(f)
+	if !setSweepAPIs[lc.setAPIName] && !field.one {
 		return setTerm{}, fmt.Errorf("the battlefield walk order differs from gorge's on %s", lc.setAPIName)
 	}
 	field.ops = field.then(lSetOp{Kind: kop.SetAndFilter, F: f})

@@ -46,12 +46,14 @@ const (
 // refCode) answers as gorge reads its Defined$ spelling, each proven by its
 // atom (dirac/oracle TestAtomDiffSetRefBases). The group referents (the
 // remembered set, the attacker group, the target unions, RefEach) are not
-// admitted, nor are RefSacrificed and RefDiscarded: the subject read names
-// nobody for them, where gorge names the cards the cost paid.
+// admitted, nor are RefSacrificed and RefDiscarded (the subject read names
+// nobody for them, where gorge names the cards the cost paid) and RefChosen
+// (it reads the first chosen card, where gorge's ChosenCard names every
+// card the choice picked).
 func SetRefBaseOK(r Ref) bool {
 	switch r {
 	case RefSelf, RefController, RefTriggerObj, RefTriggerPlayer, RefTriggerSource,
-		RefAttached, RefAttachedCtrl, RefEnchantedCtrl, RefChosen, RefResChosenPlayer,
+		RefAttached, RefAttachedCtrl, RefEnchantedCtrl, RefResChosenPlayer,
 		RefDefendingPlayer, RefTriggerObjOwner, RefTriggerTgtCtrl:
 		return true
 	}

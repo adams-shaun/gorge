@@ -22,12 +22,13 @@ import (
 // therefore come from inline carriers built into the same table.
 
 // setBaseProbes are the inline carriers, one per base shape: battlefield
-// sweeps that damage, tap and untap several creatures at once, the enchanted
+// sweeps that tap and untap several creatures at once, the enchanted
 // creature by filter (damaged and destroyed), its owner through RefAttached,
-// and the complements of RefEnchantedCtrl and RefDefendingPlayer.
+// and the complements of RefEnchantedCtrl and RefDefendingPlayer. A damage
+// sweep of several creatures is refused (kgen lower_definedset.go
+// setSweepAPIs: a member's ask would end the kernel's walk), so the only
+// damage over a SetBattlefield set is the bearer's.
 var setBaseProbes = []string{
-	"Name:Setbase Sweep\nManaCost:2\nTypes:Sorcery\n" +
-		"A:SP$ DealDamage | Defined$ Valid Creature.YouDontCtrl | NumDmg$ 1\n",
 	"Name:Setbase Hush\nManaCost:1\nTypes:Sorcery\n" +
 		"A:SP$ Tap | Defined$ Valid Creature.YouDontCtrl\n",
 	"Name:Setbase Wake\nManaCost:1\nTypes:Sorcery\n" +
@@ -60,7 +61,7 @@ var setBaseProbes = []string{
 // inline carriers.
 var setBaseDecks = [2][]cardset.Entry{
 	{
-		{Name: "Setbase Sweep", Count: 3}, {Name: "Setbase Lash", Count: 4}, {Name: "Setbase Bite", Count: 3},
+		{Name: "Setbase Hush", Count: 3}, {Name: "Setbase Lash", Count: 4}, {Name: "Setbase Bite", Count: 3},
 		{Name: "Setbase Herald", Count: 3}, {Name: "Setbase Wary", Count: 4}, {Name: "Shock", Count: 4},
 		{Name: "Grizzly Bears", Count: 2}, {Name: "Glory Seeker", Count: 2}, {Name: "Savannah Lions", Count: 1},
 		{Name: "Mountain", Count: 7}, {Name: "Plains", Count: 7},
@@ -167,9 +168,9 @@ func TestSetBasesLockstep(t *testing.T) {
 			}
 		}
 	})
-	// the sweep, tap, untap, destroy, owner, filter and two complement
-	// carriers; their sweeps intern to three distinct battlefield sets
-	if readers != 8 || bases[kop.SetBattlefield] != 3 || !refs[kop.RefAttached] || !refs[kop.RefEnchantedCtrl] || !refs[kop.RefDefendingPlayer] {
+	// the tap, untap, destroy, owner, filter and two complement carriers;
+	// their sweeps intern to three distinct battlefield sets
+	if readers != 7 || bases[kop.SetBattlefield] != 3 || !refs[kop.RefAttached] || !refs[kop.RefEnchantedCtrl] || !refs[kop.RefDefendingPlayer] {
 		t.Fatalf("precondition: %d cards read sets, bases %v over refs %v", readers, bases, refs)
 	}
 	if len(divs) > 0 {
