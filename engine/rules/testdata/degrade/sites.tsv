@@ -1,0 +1,146 @@
+code	file	func	literal	kind
+DG---01	engine/rules/pay/stats.go	-	unsupported	other
+DG---02	engine/rules/window_diagnostics.go	-	ability:unsupported	other
+DG-CharmEligibleModes-01	engine/effects/charm.go	CharmEligibleModes	unmodelled ChoiceRestriction$ scope: 	note
+DG-EnginePotentialPlayScript-01	engine/rules/potential_script.go	Engine.PotentialPlayScript	unsupported	error
+DG-EngineValidateCastPayment-01	engine/rules/payment_plan.go	Engine.ValidateCastPayment	unsupported	other
+DG-EngineValidateCastPayment-02	engine/rules/payment_plan.go	Engine.ValidateCastPayment	payment plan unsupported	error
+DG-EngineadvanceStep-01	engine/rules/turn.go	Engine.advanceStep	R:Event$ BeginTurn ExtraTurn$ replacement matched with an unimplemented action (Skip$ absent or ReplaceWith$ present); the extra turn proceeds	note
+DG-EngineapplyManaKeywordGrant-01	engine/rules/altcast.go	Engine.applyManaKeywordGrant	Mana AddsKeywords$ Riot is not modelled (an as-enters choice)	note
+DG-EngineapplyTokenReplacementToPlan-01	engine/rules/replacement_token.go	Engine.applyTokenReplacementToPlan	 is not implemented; the token is created unchanged	note
+DG-EnginecheckFaceTriggers-01	engine/rules/trigger_match.go	Engine.checkFaceTriggers	unmodelled DisableTriggers parameters: 	note
+DG-EnginecontinueRollDiceReplacements-01	engine/rules/replacement_scry.go	Engine.continueRollDiceReplacements	unimplemented RollDice replacement	note
+DG-EnginecontinueScryReplacements-01	engine/rules/replacement_scry.go	Engine.continueScryReplacements	unimplemented Scry replacement	note
+DG-EnginehandleModes-01	engine/rules/resolution_modes.go	Engine.handleModes	cross-mode TargetUnique$ Charm shape unimplemented: 	note
+DG-EngineplanAbilityPaymentLifePips-01	engine/rules/potential_plan.go	Engine.planAbilityPaymentLifePips	unsupported	other
+DG-EngineplanCastAltAdd-01	engine/rules/payment_plan.go	Engine.planCastAltAdd	unsupported	other
+DG-EngineplanCastPaymentChecked-01	engine/rules/payment_plan.go	Engine.planCastPaymentChecked	unsupported	other
+DG-EngineplanComposedCostFor-01	engine/rules/potential_plan.go	Engine.planComposedCostFor	unsupported	other
+DG-EngineplanHybridCost-01	engine/rules/potential_plan.go	Engine.planHybridCost	unsupported	other
+DG-EngineplanReserving-01	engine/rules/potential_plan.go	Engine.planReserving	unsupported	other
+DG-EnginepotentialCastVerdict-01	engine/rules/potential_plan.go	Engine.potentialCastVerdict	unsupported	other
+DG-EnginepotentialModeCastPlan-01	engine/rules/potential_plan.go	Engine.potentialModeCastPlan	unsupported	other
+DG-EnginepotentialPlayVerdictShared-01	engine/rules/potential_plan.go	Engine.potentialPlayVerdictShared	unsupported	other
+DG-EnginepotentialTargetPricedPlan-01	engine/rules/potential_plan.go	Engine.potentialTargetPricedPlan	unsupported	other
+DG-EnginepotentialWitnessKeeping-01	engine/rules/potential_plan.go	Engine.potentialWitnessKeeping	unsupported	other
+DG-EnginerunPreventionShieldRider-01	engine/rules/replacement_damage.go	Engine.runPreventionShieldRider	unimplemented PreventionSubAbility$ 	note
+DG-Resolve-01	engine/effects/registry.go	Resolve	unmodelled condition 	note
+DG-Resolve-02	engine/effects/registry.go	Resolve	unimplemented API 	note
+DG-animateAllUnreadNote-01	engine/effects/combatfx.go	animateAllUnreadNote	 not implemented; ignored	note
+DG-announcedShape-01	engine/rules/payment_plan.go	announcedShape	unsupported	other
+DG-aorTapeApply-01	engine/effects/counters.go	aorTapeApply	unimplemented AddOrRemoveCounter shape: multiple targets; acted on the first	note
+DG-askManaChoice-01	engine/effects/mana_effect.go	askManaChoice	unmodelled Mana Chooser$ 	note
+DG-changeZonePrelude-01	engine/effects/zone_change.go	changeZonePrelude	unsupported ChangeZone Destination$ 	note
+DG-classifyAttackingEntryText-01	engine/effects/zone_change.go	classifyAttackingEntryText	 is not implemented; the permanent enters but does not attack	other
+DG-cloneDuration-01	engine/effects/clone.go	cloneDuration	 is not implemented; the copy lasts until the object leaves the battlefield	error
+DG-compileRemoveCounter-01	engine/effects/removecounter_params.go	compileRemoveCounter	unimplemented RemoveCounter shape: 	other
+DG-compileRemoveCounter-02	engine/effects/removecounter_params.go	compileRemoveCounter	unimplemented RemoveCounter choice shape: 	other
+DG-continueMillReplacements-01	engine/rules/replacement_mill.go	continueMillReplacements	unimplemented Mill replacement	note
+DG-copyPermanentController-01	engine/effects/copypermanent.go	copyPermanentController	 is not implemented; the copy is controlled by the resolving controller	note
+DG-digUntilReturnRest-01	engine/effects/diguntil.go	digUntilReturnRest	 is not implemented; the card stays on top	note
+DG-effAddOrRemoveCounter-01	engine/effects/counters.go	effAddOrRemoveCounter	unimplemented AddOrRemoveCounter shape: EachExistingCounter$ with CounterType$ 	note
+DG-effAddOrRemoveCounter-02	engine/effects/counters.go	effAddOrRemoveCounter	unimplemented AddOrRemoveCounter shape: multiple targets; acted on the first	note
+DG-effAddOrRemoveCounter-03	engine/effects/counters.go	effAddOrRemoveCounter	unimplemented AddOrRemoveCounter shape: RemoveConditionSVar$ unresolvable (	note
+DG-effAlterAttribute-01	engine/effects/misc.go	effAlterAttribute	 not modelled	note
+DG-effAssignGroup-01	engine/effects/assigngroup.go	effAssignGroup	unimplemented AssignGroup shape: 	note
+DG-effBlight-01	engine/effects/blight.go	effBlight	unimplemented Blight shape: 	note
+DG-effChangeCombatants-01	engine/effects/changecombatants.go	effChangeCombatants	 is not implemented; no combatant changed	note
+DG-effChangeSpeed-01	engine/effects/change_speed.go	effChangeSpeed	unimplemented ChangeSpeed mode: 	note
+DG-effChangeSpeed-02	engine/effects/change_speed.go	effChangeSpeed	unimplemented ChangeSpeed selector: 	note
+DG-effChangeSpeed-03	engine/effects/change_speed.go	effChangeSpeed	unimplemented ChangeSpeed condition: 	note
+DG-effChangeZoneAll-01	engine/effects/zone_changeall.go	effChangeZoneAll	 is not implemented; the cards sit at the BOTTOM of their owners' libraries (the MoveZone append)	note
+DG-effCloak-01	engine/effects/zone_manifest.go	effCloak	unimplemented API Cloak	note
+DG-effClone-01	engine/effects/clone.go	effClone	unimplemented API 	note
+DG-effClone-02	engine/effects/clone.go	effClone	 is not implemented; the keyword lasts as long as the copy	note
+DG-effCopyPermanent-01	engine/effects/copypermanent.go	effCopyPermanent	 is not implemented; the copy stays on the battlefield	note
+DG-effCopyPermanent-02	engine/effects/copypermanent.go	effCopyPermanent	 is not implemented; the copy gets no end-step trigger	note
+DG-effCopyPermanent-03	engine/effects/copypermanent.go	effCopyPermanent	 is not implemented; the copy keeps its printed types	note
+DG-effCopyPermanent-04	engine/effects/copypermanent.go	effCopyPermanent	 is not implemented; the copy keeps the keyword	note
+DG-effCopyPermanent-05	engine/effects/copypermanent.go	effCopyPermanent	 is not implemented; the copy enters with no 	note
+DG-effCopyPermanent-06	engine/effects/copypermanent.go	effCopyPermanent	 is not implemented; the copy enters untapped	note
+DG-effCopyPermanent-07	engine/effects/copypermanent.go	effCopyPermanent	 is not implemented; one copy	note
+DG-effDayTime-01	engine/effects/daynight_bound.go	effDayTime	unmodelled DayTime Value$ 	note
+DG-effDealDamage-01	engine/effects/damage_deal.go	effDealDamage	unmodelled DealDamage OptionalDecider$ 	note
+DG-effDelayedTrigger-01	engine/effects/delayed_trigger.go	effDelayedTrigger	 (not implemented)	note
+DG-effDelayedTrigger-02	engine/effects/delayed_trigger.go	effDelayedTrigger	unmodelled DelayedTrigger RememberObjects$ 	note
+DG-effDelayedTrigger-03	engine/effects/delayed_trigger.go	effDelayedTrigger	unmodelled DelayedTrigger DelayedTriggerDefinedPlayer$ 	note
+DG-effDelayedTriggerSpellCast-01	engine/effects/delayed_trigger.go	effDelayedTriggerSpellCast	unmodelled DelayedTrigger Static$ 	note
+DG-effDig-01	engine/effects/dig.go	effDig	 is not implemented; the cards sit at the BOTTOM of the library	note
+DG-effDig-02	engine/effects/dig.go	effDig	 is not implemented; the card stays on top	note
+DG-effDigMultiple-01	engine/effects/digmultiple.go	effDigMultiple	 unimplemented	note
+DG-effDraw-01	engine/effects/draw.go	effDraw	unmodelled Draw OptionalDecider$ 	note
+DG-effEffect-01	engine/effects/effect.go	effEffect	unmodelled Effect ImprintOnHost$ 	note
+DG-effEffect-02	engine/effects/effect.go	effEffect	unmodelled Effect RememberLKI$ 	note
+DG-effEffect-03	engine/effects/effect.go	effEffect	unmodelled Effect trigger Static$ with OptionalDecider$ 	note
+DG-effEffect-04	engine/effects/effect.go	effEffect	unmodelled Effect trigger lifetime (Duration$ 	note
+DG-effEffect-05	engine/effects/effect.go	effEffect	unmodelled Effect trigger ThisTurn$ 	note
+DG-effEffect-06	engine/effects/effect.go	effEffect	 unimplemented	note
+DG-effEffect-07	engine/effects/effect.go	effEffect	continuous replacement unimplemented (	note
+DG-effEffect-08	engine/effects/effect.go	effEffect	 unimplemented (	note
+DG-effGainControl-01	engine/effects/choose_control.go	effGainControl	 unimplemented	note
+DG-effGainControlVariant-01	engine/effects/choose_control.go	effGainControlVariant	 unimplemented	note
+DG-effImmediateTrigger-01	engine/effects/immediate.go	effImmediateTrigger	 is not implemented; every instance sees the whole remembered set	note
+DG-effManifest-01	engine/effects/zone_manifest.go	effManifest	unimplemented API Manifest	note
+DG-effManifestDread-01	engine/effects/zone_manifest.go	effManifestDread	unimplemented API ManifestDread	note
+DG-effMoveCounter-01	engine/effects/counters.go	effMoveCounter	unimplemented MoveCounter shape: 	note
+DG-effMoveCounter-02	engine/effects/counters.go	effMoveCounter	unimplemented MoveCounter shape: player origin	note
+DG-effMoveCounter-03	engine/effects/counters.go	effMoveCounter	unimplemented MoveCounter shape: player destination	note
+DG-effMoveCounter-04	engine/effects/counters.go	effMoveCounter	unimplemented MoveCounter shape: CounterType$ Any over multiple origins	note
+DG-effMoveCounter-05	engine/effects/counters.go	effMoveCounter	unimplemented MoveCounter shape: CounterNum$ Any over multiple kinds	note
+DG-effMultiplePiles-01	engine/effects/multiplepiles.go	effMultiplePiles	unimplemented MultiplePiles shape	note
+DG-effMustBlock-01	engine/effects/mustblock_api.go	effMustBlock	MustBlock selector shape unimplemented	note
+DG-effPreventDamage-01	engine/effects/prevent_damage.go	effPreventDamage	unimplemented PreventDamage random-recipient shape	note
+DG-effPreventDamage-02	engine/effects/prevent_damage.go	effPreventDamage	unimplemented PreventDamage ShieldEffectTarget$ 	note
+DG-effProliferate-01	engine/effects/counters.go	effProliferate	Proliferate unmodelled parameter 	note
+DG-effProtectionAll-01	engine/effects/combatfx.go	effProtectionAll	ProtectionAll ValidPlayers$ is not modelled: a player cannot have protection	note
+DG-effPutCounterAll-01	engine/effects/counters.go	effPutCounterAll	unimplemented PutCounterAll shape: 	note
+DG-effRepeatEach-01	engine/effects/repeateach.go	effRepeatEach	RepeatEach selector unimplemented	note
+DG-effSetLife-01	engine/effects/life.go	effSetLife	SetLife: unsupported redistribution choices	note
+DG-effSkipPhase-01	engine/effects/skipphase.go	effSkipPhase	unimplemented SkipPhase shape: 	note
+DG-effToken-01	engine/effects/token.go	effToken	 is not implemented; the token keeps its script's printed P/T	note
+DG-effToken-02	engine/effects/token.go	effToken	 is not implemented; the token enters with no 	note
+DG-effToken-03	engine/effects/token.go	effToken	 is not implemented; the token keeps the keyword	note
+DG-effTwoPiles-01	engine/effects/twopiles.go	effTwoPiles	unimplemented TwoPiles shape: LeftRightPile$ 	note
+DG-effTwoPiles-02	engine/effects/twopiles.go	effTwoPiles	unimplemented TwoPiles shape: Zone$ 	note
+DG-effTwoPiles-03	engine/effects/twopiles.go	effTwoPiles	unimplemented TwoPiles shape: DefinedCards$ 	note
+DG-effTwoPiles-04	engine/effects/twopiles.go	effTwoPiles	unimplemented TwoPiles shape: FaceDown$ 	note
+DG-effTwoPiles-05	engine/effects/twopiles.go	effTwoPiles	unimplemented TwoPiles shape: the pool names no player this engine can resolve	note
+DG-effTwoPiles-06	engine/effects/twopiles.go	effTwoPiles	unimplemented TwoPiles shape: Chooser$ 	note
+DG-effTwoPiles-07	engine/effects/twopiles.go	effTwoPiles	unimplemented TwoPiles shape: Separator$ 	note
+DG-effTwoPilesDefined-01	engine/effects/twopiles.go	effTwoPilesDefined	unimplemented TwoPiles shape: 	note
+DG-effUnattach-01	engine/effects/unattach.go	effUnattach	unimplemented Unattach selector: 	note
+DG-effUnlockDoor-01	engine/effects/unlockdoor.go	effUnlockDoor	UnlockDoor: unsupported Mode$ 	note
+DG-effectUnsupportedStatic-01	engine/effects/effect_ignorehexproof.go	effectUnsupportedStatic	 unimplemented (	note
+DG-emitAnimateColorsNotes-01	engine/effects/combatfx.go	emitAnimateColorsNotes	 is not implemented; colours unchanged	note
+DG-emitAnimateColorsNotes-02	engine/effects/combatfx.go	emitAnimateColorsNotes	 Colors$ Colorless without OverwriteColors$ is not implemented; colours unchanged	note
+DG-emitObjectDamageExcess-01	engine/effects/damage_excess_redirect.go	emitObjectDamageExcess	unmodelled DealDamage ExcessDamage$ 	note
+DG-gainControlVariantBase-01	engine/effects/choose_control.go	gainControlVariantBase	 unimplemented	note
+DG-handLibraryTail-01	engine/effects/zone_hand.go	handLibraryTail	 is not implemented; the cards go on top	note
+DG-noteEffectCounters-01	engine/effects/noted_counters.go	noteEffectCounters	unmodelled NoteCounterDefined$ 	note
+DG-parseExtraPhaseValue-01	engine/effects/addphase.go	parseExtraPhaseValue	unimplemented ExtraPhase$ value 	error
+DG-placeLibraryObjects-01	engine/effects/zone_library.go	placeLibraryObjects	 is not implemented; the cards sit at the BOTTOM of the library (the MoveZone append)	note
+DG-placeTargetedLibraryObjects-01	engine/effects/zone_library.go	placeTargetedLibraryObjects	 is not implemented; the cards sit at the BOTTOM of their owners' libraries (the MoveZone append)	note
+DG-planCastPaymentCheckedBody-01	engine/rules/payment_plan.go	planCastPaymentCheckedBody	unsupported	other
+DG-planImprovise-01	engine/rules/payment_plan_improvise.go	planImprovise	unsupported	other
+DG-planKeywordAbility-01	engine/rules/potential_plan.go	planKeywordAbility	unsupported	other
+DG-planManaUnderRider-01	engine/rules/payment_plan.go	planManaUnderRider	unsupported	other
+DG-planPaymentCostTwobrid-01	engine/rules/pay/plancost.go	planPaymentCostTwobrid	unsupported	other
+DG-planTwobridCost-01	engine/rules/potential_plan.go	planTwobridCost	unsupported	other
+DG-potentialCensusFallback-01	engine/rules/potential_plan.go	potentialCensusFallback	unsupported	other
+DG-potentialPinnedColourPlan-01	engine/rules/potential_plan.go	potentialPinnedColourPlan	unsupported	other
+DG-potentialSpreadPlan-01	engine/rules/potential_plan.go	potentialSpreadPlan	unsupported	other
+DG-pumpNotes-01	engine/effects/pump.go	pumpNotes	unimplemented NoteCards$ 	note
+DG-putCounterAllSweep-01	engine/effects/counters.go	putCounterAllSweep	unimplemented PutCounterAll shape: player-targeted sweep with no chosen player target	note
+DG-putCounterEachFromSource-01	engine/effects/counters_put.go	putCounterEachFromSource	unimplemented PutCounter shape: CounterType$ EachFromSource with no EachFromSource$ referent	note
+DG-putCounterEachFromSource-02	engine/effects/counters_put.go	putCounterEachFromSource	unimplemented PutCounter shape: EachFromSource$ 	note
+DG-recordExileReturnFor-01	engine/effects/zone_change.go	recordExileReturnFor	unmodelled ChangeZone Duration$ 	note
+DG-registerAnimateReplacements-01	engine/effects/leavebattlefield.go	registerAnimateReplacements	 is not implemented; ignored	note
+DG-registerAnimateStaticAbilities-01	engine/effects/leavebattlefield.go	registerAnimateStaticAbilities	 is not implemented; ignored	note
+DG-registerLeaveExile-01	engine/effects/leavebattlefield.go	registerLeaveExile	 is not implemented; ignored	note
+DG-rememberDefinedObjects-01	engine/effects/context.go	rememberDefinedObjects	 is not implemented; nothing is remembered	note
+DG-scheduleAtEOT-01	engine/effects/ateot.go	scheduleAtEOT	 is not implemented; the affected object stays on the battlefield (one Note per call)	note
+DG-tokenAttackingRider-01	engine/effects/token.go	tokenAttackingRider	 is not implemented; the 	note
+DG-tokenAttackingRider-02	engine/effects/token.go	tokenAttackingRider	: the planeswalker arm is not implemented; the 	note
+DG-tokenBlockingAttacker-01	engine/effects/token.go	tokenBlockingAttacker	 is not implemented; the token enters but does not block	note
+DG-twoPilesBodyFor-01	engine/effects/twopiles.go	twoPilesBodyFor	unimplemented TwoPiles shape: 	note
+DG-twoPilesRunPile-01	engine/effects/twopiles.go	twoPilesRunPile	unimplemented TwoPiles shape: 	note
