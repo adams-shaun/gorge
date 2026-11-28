@@ -492,7 +492,7 @@ func animatePlayGrant(params staticLineParams) (state.ContinuousEffect, bool) {
 	}
 	body := maps.Clone(params)
 	delete(body, "EffectZone")
-	if n, affected, ok := adjustLandPlaysGrantFromLine(body); ok {
+	if n, affected, ok := adjustLandPlaysGrantFromLine(body, nil, 0); ok {
 		return state.ContinuousEffect{Affects: affected, AdjustLandPlays: n}, true
 	}
 	if _, has := body["MayPlay"]; !has || body["AffectedZone"] == "" {

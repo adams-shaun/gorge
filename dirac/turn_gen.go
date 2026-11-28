@@ -167,6 +167,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	cid := s.cardAt(sl)
 	g := k.gen
 	if !g.has(cid, gfEnterRepl) && !s.statM.any() {
+		s.etbLandEnter(k, sl, p, face) // repl_landtapped.go: the turn-long lands-enter-tapped record
 		if g.anyEntryMerge {
 			s.entryWinClose(k, sl, p)
 		}
@@ -212,6 +213,9 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	}
 	s.occ.set(sl)
 	s.ctrlM[p.ctrl].set(sl)
+	// after the entrant's own as-enters election was queued: gorge taps the
+	// land before it asks a shock land's pay-life (repl_landtapped.go)
+	s.etbLandEnter(k, sl, p, face)
 	if g.anyEntryMerge {
 		s.entryWinClose(k, sl, p)
 	}

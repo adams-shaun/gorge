@@ -321,7 +321,9 @@ func (s *State) landLimit(k *prep, p uint8) uint8 {
 	s.eachStatic(k, func(st statSrc) bool {
 		if st.a.Kind == kop.AbStatic && st.a.Static.Kind == kop.StatExtraLandPlay && st.ctrl == p && s.statCond(k, st) {
 			add := int(st.a.Static.A)
-			if add < 1 {
+			if st.a.Static.StFlags&kop.StEmbNum != 0 {
+				add = int(s.embNumAt(st.emb)) // the Effect's frozen SetChosenNumber$: 0 grants none
+			} else if add < 1 {
 				add = 1
 			}
 			n += add
