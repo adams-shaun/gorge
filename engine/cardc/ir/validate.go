@@ -129,7 +129,8 @@ var predOperands = [predCount]operands{
 // ValidateFilter checks f's shape: each combinator has its args and no
 // predicate operands, each predicate carries only the operands predOperands
 // allows with each Word from its closed list, and every node shares the
-// root's Subject (zero inherits it) and scope Zones. An inner filter (the Args
+// root's Subject (zero inherits it) and scope Zones, except that an FAny
+// alternative with its own Subject or Zones is a root of its own. An inner filter (the Args
 // of PControls and PControlsMoreThan, a Ref's Filter) is a root of its own.
 func ValidateFilter(f *Filter) error {
 	if f == nil {
@@ -184,11 +185,25 @@ func validateCombinator(root, f *Filter, label string) error {
 		return fmt.Errorf("ir: %s: carries predicate operands", label)
 	}
 	for _, a := range f.Args {
-		if err := validateNode(root, a); err != nil {
+		next := root
+		if f.Op == FAny && opensScope(root, a) {
+			next = a
+		}
+		if err := validateNode(next, a); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// opensScope reports whether a, an alternative of an FAny, carries a Subject
+// or scope Zones of its own: "any target" is a permanent on the battlefield or
+// a player (CR 115.4), so each alternative is a root of its own.
+func opensScope(root, a *Filter) bool {
+	if a == nil {
+		return false
+	}
+	return (a.Subject != SubjNone && a.Subject != root.Subject) || (a.Zones != 0 && a.Zones != root.Zones)
 }
 
 func validatePred(f *Filter, label string) error {

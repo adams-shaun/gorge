@@ -1,0 +1,541 @@
+base-ability	Activated
+base-ability	Effect
+base-ability	SpellAbility
+base-ability	Triggered
+base-referent	Defined
+base-referent	Remembered
+base-referent	Targeted
+base-referent	TargetedCard
+base-referent	TriggeredAttacker
+base-referent	TriggeredCard
+bound-names-svar	cmcEQChosen
+bound-names-svar	cmcEQCount$ChosenNumber
+bound-names-svar	cmcEQM
+bound-names-svar	cmcEQV
+bound-names-svar	cmcEQX
+bound-names-svar	cmcEQY
+bound-names-svar	cmcGEX
+bound-names-svar	cmcGTX
+bound-names-svar	cmcLESearchX
+bound-names-svar	cmcLEX
+bound-names-svar	cmcLEY
+bound-names-svar	cmcLEZ
+bound-names-svar	cmcLTX
+bound-names-svar	cmcLTY
+bound-names-svar	counters_GEX_CHARGE
+bound-names-svar	counters_LTX_PNPN
+bound-names-svar	powerEQSTKNP
+bound-names-svar	powerEQX
+bound-names-svar	powerGEX
+bound-names-svar	powerGTX
+bound-names-svar	powerGTY
+bound-names-svar	powerGTbasePower
+bound-names-svar	powerLEX
+bound-names-svar	powerLEY
+bound-names-svar	powerLTCount$CardPower
+bound-names-svar	powerLTTriggeredCard$CardPower
+bound-names-svar	powerLTX
+bound-names-svar	powerLTY
+bound-names-svar	powerLTZ
+bound-names-svar	powerLTtoughness
+bound-names-svar	toughnessLEX
+bound-names-svar	toughnessLEY
+bound-names-svar	toughnessLTX
+each-form	EACH
+needs-reference	!ChosenCardStrict
+needs-reference	!OwnedBy ActivePlayer
+needs-reference	!Paired
+needs-reference	!TriggeredActivator
+needs-reference	!TriggeredAttacker
+needs-reference	!TriggeredCard
+needs-reference	!TriggeredCardController
+needs-reference	!TriggeredNewCard
+needs-reference	!TriggeredTarget
+needs-reference	Chosen
+needs-reference	ChosenCardStrict
+needs-reference	ChosenCtrl
+needs-reference	ChosenModeAbzan
+needs-reference	ChosenModeBelieve
+needs-reference	ChosenModeBrotherhood
+needs-reference	ChosenModeCosplay
+needs-reference	ChosenModeDoubt
+needs-reference	ChosenModeDragons
+needs-reference	ChosenModeEnclave
+needs-reference	ChosenModeJeskai
+needs-reference	ChosenModeKhans
+needs-reference	ChosenModeLegion
+needs-reference	ChosenModeMardu
+needs-reference	ChosenModeMirran
+needs-reference	ChosenModeNCR
+needs-reference	ChosenModePhyrexian
+needs-reference	ChosenModeScience
+needs-reference	ChosenModeSultai
+needs-reference	ChosenModeTemur
+needs-reference	ChosenSector
+needs-reference	ControlledBy ChoosingPlayer
+needs-reference	ControlledBy DelayTriggerRemembered
+needs-reference	ControlledBy EnchantedController.!isMonarch
+needs-reference	ControlledBy NextOpponentToYourLeft
+needs-reference	ControlledBy NextPlayerToYourLeft
+needs-reference	ControlledBy Opponent.castSpellThisTurn
+needs-reference	ControlledBy ParentTarget
+needs-reference	ControlledBy ParentTargetedController
+needs-reference	ControlledBy Player.Active
+needs-reference	ControlledBy Player.IsRemembered
+needs-reference	ControlledBy Player.NotedForPeace
+needs-reference	ControlledBy Player.NotedForRedWaterfall
+needs-reference	ControlledBy Player.NotedForWar
+needs-reference	ControlledBy Player.Other
+needs-reference	ControlledBy Player.targetedBy
+needs-reference	ControlledBy Player.wasDealtCombatDamageThisCombatBy ParentTarget
+needs-reference	ControlledBy Player.wasDealtCombatDamageThisTurnBy Creature.Pirate GEN
+needs-reference	ControlledBy RememberedController
+needs-reference	ControlledBy Spawner>TriggeredDefendingPlayer
+needs-reference	ControlledBy Spawner>TriggeredTarget
+needs-reference	ControlledBy TargetedController
+needs-reference	ControlledBy TargetedOrController
+needs-reference	ControlledBy TargetedPlayer
+needs-reference	ControlledBy TriggeredAttackingPlayer
+needs-reference	ControlledBy TriggeredCardController
+needs-reference	ControlledBy TriggeredSourceSAController
+needs-reference	ControlledBy TriggeredTarget
+needs-reference	ControlledBy You.castSpellThisTurn
+needs-reference	OwnedBy Opponent
+needs-reference	OwnedBy Opponent.NonActive
+needs-reference	OwnedBy Player.Chosen
+needs-reference	OwnedBy Player.EnchantedBy
+needs-reference	OwnedBy Player.NotedForStargate
+needs-reference	OwnedBy Player.Opponent
+needs-reference	OwnedBy Player.Other
+needs-reference	OwnedBy Player.TriggeredTarget
+needs-reference	OwnedBy Remembered
+needs-reference	OwnedBy Spawner>TriggeredDefendingPlayer
+needs-reference	OwnedBy Spawner>TriggeredTarget
+needs-reference	OwnedBy TargetedPlayer
+needs-reference	OwnedBy ThisTargetedPlayer
+needs-reference	OwnedBy TriggeredDefendingPlayer
+needs-reference	OwnedBy TriggeredTarget
+needs-reference	PairedWith
+needs-reference	TargetedPlayerCtrl
+needs-reference	TargetedPlayerOwn
+needs-reference	TriggeredAttacker
+needs-reference	TriggeredCard
+needs-reference	TriggeredCards
+needs-reference	TriggeredCrew
+needs-reference	TriggeredDefendingPlayer
+nested-filter	!CastSa Spell.Mayhem
+nested-filter	!SharesColorWith Valid Creature.YouCtrl
+nested-filter	!dealtCombatDamageThisTurn Creature
+nested-filter	!sharesCreatureTypeWith Convoked
+nested-filter	!sharesCreatureTypeWith Valid Creature.YouCtrl
+nested-filter	!sharesCreatureTypeWith ValidLibrary Creature.YouOwn
+nested-filter	!sharesLandTypeWith Valid Land.YouCtrl
+nested-filter	!sharesNameWith TriggeredCard
+nested-filter	AttachedTo Card
+nested-filter	AttachedTo Card.EnchantedBy
+nested-filter	AttachedTo Card.IsRemembered
+nested-filter	AttachedTo Card.Self
+nested-filter	AttachedTo Creature
+nested-filter	AttachedTo Creature.EquippedBy
+nested-filter	AttachedTo Creature.IsImprinted
+nested-filter	AttachedTo Creature.IsRemembered
+nested-filter	AttachedTo Creature.YouCtrl
+nested-filter	AttachedTo Land
+nested-filter	AttachedTo ParentTarget
+nested-filter	AttachedTo Permanent
+nested-filter	AttachedTo Permanent.YouCtrl
+nested-filter	AttachedTo Targeted
+nested-filter	AttachedTo You
+nested-filter	CastSa Spell.ManaFromArtifact
+nested-filter	CastSa Spell.ManaFromTreasure
+nested-filter	CastSa Spell.ManaSpent EQN
+nested-filter	CastSa Spell.MayPlaySource
+nested-filter	CastSa Spell.Mayhem
+nested-filter	CastSa Spell.Warp
+nested-filter	DamagedBy Equipped
+nested-filter	EnchantedBy Aura.Other
+nested-filter	EnchantedBy Aura.YouCtrl
+nested-filter	EnteredUnder You
+nested-filter	EquippedByValid Equipment.Legendary
+nested-filter	IsTargeting Self
+nested-filter	IsTargeting Valid Permanent
+nested-filter	IsTargeting Valid Permanent.YouCtrl~Other
+nested-filter	ManaSpent EQN
+nested-filter	MostProminentColor black
+nested-filter	MostProminentColor blue
+nested-filter	MostProminentColor green
+nested-filter	MostProminentColor red
+nested-filter	MostProminentColor white
+nested-filter	SharesCMCWith Discarded
+nested-filter	SharesCMCWith Imprinted
+nested-filter	SharesCMCWith Imprinted.ExiledWithSource
+nested-filter	SharesCMCWith TriggeredCard
+nested-filter	SharesColorWith ChosenCard
+nested-filter	SharesColorWith Equipped
+nested-filter	SharesColorWith LastCastThisTurn
+nested-filter	SharesColorWith TopOfLibrary
+nested-filter	SharesColorWith TriggeredProduced
+nested-filter	SharesColorWith Valid Creature.Legendary
+nested-filter	SharesColorWith Valid Creature.YouCtrl
+nested-filter	attackedThisCombat GEN
+nested-filter	attacking ChosenPlayer
+nested-filter	attacking EnchantedPlayer
+nested-filter	attacking Opponent
+nested-filter	attacking TriggeredAttackedTarget
+nested-filter	attacking TriggeredDefender
+nested-filter	blockedByValidThisTurn ParentTarget
+nested-filter	blockedValidThisTurn Card.StrictlySelf
+nested-filter	blockedValidThisTurn Creature.Blue
+nested-filter	blockedValidThisTurn Creature.Legendary
+nested-filter	blockedValidThisTurn Zombie
+nested-filter	blockingValid Goblin
+nested-filter	canProduceManaColor Colorless
+nested-filter	canReceiveCounters PNPN
+nested-filter	dealtCombatDamageThisTurn Player
+nested-filter	doesNotShareNameWith Card.token
+nested-filter	doesNotShareNameWith OtherYourBattlefield
+nested-filter	doesNotShareNameWith Remembered
+nested-filter	doesNotShareNameWith Room.YouCtrl
+nested-filter	doesNotShareNameWith YourGraveyard
+nested-filter	hasAbility Activated.Exhaust
+nested-filter	hasAbility Activated.hasTapCost
+nested-filter	hasAbility Activated.otherAbility
+nested-filter	inRealZone Graveyard
+nested-filter	kicked N
+nested-filter	numTargets EQN
+nested-filter	sharesCardTypeWith EachTopLibrary
+nested-filter	sharesCardTypeWith Exiled
+nested-filter	sharesCardTypeWith Imprinted
+nested-filter	sharesCardTypeWith Imprinted.ExiledWithSource
+nested-filter	sharesCardTypeWith Remembered
+nested-filter	sharesCardTypeWith RememberedLKI
+nested-filter	sharesCardTypeWith ReplacedSource
+nested-filter	sharesCardTypeWith Targeted
+nested-filter	sharesCardTypeWith TriggeredCard
+nested-filter	sharesCardTypeWith TriggeredCardLKICopy
+nested-filter	sharesCardTypeWith ValidExile Card.ExiledWithSource
+nested-filter	sharesCreatureTypeWith Equipped
+nested-filter	sharesCreatureTypeWith Remembered
+nested-filter	sharesCreatureTypeWith Sacrificed
+nested-filter	sharesCreatureTypeWith TriggeredCardLKICopy
+nested-filter	sharesCreatureTypeWith Valid Creature.YouCtrl
+nested-filter	sharesCreatureTypeWithAll Tapped
+nested-filter	sharesNameWith Battlefield
+nested-filter	sharesNameWith ChosenCard
+nested-filter	sharesNameWith ExiledWith
+nested-filter	sharesNameWith Imprinted
+nested-filter	sharesNameWith NonToken
+nested-filter	sharesNameWith Remembered
+nested-filter	sharesNameWith Remembered.ExiledWithSource
+nested-filter	sharesNameWith Sacrificed
+nested-filter	sharesNameWith ThisTurnCast
+nested-filter	sharesNameWith TriggeredCard
+nested-filter	sharesNameWith Valid Creature.YouCtrl
+nested-filter	sharesNameWith ValidExile Card.ExiledWithSource
+nested-filter	sharesNameWith YourGraveyard
+nested-filter	sharesOwnerWith TriggeredCard
+nested-filter	stickeredWith Art
+nested-filter	stickeredWith Name
+nested-filter	stickeredWith PT
+nested-filter	wasDealtCombatDamageThisTurnBySourceTimes EQN
+nested-filter	wasDealtDamageThisGameBy Self
+nested-filter	wasDealtDamageThisTurnBySource GEN
+unknown-counter	counters_EQN_BLAZE
+unknown-counter	counters_EQN_Contract
+unknown-counter	counters_EQN_FADE
+unknown-counter	counters_EQN_Flying
+unknown-counter	counters_EQN_INTERVENTION
+unknown-counter	counters_EQN_Indestructible
+unknown-counter	counters_EQN_MINING
+unknown-counter	counters_EQN_ODOR
+unknown-counter	counters_EQN_ROPE
+unknown-counter	counters_EQN_SHELL
+unknown-counter	counters_EQN_TASK
+unknown-counter	counters_GEN_AEGIS
+unknown-counter	counters_GEN_ARROWHEAD
+unknown-counter	counters_GEN_BLOODLINE
+unknown-counter	counters_GEN_BLOODSTAIN
+unknown-counter	counters_GEN_BRIBERY
+unknown-counter	counters_GEN_CHORUS
+unknown-counter	counters_GEN_COIN
+unknown-counter	counters_GEN_CONQUEROR
+unknown-counter	counters_GEN_CROAK
+unknown-counter	counters_GEN_DREAM
+unknown-counter	counters_GEN_EVERYTHING
+unknown-counter	counters_GEN_FIRE
+unknown-counter	counters_GEN_FLAME
+unknown-counter	counters_GEN_GLASS
+unknown-counter	counters_GEN_GOLD
+unknown-counter	counters_GEN_HATCHING
+unknown-counter	counters_GEN_HATCHLING
+unknown-counter	counters_GEN_HOURGLASS
+unknown-counter	counters_GEN_HUNGER
+unknown-counter	counters_GEN_IMPOSTOR
+unknown-counter	counters_GEN_INCARNATION
+unknown-counter	counters_GEN_INFECTION
+unknown-counter	counters_GEN_INTEL
+unknown-counter	counters_GEN_INVITATION
+unknown-counter	counters_GEN_KICK
+unknown-counter	counters_GEN_MEMORY
+unknown-counter	counters_GEN_MINE
+unknown-counter	counters_GEN_PEACE
+unknown-counter	counters_GEN_PHYLACTERY
+unknown-counter	counters_GEN_PLAGUE
+unknown-counter	counters_GEN_POINT
+unknown-counter	counters_GEN_PREY
+unknown-counter	counters_GEN_PUPA
+unknown-counter	counters_GEN_REJECTION
+unknown-counter	counters_GEN_RELEASE
+unknown-counter	counters_GEN_REVIVAL
+unknown-counter	counters_GEN_RIBBON
+unknown-counter	counters_GEN_SILVER
+unknown-counter	counters_GEN_SLEEP
+unknown-counter	counters_GEN_SLUMBER
+unknown-counter	counters_GEN_STASH
+unknown-counter	counters_GEN_STUDY
+unknown-counter	counters_GEN_TOWER
+unknown-counter	counters_GEN_UNLOCK
+unknown-counter	counters_GEN_VELOCITY
+unknown-counter	counters_GEN_WIND
+unknown-counter	counters_GEN_WRECK
+unknown-keyword	!hasKeywordLandwalk:Island
+unknown-keyword	hasKeywordEnchant:Creature
+unknown-keyword	hasKeywordLandwalk:Island
+unknown-keyword	withDisguise
+unknown-keyword	withDoctor's companion
+unknown-keyword	withLowestLife
+unknown-keyword	withMoreLandsThanYou
+unknown-keyword	withMostPermanentInPlay
+unknown-keyword	withTypeCycling
+unknown-keyword	withoutAt the beginning of your upkeep
+unknown-predicate	!AllColors
+unknown-predicate	!BottomLibrary
+unknown-predicate	!CardOwner
+unknown-predicate	!CastSaSource
+unknown-predicate	!FullyUnlocked
+unknown-predicate	!IsRenowned
+unknown-predicate	!IsSolved
+unknown-predicate	!blockedThisTurn
+unknown-predicate	!copiedSpell
+unknown-predicate	!dealtCombatDamagetoAny
+unknown-predicate	!dealtDamagetoAny
+unknown-predicate	!equalPT
+unknown-predicate	!firstTurnControlled
+unknown-predicate	!hasManaAbility
+unknown-predicate	!inZoneBattlefield
+unknown-predicate	!numColorsEQN
+unknown-predicate	!targetedBy
+unknown-predicate	!wasCastFromHand
+unknown-predicate	!wasCastFromTheirHand
+unknown-predicate	Above
+unknown-predicate	Active
+unknown-predicate	AdventureCard
+unknown-predicate	AllColors
+unknown-predicate	AnyChosenColor
+unknown-predicate	Attached
+unknown-predicate	BlackSource
+unknown-predicate	BlueSource
+unknown-predicate	BorderColorBlack
+unknown-predicate	BorderColorSilver
+unknown-predicate	BorderColorWhite
+unknown-predicate	BottomGraveyard
+unknown-predicate	BottomLibrary
+unknown-predicate	BottomLibrary_Creature
+unknown-predicate	CanEnchantEquippedBy
+unknown-predicate	CanEnchantRemembered
+unknown-predicate	CanEnchantSource
+unknown-predicate	CanPayManaCost
+unknown-predicate	ControllerControlsAtLeastAsManyLand
+unknown-predicate	ControllerControlsIsland
+unknown-predicate	ControllerControlsLand_LEN
+unknown-predicate	ControllerControlsMoreLand
+unknown-predicate	CostsHybridMana
+unknown-predicate	CostsPhyrexianMana
+unknown-predicate	CrewedBySourceThisTurn
+unknown-predicate	CrewedThisTurn
+unknown-predicate	Damaged
+unknown-predicate	DamagedBy
+unknown-predicate	DamagedByGiant.YouCtrl;Wizard.YouCtrl;Spell.YouCtrl
+unknown-predicate	DamagedBySpider.YouCtrl
+unknown-predicate	DefendingPlayerCtrl
+unknown-predicate	DirectlyAbove
+unknown-predicate	DiscardedThisTurn
+unknown-predicate	DoubleFaced
+unknown-predicate	DrawnThisTurn
+unknown-predicate	EnchantedPlayerCtr
+unknown-predicate	EnchantedPlayerCtrl
+unknown-predicate	EnteredSinceYourLastTurn
+unknown-predicate	EquippedByTargeted
+unknown-predicate	ExiledByYou
+unknown-predicate	ExiledWithSourceLKI
+unknown-predicate	FortifiedBy
+unknown-predicate	FoughtThisTurn
+unknown-predicate	GreenSource
+unknown-predicate	HasDevoured
+unknown-predicate	HauntedBy
+unknown-predicate	IsGoaded
+unknown-predicate	IsMonstrous
+unknown-predicate	IsNotChosenType
+unknown-predicate	IsRenowned
+unknown-predicate	IsRingbearer
+unknown-predicate	IsSaddled
+unknown-predicate	IsSolved
+unknown-predicate	IsSuspected
+unknown-predicate	IsUnearthed
+unknown-predicate	LostLifeThisTurn
+unknown-predicate	ManaCost=Equipped
+unknown-predicate	ManaCost=Imprinted
+unknown-predicate	ManaCostN
+unknown-predicate	ManaCostPartialBlue
+unknown-predicate	NameNotEnchantingEnchantedPlayer
+unknown-predicate	NoAbilities
+unknown-predicate	NotDefinedParentTarget
+unknown-predicate	NotDefinedReplacedSimultaneousETB
+unknown-predicate	NotDefinedTargeted
+unknown-predicate	NotDefinedTriggeredTarget
+unknown-predicate	NotedColor
+unknown-predicate	NotedForArcaneSavant
+unknown-predicate	NotedForGreenAnchor
+unknown-predicate	NotedGuessPhantasm
+unknown-predicate	NotedNameAetherSearcher
+unknown-predicate	NotedNameNobleBanneret
+unknown-predicate	NotedNameSmugglerCaptain
+unknown-predicate	NotedType
+unknown-predicate	NotedTypes
+unknown-predicate	OppProtect
+unknown-predicate	OpponentToActive
+unknown-predicate	Other.YouOwn
+unknown-predicate	OwnerDoesntControl
+unknown-predicate	Party
+unknown-predicate	Permanent
+unknown-predicate	PromisedGift
+unknown-predicate	RedSource
+unknown-predicate	RememberedPlayerCtrl
+unknown-predicate	RememberedPlayerOwn
+unknown-predicate	SaddledThisTurn
+unknown-predicate	SecondSpellCastThisTurn
+unknown-predicate	SharesColorWith
+unknown-predicate	Teamwork
+unknown-predicate	ThisTurnCast
+unknown-predicate	ThisTurnEnteredYourHand
+unknown-predicate	TopGraveyard
+unknown-predicate	TopGraveyardCreature
+unknown-predicate	TopGraveyardN
+unknown-predicate	Transformed
+unknown-predicate	WhiteSource
+unknown-predicate	Worthy
+unknown-predicate	YourTeamCtrl
+unknown-predicate	activated
+unknown-predicate	attackedBattleThisTurn
+unknown-predicate	attackedLastTurn
+unknown-predicate	attackedThisCombat
+unknown-predicate	attackedWithCreaturesThisTurn
+unknown-predicate	attackedYouTheirLastTurn
+unknown-predicate	attackedYouThisTurn
+unknown-predicate	attackersBandedWith
+unknown-predicate	attackingAlone
+unknown-predicate	attackingSame
+unknown-predicate	attackingYouOrYourPW
+unknown-predicate	bargained
+unknown-predicate	basePowerEQN
+unknown-predicate	blockedByRemembered
+unknown-predicate	blockedBySourceLKI
+unknown-predicate	blockedBySourceThisTurn
+unknown-predicate	blockedByThisTurn
+unknown-predicate	blockedOrBeenBlockedSinceYourLastUpkeep
+unknown-predicate	blockedRemembered
+unknown-predicate	blockedThisTurn
+unknown-predicate	blockingCreatureYouCtrl
+unknown-predicate	blockingEnchanted
+unknown-predicate	blockingEquipped
+unknown-predicate	blockingRemembered
+unknown-predicate	blockingSelf
+unknown-predicate	canBeTurnedFaceUp
+unknown-predicate	classLevel_EQN
+unknown-predicate	cmcChosenEvenOdd
+unknown-predicate	cmcEven
+unknown-predicate	cmcMN
+unknown-predicate	cmcNotChosenEvenOdd
+unknown-predicate	cmcOdd
+unknown-predicate	controlsLand.counters\_GEN\_CONTESTED
+unknown-predicate	couldAttackButNotAttacking
+unknown-predicate	countersReceivedThisTurn_GEN_PNPN_You
+unknown-predicate	dealtCombatDamageThisCombat
+unknown-predicate	dealtDamageThisTurn
+unknown-predicate	dealtDamageToOppThisTurn
+unknown-predicate	dealtDamageToYouThisTurn
+unknown-predicate	dealtDamagetoAny
+unknown-predicate	enlistedThisCombat
+unknown-predicate	equalPT
+unknown-predicate	equipping
+unknown-predicate	escaped
+unknown-predicate	exploited
+unknown-predicate	gotBlockedThisTurn
+unknown-predicate	greatestCMC_Creature
+unknown-predicate	greatestPower
+unknown-predicate	greatestPowerControlledByTargeted
+unknown-predicate	greatestPowerControlledByYou
+unknown-predicate	greatestRememberedCMC
+unknown-predicate	hadToAttackThisCombat
+unknown-predicate	harnessed
+unknown-predicate	hasABasicLandType
+unknown-predicate	hasANonBasicLandType
+unknown-predicate	hasManaAbility
+unknown-predicate	hasNonManaActivatedAbility
+unknown-predicate	inRealZoneBattlefield
+unknown-predicate	inRealZoneGraveyard
+unknown-predicate	isDamaged
+unknown-predicate	leastPower
+unknown-predicate	lowestCMC
+unknown-predicate	lowestRememberedCMC
+unknown-predicate	madness
+unknown-predicate	milledThisTurn
+unknown-predicate	nonCopiedSpell
+unknown-predicate	notExertedThisTurn
+unknown-predicate	notTributed
+unknown-predicate	numColorsEQN
+unknown-predicate	numColorsEQX
+unknown-predicate	numTypesGEN
+unknown-predicate	phasedOutOther
+unknown-predicate	phasedOutPermanent
+unknown-predicate	phasedOutSelf
+unknown-predicate	powerEven
+unknown-predicate	powerNOTbasePower
+unknown-predicate	powerOdd
+unknown-predicate	prepared
+unknown-predicate	prowled
+unknown-predicate	setARN
+unknown-predicate	setATQ
+unknown-predicate	setHML
+unknown-predicate	setWAR
+unknown-predicate	sharesBlockingAssignmentWith
+unknown-predicate	sharesCreatureTypeWith
+unknown-predicate	sneaked
+unknown-predicate	spectacle
+unknown-predicate	startedTheTurnUntapped
+unknown-predicate	stickered
+unknown-predicate	surged
+unknown-predicate	surveilledThisTurn
+unknown-predicate	targetedBy
+unknown-predicate	totalPT_EQX
+unknown-predicate	totalPT_GEN
+unknown-predicate	totalPT_LEN
+unknown-predicate	turnedFaceUpThisTurn
+unknown-predicate	wasCastFromCommand
+unknown-predicate	wasCastFromGraveyardByYou
+unknown-predicate	wasCastFromHand
+unknown-predicate	wasCastFromTheirHand
+unknown-predicate	wasCastFromYourGraveyardByYou
+unknown-predicate	wasCastFromYourLibrary
+unknown-predicate	wasDealtCombatDamageThisTurnBySource
+unknown-predicate	wasDealtDamageByThisGame
+unknown-predicate	wasDealtDamageThisTurnBySource
+unknown-predicate	wasDealtExcessDamageThisTurn
+unknown-predicate	webSlinged
+unknown-word	!Ongoing
+unknown-word	Ability
+unknown-word	Affinity
+unknown-word	Boon
+unknown-word	LandAbility
+unknown-word	LessPowerThanBlocker
+unknown-word	Nautilid
