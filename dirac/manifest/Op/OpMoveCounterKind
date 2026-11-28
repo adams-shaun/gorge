@@ -1,0 +1,9 @@
+family: Op
+name: OpMoveCounterKind
+value: next
+approval: agent dk-burn-04-movecounter-any brief, design (Any): a real kind pick gorge poses when the origin holds more than one kind; no existing op asks a counter kind (OpMoveCounter names one, OpMoveCounterAny asks an amount of a named kind)
+census: other:MoveCounter CounterType "_"
+state: code 0
+status: active
+ticket: dk-burn-04-movecounter-any
+doc: the origin's controller chooses one counter kind among the kinds the battlefield permanent in Ref C holds (gorge's "move_counter_kind" KChoose, posed only with more than one kind; a lone kind is taken unasked, nothing moves with none) and A counters of that kind leave it for the destination Obj (gorge effMoveCounter's CounterType$ Any, CR 122.5; Nesting Grounds' "move a counter from target permanent you control onto another target permanent"). dirac/ctr_movekind.go.
