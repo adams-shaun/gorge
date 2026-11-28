@@ -154,6 +154,9 @@ func (s *State) matchSourceCard(k *prep, f kop.FilterID, c CardID, owner, ctrl u
 		if fl.Flags&kop.FSelf != 0 {
 			continue
 		}
+		if (fl.Colors != 0 || fl.Types != 0) && s.emblemSrc(k, c) {
+			continue // an emblem has no colour or type (CR 114.3; src_emblem.go)
+		}
 		if s.matchCardOneAt(k, fl, c, owner, ctrl, NoObj, ctx, false) {
 			return true
 		}

@@ -318,7 +318,7 @@ func (s *State) protChosenHit(k *prep, host, srcSl Slot, srcCard CardID) bool {
 	if srcSl != NoSlot && s.occ.has(srcSl) {
 		return s.colorsGen(k, srcSl)&(kop.ColW<<ch) != 0
 	}
-	return k.t.Cards[srcCard].Colors&(kop.ColW<<ch) != 0
+	return s.srcColors(k, NoSlot, srcCard)&(kop.ColW<<ch) != 0 // an emblem source has none (src_emblem.go)
 }
 
 // prepProtGrant arms the granted-protection reads (genPrep.anyProtGrant

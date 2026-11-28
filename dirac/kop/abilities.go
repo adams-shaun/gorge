@@ -151,6 +151,13 @@ type Ability struct {
 	// AddTrigger$ grants: CardDef.AtkFace places it (kw_melee.go). A table
 	// byte: AbilityFlags has no free bit.
 	MeleeGrant bool
+	// EmblemSrc: the triggered ability of an emblem (an api:Effect whose Name$
+	// begins "Emblem", CR 114), not of a timed Effect stored as one. As it
+	// resolves its source is the emblem, which has no characteristics
+	// (CR 114.3; gorge state.Object.EmblemSource): its damage is colourless
+	// and keywordless, not the creating card's (dirac/src_emblem.go). A table
+	// byte: AbilityFlags has no free bit.
+	EmblemSrc bool
 	// ManaEach: the mana ability adds ManaN mana of EACH colour in ManaColors
 	// at once (Produced$ "W U", Timeless Lotus's {W}{U}{B}{R}{G}; CR 106.1),
 	// not one of them. A table byte: AbilityFlags has no free bit.
